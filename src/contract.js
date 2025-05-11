@@ -1,14 +1,8 @@
-// src/contract.js
-import web3 from './web3';
+import web3 from "./web3";
+// import ABI dari folder abis
+import RekamMedis from "./abis/RekamMedis.json";
 
-// ABI dan alamat kontrak yang telah dideploy dari Ganache atau Rinkeby
-const abi = [
-    // ABI yang didapatkan setelah kompilasi dan deploy kontrak
-];
-
-const address = process.env.REACT_APP_CONTRACT_ADDRESS;  // Alamat kontrak dari .env
-
-// Membuat instance kontrak
-const contract = new web3.eth.Contract(abi, address);
+const address = "0x5e457f9Dc4024Fa256156ddF8c036Aa9c9646bfB";
+const contract = new web3.eth.Contract(RekamMedis.abi, address);
 
 export default contract;

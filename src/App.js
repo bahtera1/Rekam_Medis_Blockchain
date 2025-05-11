@@ -1,91 +1,78 @@
 // src/App.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import web3 from "./web3";
 import contract from "./contract";
 
+// Import halaman terpisah
+import AdminPage from "./admin/AdminPage.jsx";
+import DoctorPage from "./dokter/DokterPage.jsx";
+import PatientPage from "./pasien/PasienPage.jsx";
+
 function App() {
   const [account, setAccount] = useState("");
-  const [nama, setNama] = useState("");
-  const [umur, setUmur] = useState("");
-  const [diagnosa, setDiagnosa] = useState("");
+  const [role, setRole] = useState("");
 
-  // Fungsi untuk login dengan MetaMask
+  // Login dan ambil role dari smart contract
   const loginWithMetaMask = async () => {
     if (window.ethereum) {
       try {
-        // Meminta akses ke wallet
-        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-        setAccount(accounts[0]);
-        console.log("Connected account:", accounts[0]);
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        const accounts = await web3.eth.getAccounts();
+        const active = accounts[0];
+        setAccount(active);
 
-        // Cek jika wallet terhubung ke jaringan yang benar
-        const networkId = await web3.eth.net.getId();
-        console.log("Network ID:", networkId);
+        // Memanggil kontrak untuk mendapatkan role
+        const userRole = await contract.methods.getUserRole(active).call();
+        setRole(userRole);
 
-        // Optionally, check if the network is correct, e.g., Rinkeby, Ganache, etc.
-        // You can add more checks here depending on the network you're working with.
+        console.log("Connected account:", active);
+        console.log("User role:", userRole);
       } catch (err) {
-        console.log("User denied account access or error:", err);
+        console.error("Error connecting wallet:", err);
       }
     } else {
-      console.log("MetaMask is not installed!");
+      alert("MetaMask tidak terdeteksi. Silakan pasang MetaMask dan coba lagi.");
     }
   };
 
-  // Fungsi untuk menambahkan rekam medis
-  const addRecord = async () => {
-    if (!account) {
-      console.log("Please connect your MetaMask wallet first.");
-      return;
-    }
-
+  // Daftarkan user dengan role tertentu (Admin saja)
+  const registerRole = async (address, newRole) => {
     try {
-      // Meminta akun dari MetaMask
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      const fromAddress = accounts[0];
-
-      // Memanggil fungsi tambahRekamMedis dari kontrak
-      await contract.methods
-        .tambahRekamMedis(fromAddress, nama, umur, diagnosa)
-        .send({ from: fromAddress })
-        .on("transactionHash", (hash) => {
-          console.log("Transaction Hash:", hash);
-        })
-        .on("receipt", (receipt) => {
-          console.log("Transaction Receipt:", receipt);
-        })
-        .on("error", (error) => {
-          console.log("Error:", error);
-        });
-
-      console.log("Rekam medis berhasil ditambahkan!");
+      if (newRole === "Dokter") {
+        await contract.methods.registerDokter(address)
+          .send({ from: account });
+      } else if (newRole === "Pasien") {
+        await contract.methods.registerPasien(address)
+          .send({ from: account });
+      }
+      alert(`Alamat ${address} berhasil didaftarkan sebagai ${newRole}`);
     } catch (err) {
-      console.log("Error adding record:", err);
+      console.error("Error registering role:", err);
     }
   };
 
   return (
     <div className="App">
       <h1>Rekam Medis Blockchain</h1>
-      {account ? (
-        <div>
-          <h2>Connected Account: {account}</h2>
-          <div>
-            <label>Nama:</label>
-            <input type="text" value={nama} onChange={(e) => setNama(e.target.value)} />
-          </div>
-          <div>
-            <label>Umur:</label>
-            <input type="number" value={umur} onChange={(e) => setUmur(e.target.value)} />
-          </div>
-          <div>
-            <label>Diagnosa:</label>
-            <input type="text" value={diagnosa} onChange={(e) => setDiagnosa(e.target.value)} />
-          </div>
-          <button onClick={addRecord}>Tambah Rekam Medis</button>
-        </div>
-      ) : (
+
+      {!account ? (
         <button onClick={loginWithMetaMask}>Login with MetaMask</button>
+      ) : (
+        <div>
+          <p>Account: <strong>{account}</strong></p>
+          <p>Role: <strong>{role}</strong></p>
+
+          {role === "Admin" && (
+            <AdminPage
+              account={account}
+              onRegister={registerRole}
+            />
+          )}
+
+          {role === "Dokter" && <DoctorPage />}
+
+          {role === "Pasien" && <PatientPage />}
+        </div>
       )}
     </div>
   );
