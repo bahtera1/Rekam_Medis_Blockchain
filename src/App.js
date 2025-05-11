@@ -1,5 +1,6 @@
 // src/App.js
 import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"; //
 import web3 from "./web3";
 import contract from "./contract";
 
@@ -52,29 +53,41 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <h1>Rekam Medis Blockchain</h1>
+    <Router>
+      <div className="App">
+        <h1>Rekam Medis Blockchain</h1>
 
-      {!account ? (
-        <button onClick={loginWithMetaMask}>Login with MetaMask</button>
-      ) : (
-        <div>
-          <p>Account: <strong>{account}</strong></p>
-          <p>Role: <strong>{role}</strong></p>
+        {!account ? (
+          <button onClick={loginWithMetaMask}>Login with MetaMask</button>
+        ) : (
+          <div>
+            <p>Account: <strong>{account}</strong></p>
+            <p>Role: <strong>{role}</strong></p>
 
-          {role === "Admin" && (
-            <AdminPage
-              account={account}
-              onRegister={registerRole}
-            />
-          )}
+            {/* Routing berdasarkan role */}
+            <Routes>
+              {/* Jika role adalah Admin */}
+              {role === "Admin" && (
+                <Route path="/admin" element={<AdminPage account={account} onRegister={registerRole} />} />
+              )}
 
-          {role === "Dokter" && <DoctorPage />}
+              {/* Jika role adalah Dokter */}
+              {role === "Dokter" && (
+                <Route path="/dokter" element={<DoctorPage />} />
+              )}
 
-          {role === "Pasien" && <PatientPage />}
-        </div>
-      )}
-    </div>
+              {/* Jika role adalah Pasien */}
+              {role === "Pasien" && (
+                <Route path="/pasien" element={<PatientPage />} />
+              )}
+
+              {/* Jika belum login, arahkan ke halaman login */}
+              <Route path="/" element={<Navigate to="/" />} />
+            </Routes>
+          </div>
+        )}
+      </div>
+    </Router>
   );
 }
 
