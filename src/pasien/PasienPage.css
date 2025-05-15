@@ -1,76 +1,113 @@
 /* src/pasien/PasienPage.css */
 
-div {
-    max-width: 480px;
+.patient-page {
+    max-width: 700px;
     margin: 20px auto;
-    padding: 16px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: #fafafa;
-    font-family: Arial, sans-serif;
-}
-
-h2 {
-    text-align: center;
-    margin-bottom: 24px;
+    padding: 24px;
+    background-color: #f9fafb;
+    border-radius: 10px;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     color: #2c3e50;
 }
 
-label {
-    font-weight: 600;
-    display: block;
-    margin-bottom: 6px;
+.patient-page h2,
+.patient-page h3 {
+    text-align: center;
     color: #34495e;
+    margin-bottom: 20px;
 }
 
-input[type="text"],
-input[type="number"],
-input[type="date"],
-input[type="tel"],
-input[type="email"],
-select,
-textarea {
+.patient-page label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #3b4a61;
+}
+
+.patient-page input[type="text"],
+.patient-page input[type="number"],
+.patient-page input[type="date"],
+.patient-page input[type="email"],
+.patient-page input[type="tel"],
+.patient-page select,
+.patient-page textarea {
     width: 100%;
-    padding: 8px 12px;
-    margin-bottom: 16px;
-    border: 1px solid #bbb;
-    border-radius: 4px;
-    font-size: 14px;
-    box-sizing: border-box;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    border: 1.8px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: 15px;
     transition: border-color 0.3s ease;
-}
-
-input[type="text"]:focus,
-input[type="number"]:focus,
-input[type="date"]:focus,
-input[type="tel"]:focus,
-input[type="email"]:focus,
-select:focus,
-textarea:focus {
-    border-color: #3498db;
-    outline: none;
     background-color: #fff;
-}
-
-textarea {
+    box-sizing: border-box;
     resize: vertical;
-    min-height: 80px;
 }
 
-button {
+.patient-page input[type="text"]:focus,
+.patient-page input[type="number"]:focus,
+.patient-page input[type="date"]:focus,
+.patient-page input[type="email"]:focus,
+.patient-page input[type="tel"]:focus,
+.patient-page select:focus,
+.patient-page textarea:focus {
+    outline: none;
+    border-color: #4a90e2;
+    background-color: #f0f6ff;
+}
+
+.patient-page button {
     display: block;
     width: 100%;
-    padding: 12px;
-    background-color: #3498db;
-    border: none;
-    border-radius: 6px;
+    padding: 14px 0;
+    background-color: #4a90e2;
     color: white;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
+    border: none;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.25s ease;
+    margin-top: 10px;
 }
 
-button:hover {
-    background-color: #2980b9;
+.patient-page button:hover {
+    background-color: #357abd;
+}
+
+.data-diri p {
+    font-size: 16px;
+    margin: 6px 0;
+    padding: 6px 12px;
+    background-color: #e9f1ff;
+    border-left: 4px solid #4a90e2;
+    border-radius: 4px;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 30px;
+}
+
+.history-table th,
+.history-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #d1d5db;
+    font-size: 15px;
+}
+
+.history-table thead {
+    background-color: #4a90e2;
+    color: white;
+    font-weight: 600;
+}
+
+.history-table tbody tr:hover {
+    background-color: #f1f5f9;
+}
+
+.history-table td {
+    vertical-align: middle;
 }
