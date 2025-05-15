@@ -3,7 +3,9 @@ import React from 'react';
 export default function DokterPage() {
     return (
         <div>
-            {/* Halaman Dokter */}
+            <h1>tes DokterPage
+
+            </h1>
         </div>
     );
 }

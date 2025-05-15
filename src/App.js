@@ -1,10 +1,8 @@
-// src/App.js
-import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"; //
+import React, { useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import web3 from "./web3";
 import contract from "./contract";
 
-// Import halaman terpisah
 import AdminPage from "./admin/AdminPage.jsx";
 import DoctorPage from "./dokter/DokterPage.jsx";
 import PatientPage from "./pasien/PasienPage.jsx";
@@ -13,7 +11,6 @@ function App() {
   const [account, setAccount] = useState("");
   const [role, setRole] = useState("");
 
-  // Login dan ambil role dari smart contract
   const loginWithMetaMask = async () => {
     if (window.ethereum) {
       try {
@@ -22,12 +19,15 @@ function App() {
         const active = accounts[0];
         setAccount(active);
 
-        // Memanggil kontrak untuk mendapatkan role
-        const userRole = await contract.methods.getUserRole(active).call();
-        setRole(userRole);
+        let userRole = await contract.methods.getUserRole(active).call();
 
-        console.log("Connected account:", active);
-        console.log("User role:", userRole);
+        if (userRole === "Unknown") {
+          await contract.methods.selfRegisterPasien().send({ from: active });
+          userRole = await contract.methods.getUserRole(active).call();
+          alert("Anda telah terdaftar sebagai Pasien otomatis.");
+        }
+
+        setRole(userRole);
       } catch (err) {
         console.error("Error connecting wallet:", err);
       }
@@ -36,19 +36,30 @@ function App() {
     }
   };
 
-  // Daftarkan user dengan role tertentu (Admin saja)
   const registerRole = async (address, newRole) => {
     try {
       if (newRole === "Dokter") {
-        await contract.methods.registerDokter(address)
-          .send({ from: account });
+        await contract.methods.registerDokter(address).send({ from: account });
       } else if (newRole === "Pasien") {
-        await contract.methods.registerPasien(address)
-          .send({ from: account });
+        await contract.methods.registerPasien(address).send({ from: account });
       }
       alert(`Alamat ${address} berhasil didaftarkan sebagai ${newRole}`);
     } catch (err) {
       console.error("Error registering role:", err);
+    }
+  };
+
+  // Tentukan route tujuan berdasarkan role
+  const getRedirectPath = (role) => {
+    switch (role) {
+      case "Admin":
+        return "/admin";
+      case "Dokter":
+        return "/dokter";
+      case "Pasien":
+        return "/pasien";
+      default:
+        return "/";
     }
   };
 
@@ -60,31 +71,22 @@ function App() {
         {!account ? (
           <button onClick={loginWithMetaMask}>Login with MetaMask</button>
         ) : (
-          <div>
+          <>
             <p>Account: <strong>{account}</strong></p>
             <p>Role: <strong>{role}</strong></p>
 
-            {/* Routing berdasarkan role */}
             <Routes>
-              {/* Jika role adalah Admin */}
-              {role === "Admin" && (
-                <Route path="/admin" element={<AdminPage account={account} onRegister={registerRole} />} />
-              )}
+              {/* Route default: redirect ke halaman sesuai role */}
+              <Route path="/" element={<Navigate to={getRedirectPath(role)} replace />} />
 
-              {/* Jika role adalah Dokter */}
-              {role === "Dokter" && (
-                <Route path="/dokter" element={<DoctorPage />} />
-              )}
+              <Route path="/admin" element={role === "Admin" ? <AdminPage account={account} onRegister={registerRole} /> : <Navigate to="/" replace />} />
+              <Route path="/dokter" element={role === "Dokter" ? <DoctorPage /> : <Navigate to="/" replace />} />
+              <Route path="/pasien" element={role === "Pasien" ? <PatientPage /> : <Navigate to="/" replace />} />
 
-              {/* Jika role adalah Pasien */}
-              {role === "Pasien" && (
-                <Route path="/pasien" element={<PatientPage />} />
-              )}
-
-              {/* Jika belum login, arahkan ke halaman login */}
-              <Route path="/" element={<Navigate to="/" />} />
+              {/* Optional: route fallback jika route tidak ditemukan */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </div>
+          </>
         )}
       </div>
     </Router>
