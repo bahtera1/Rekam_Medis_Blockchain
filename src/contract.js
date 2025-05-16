@@ -2,7 +2,7 @@ import web3 from "./web3";
 // import ABI dari folder abis
 import RekamMedis from "./abis/RekamMedis.json";
 
-const address = "0xc56C9b701a73e60d0cBCb9777Ce1D95D124fC5D5";
+const address = "0x4Fe13A99DffEc4FF9905E75450Ba3c3d4bdD2468";
 const contract = new web3.eth.Contract(RekamMedis.abi, address);
 
 export default contract;

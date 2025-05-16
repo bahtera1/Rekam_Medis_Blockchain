@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import contract from "../contract";
 import "./AdminPage.css";
 
-
 export default function AdminPage({ account }) {
     const [dokterAddress, setDokterAddress] = useState("");
     const [dokterNama, setDokterNama] = useState("");
@@ -10,8 +9,9 @@ export default function AdminPage({ account }) {
     const [pasienAddress, setPasienAddress] = useState("");
     const [selectedDokter, setSelectedDokter] = useState("");
     const [loading, setLoading] = useState(false);
+    const [listPasien, setListPasien] = useState([]);
 
-    // Fungsi ambil daftar dokter
+    // Ambil daftar dokter
     const fetchDokterList = async () => {
         try {
             const total = await contract.methods.totalDokter().call();
@@ -21,11 +21,10 @@ export default function AdminPage({ account }) {
                 const result = await contract.methods.getDokter(addr).call();
                 list.push({
                     address: addr,
-                    nama: result.nama,
-                    aktif: result.aktif,
+                    nama: result[0],  // nama
+                    aktif: result[1], // aktif
                 });
             }
-            console.log("Dokter List:", list); // Tambahkan log untuk memeriksa data
             setDokterList(list);
         } catch (err) {
             console.error("Gagal ambil daftar dokter:", err);
@@ -33,36 +32,37 @@ export default function AdminPage({ account }) {
         }
     };
 
+    // Ambil daftar pasien
+    const fetchPasienList = async () => {
+        try {
+            const pasienArray = await contract.methods.getDaftarPasien().call();
+            setListPasien(pasienArray);
+        } catch (err) {
+            console.error("Gagal ambil daftar pasien:", err);
+            alert("Gagal ambil daftar pasien.");
+        }
+    };
 
-
-    // Panggil sekali saat komponen mount
     useEffect(() => {
         fetchDokterList();
+        fetchPasienList();
     }, []);
 
-    // Daftarkan dokter baru dengan loading dan error handling
+    // Daftarkan dokter baru
     const registerDokter = async () => {
         if (!dokterAddress || !dokterNama) {
             alert("Alamat dan nama dokter harus diisi.");
             return;
         }
-
         try {
             setLoading(true);
             await contract.methods
                 .registerDokter(dokterAddress, dokterNama)
-                .send({ from: account })
-                .on("transactionHash", (hash) => {
-                    console.log("Transaction hash:", hash);
-                    // Bisa tampilkan spinner atau progress di UI
-                })
-                .on("receipt", (receipt) => {
-                    console.log("Transaction receipt:", receipt);
-                    alert("Dokter berhasil didaftarkan.");
-                    fetchDokterList(); // refresh daftar dokter setelah sukses
-                    setDokterAddress("");
-                    setDokterNama("");
-                });
+                .send({ from: account });
+            alert("Dokter berhasil didaftarkan.");
+            setDokterAddress("");
+            setDokterNama("");
+            fetchDokterList();
         } catch (err) {
             console.error("Gagal mendaftarkan dokter:", err);
             alert("Dokter gagal didaftarkan.");
@@ -71,7 +71,29 @@ export default function AdminPage({ account }) {
         }
     };
 
-    // Toggle status aktif/nonaktif dokter
+    // Daftarkan pasien baru
+    const registerPasien = async () => {
+        if (!pasienAddress) {
+            alert("Alamat pasien harus diisi.");
+            return;
+        }
+        try {
+            setLoading(true);
+            await contract.methods
+                .registerPasien(pasienAddress)
+                .send({ from: account });
+            alert("Pasien berhasil didaftarkan.");
+            setPasienAddress("");
+            fetchPasienList();
+        } catch (err) {
+            console.error("Gagal mendaftarkan pasien:", err);
+            alert("Pasien gagal didaftarkan.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Toggle status dokter aktif/nonaktif
     const toggleStatusDokter = async (address, currentStatus) => {
         try {
             setLoading(true);
@@ -81,7 +103,7 @@ export default function AdminPage({ account }) {
             alert("Status dokter diperbarui.");
             fetchDokterList();
         } catch (err) {
-            console.error(err);
+            console.error("Gagal update status dokter:", err);
             alert("Gagal update status dokter.");
         } finally {
             setLoading(false);
@@ -103,7 +125,7 @@ export default function AdminPage({ account }) {
             setPasienAddress("");
             setSelectedDokter("");
         } catch (err) {
-            console.error(err);
+            console.error("Gagal assign pasien:", err);
             alert("Gagal assign pasien.");
         } finally {
             setLoading(false);
@@ -111,44 +133,36 @@ export default function AdminPage({ account }) {
     };
 
     return (
-        <div>
+        <div className="admin-container">
             <h2>Admin Panel - Manajemen Dokter</h2>
 
-            <div style={{ marginBottom: "20px" }}>
+            <div className="form-section">
                 <h3>Daftarkan Dokter Baru</h3>
                 <input
                     type="text"
                     placeholder="Alamat Wallet Dokter"
                     value={dokterAddress}
                     onChange={(e) => setDokterAddress(e.target.value)}
-                    style={{ width: "300px" }}
                     disabled={loading}
                 />
-                <br />
                 <input
                     type="text"
                     placeholder="Nama Dokter"
                     value={dokterNama}
                     onChange={(e) => setDokterNama(e.target.value)}
-                    style={{ width: "300px", marginTop: "8px" }}
                     disabled={loading}
                 />
-                <br />
-                <button
-                    onClick={registerDokter}
-                    style={{ marginTop: "8px" }}
-                    disabled={loading}
-                >
+                <button onClick={registerDokter} disabled={loading}>
                     {loading ? "Loading..." : "Daftarkan Dokter"}
                 </button>
             </div>
 
-            <div style={{ marginBottom: "20px" }}>
+            <div className="list-section">
                 <h3>Daftar Dokter</h3>
                 {dokterList.length === 0 ? (
                     <p>Belum ada dokter terdaftar.</p>
                 ) : (
-                    <table border="1" cellPadding="5" cellSpacing="0">
+                    <table>
                         <thead>
                             <tr>
                                 <th>Alamat</th>
@@ -180,12 +194,25 @@ export default function AdminPage({ account }) {
                 )}
             </div>
 
-            <div>
+            <div className="form-section">
+                <h3>Daftarkan Pasien Baru</h3>
+                <input
+                    type="text"
+                    placeholder="Alamat Wallet Pasien"
+                    value={pasienAddress}
+                    onChange={(e) => setPasienAddress(e.target.value)}
+                    disabled={loading}
+                />
+                <button onClick={registerPasien} disabled={loading}>
+                    {loading ? "Loading..." : "Daftarkan Pasien"}
+                </button>
+            </div>
+
+            <div className="form-section">
                 <h3>Assign Pasien ke Dokter</h3>
                 <select
                     value={selectedDokter}
                     onChange={(e) => setSelectedDokter(e.target.value)}
-                    style={{ width: "300px" }}
                     disabled={loading}
                 >
                     <option value="">Pilih Dokter</option>
@@ -195,19 +222,33 @@ export default function AdminPage({ account }) {
                         </option>
                     ))}
                 </select>
-                <br />
-                <input
-                    type="text"
-                    placeholder="Alamat Wallet Pasien"
+
+                <select
                     value={pasienAddress}
                     onChange={(e) => setPasienAddress(e.target.value)}
                     style={{ width: "300px", marginTop: "8px" }}
                     disabled={loading}
-                />
-                <br />
-                <button onClick={assignPasien} style={{ marginTop: "8px" }} disabled={loading}>
-                    {loading ? "Loading..." : "Assign Pasien"}
-                </button>
+                >
+                    <option value="">Pilih Pasien</option>
+                    {listPasien.map((pasien) => (
+                        <option key={pasien} value={pasien}>
+                            {pasien}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="list-section">
+                <h3>Daftar Pasien Terdaftar</h3>
+                {listPasien.length === 0 ? (
+                    <p>Belum ada pasien terdaftar.</p>
+                ) : (
+                    <ul>
+                        {listPasien.map((pasien) => (
+                            <li key={pasien}>{pasien}</li>
+                        ))}
+                    </ul>
+                )}
             </div>
         </div>
     );
