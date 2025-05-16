@@ -66,14 +66,14 @@ function App() {
   return (
     <Router>
       <div className="App">
-        <h1>Rekam Medis Blockchain</h1>
+        {/* <h1>Rekam Medis Blockchain</h1> */}
 
         {!account ? (
           <button onClick={loginWithMetaMask}>Login with MetaMask</button>
         ) : (
           <>
-            <p>Account: <strong>{account}</strong></p>
-            <p>Role: <strong>{role}</strong></p>
+            {/* <p>Account: <strong>{account}</strong></p>
+            <p>Role: <strong>{role}</strong></p> */}
 
             <Routes>
               {/* Route default: redirect ke halaman sesuai role */}
