@@ -1,38 +1,129 @@
+/* Reset hanya untuk elemen dalam .App */
+.App * {
+  box-sizing: border-box;
+}
+
+/* Container utama aplikasi, hanya aktif saat login screen */
 .App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  background: linear-gradient(135deg, #e6f0fa 0%, #ffffff 100%);
+  transition: background-color 0.3s ease;
 }
 
-.App-link {
-  color: #61dafb;
+/* Pastikan .App tidak memengaruhi konten routed pages */
+.App:has(.admin-container),
+.App:has(.dokter-container),
+.App:has(.pasien-container) {
+  background: none;
+  display: block;
+  min-height: auto;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+/* Container untuk login */
+.App .login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.App .login-container:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Tombol Login MetaMask */
+.App .metamask-login {
+  padding: 16px 32px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #3182ce;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* Tambah gap untuk memberi ruang lebih untuk logo */
+  position: relative;
+  overflow: hidden;
+}
+
+.App .metamask-login:hover {
+  background-color: #2b6cb0;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.App .metamask-login:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Efek ripple pada klik */
+.App .metamask-login::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 10px;
+}
+
+.App .metamask-login:active::before {
+  opacity: 1;
+  transform: scale(1.5);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Ikon MetaMask sebagai gambar dari public folder */
+.App .metamask-login::after {
+  content: '';
+  width: 48px;
+  /* Ukuran gambar diperbesar dari 40px ke 48px */
+  height: 48px;
+  /* Ukuran gambar diperbesar dari 40px ke 48px */
+  background-image: url('/public/images/meta.png');
+  background-size: cover;
+  /* Ubah dari contain ke cover agar gambar memenuhi area */
+  background-repeat: no-repeat;
+  margin-left: 8px;
+}
+
+/* Responsif */
+@media (max-width: 600px) {
+  .App .login-container {
+    padding: 16px;
+    width: 90%;
   }
-  to {
-    transform: rotate(360deg);
+
+  .App .metamask-login {
+    padding: 12px 24px;
+    font-size: 1rem;
+    border-radius: 8px;
+  }
+
+  .App .metamask-login::after {
+    width: 36px;
+    /* Ukuran gambar lebih kecil di layar kecil */
+    height: 36px;
+    /* Ukuran gambar lebih kecil di layar kecil */
   }
 }

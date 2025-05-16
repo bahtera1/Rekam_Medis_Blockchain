@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import web3 from "./web3";
 import contract from "./contract";
+import "./App.css"; // Import the CSS file
 
 import AdminPage from "./admin/AdminPage.jsx";
 import DoctorPage from "./dokter/DokterPage.jsx";
@@ -49,7 +50,12 @@ function App() {
     }
   };
 
-  // Tentukan route tujuan berdasarkan role
+  // Fungsi logout: reset akun dan role, kembali ke halaman login
+  const handleLogout = () => {
+    setAccount("");
+    setRole("");
+  };
+
   const getRedirectPath = (role) => {
     switch (role) {
       case "Admin":
@@ -66,27 +72,35 @@ function App() {
   return (
     <Router>
       <div className="App">
-        {/* <h1>Rekam Medis Blockchain</h1> */}
-
         {!account ? (
-          <button onClick={loginWithMetaMask}>Login with MetaMask</button>
+          <div className="login-container">
+            <button className="metamask-login" onClick={loginWithMetaMask}>
+              Login with
+            </button>
+          </div>
         ) : (
-          <>
-            {/* <p>Account: <strong>{account}</strong></p>
-            <p>Role: <strong>{role}</strong></p> */}
-
-            <Routes>
-              {/* Route default: redirect ke halaman sesuai role */}
-              <Route path="/" element={<Navigate to={getRedirectPath(role)} replace />} />
-
-              <Route path="/admin" element={role === "Admin" ? <AdminPage account={account} onRegister={registerRole} /> : <Navigate to="/" replace />} />
-              <Route path="/dokter" element={role === "Dokter" ? <DoctorPage /> : <Navigate to="/" replace />} />
-              <Route path="/pasien" element={role === "Pasien" ? <PatientPage /> : <Navigate to="/" replace />} />
-
-              {/* Optional: route fallback jika route tidak ditemukan */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </>
+          <Routes>
+            <Route path="/" element={<Navigate to={getRedirectPath(role)} replace />} />
+            <Route
+              path="/admin"
+              element={
+                role === "Admin" ? (
+                  <AdminPage account={account} onLogout={handleLogout} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/dokter"
+              element={role === "Dokter" ? <DoctorPage /> : <Navigate to="/" replace />}
+            />
+            <Route
+              path="/pasien"
+              element={role === "Pasien" ? <PatientPage /> : <Navigate to="/" replace />}
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         )}
       </div>
     </Router>

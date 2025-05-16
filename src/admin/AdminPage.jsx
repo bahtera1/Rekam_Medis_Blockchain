@@ -6,7 +6,7 @@ import ManageAssign from "./ManageAssign";
 import AdminSideBar from "./AdminSideBar";
 import "./AdminPage.css";
 
-export default function AdminPage({ account }) {
+export default function AdminPage({ account, onLogout }) {
     const [dokterAddress, setDokterAddress] = useState("");
     const [dokterNama, setDokterNama] = useState("");
     const [dokterList, setDokterList] = useState([]);
@@ -147,7 +147,7 @@ export default function AdminPage({ account }) {
 
     return (
         <div className="admin-container">
-            <AdminSideBar activePage={activePage} setActivePage={setActivePage} />
+            <AdminSideBar activePage={activePage} setActivePage={setActivePage} onLogout={onLogout} />
 
             <div className="main-content">
                 <h2>Admin Panel</h2>
