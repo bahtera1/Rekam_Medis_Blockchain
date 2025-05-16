@@ -27,13 +27,11 @@ export default function PatientPage() {
                 const active = accounts[0];
                 setAccount(active);
 
-                // Ambil semua ID rekam medis pasien
                 const ids = await contract.methods.getRekamMedisIdsByPasien(active).call();
 
                 if (ids.length > 0) {
                     setHasData(true);
 
-                    // Ambil data diri dari rekam medis pertama
                     const rekamDiri = await contract.methods.rekamMedis(ids[0]).call();
                     setDataDiri({
                         nama: rekamDiri.nama,
@@ -43,10 +41,12 @@ export default function PatientPage() {
                         alamat: rekamDiri.alamat,
                         noTelepon: rekamDiri.noTelepon,
                         email: rekamDiri.email,
+                        diagnosa: rekamDiri.diagnosa,
+                        catatan: rekamDiri.catatan,
+                        foto: rekamDiri.foto,
                         valid: rekamDiri.valid,
                     });
 
-                    // Ambil semua rekam medis pasien untuk riwayat
                     const rekamList = await Promise.all(
                         ids.map(id => contract.methods.rekamMedis(id).call())
                     );
@@ -67,6 +67,7 @@ export default function PatientPage() {
         }
         fetchData();
     }, []);
+
 
     const submitData = async () => {
         if (!nama || !umur || !tanggalLahir || !gender || !alamat || !noTelepon || !email) {

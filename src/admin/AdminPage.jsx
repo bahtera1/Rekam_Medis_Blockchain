@@ -208,12 +208,12 @@ export default function AdminPage({ account }) {
                 </button>
             </div>
 
-            <div className="form-section">
+            <div>
                 <h3>Assign Pasien ke Dokter</h3>
+
                 <select
                     value={selectedDokter}
                     onChange={(e) => setSelectedDokter(e.target.value)}
-                    disabled={loading}
                 >
                     <option value="">Pilih Dokter</option>
                     {dokterList.map((dokter) => (
@@ -226,8 +226,6 @@ export default function AdminPage({ account }) {
                 <select
                     value={pasienAddress}
                     onChange={(e) => setPasienAddress(e.target.value)}
-                    style={{ width: "300px", marginTop: "8px" }}
-                    disabled={loading}
                 >
                     <option value="">Pilih Pasien</option>
                     {listPasien.map((pasien) => (
@@ -236,7 +234,12 @@ export default function AdminPage({ account }) {
                         </option>
                     ))}
                 </select>
+
+                <button onClick={assignPasien} style={{ marginLeft: "10px" }}>
+                    Assign Pasien
+                </button>
             </div>
+
 
             <div className="list-section">
                 <h3>Daftar Pasien Terdaftar</h3>
