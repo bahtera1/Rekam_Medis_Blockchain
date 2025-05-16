@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import contract from "../contract";
 import web3 from "../web3";
 import "./PasienPage.css";
+import RekamMedisHistory from "./RekamMedisHistory";
 
 export default function PatientPage() {
     const [account, setAccount] = useState("");
@@ -260,6 +261,10 @@ export default function PatientPage() {
                             )}
                         </tbody>
                     </table>
+                    {/* Tampilkan history versi rekam medis (versi update data) */}
+                    {historyRekamMedis.length > 0 && (
+                        <RekamMedisHistory rekamMedisId={historyRekamMedis[0].id} />
+                    )}
                 </>
             )}
         </div>
