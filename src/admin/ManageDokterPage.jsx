@@ -1,6 +1,26 @@
-import React from "react";
+import React, { useState } from "react";
 
-export default function ManageDokterPage({ dokterList, dokterAddress, dokterNama, loading, setDokterAddress, setDokterNama, registerDokter, toggleStatusDokter }) {
+export default function ManageDokterPage({
+    dokterList,
+    dokterAddress,
+    dokterNama,
+    loading,
+    setDokterAddress,
+    setDokterNama,
+    registerDokter,
+    toggleStatusDokter,
+}) {
+    const [search, setSearch] = useState("");
+
+    // Filter dokter sesuai pencarian (nama atau alamat)
+    const filteredDokter = dokterList.filter((dokter) => {
+        const searchLower = search.toLowerCase();
+        return (
+            (dokter.nama && dokter.nama.toLowerCase().includes(searchLower)) ||
+            (dokter.address && dokter.address.toLowerCase().includes(searchLower))
+        );
+    });
+
     return (
         <div className="form-section">
             <h3>Daftarkan Dokter Baru</h3>
@@ -23,8 +43,15 @@ export default function ManageDokterPage({ dokterList, dokterAddress, dokterNama
             </button>
 
             <h3>Daftar Dokter</h3>
-            {dokterList.length === 0 ? (
-                <p>Belum ada dokter terdaftar.</p>
+            <input
+                type="text"
+                placeholder="Cari dokter..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ marginBottom: "10px", width: "100%", padding: "5px" }}
+            />
+            {filteredDokter.length === 0 ? (
+                <p>Belum ada dokter yang sesuai pencarian.</p>
             ) : (
                 <table>
                     <thead>
@@ -36,7 +63,7 @@ export default function ManageDokterPage({ dokterList, dokterAddress, dokterNama
                         </tr>
                     </thead>
                     <tbody>
-                        {dokterList.map((dokter) => (
+                        {filteredDokter.map((dokter) => (
                             <tr key={dokter.address}>
                                 <td>{dokter.address}</td>
                                 <td>{dokter.nama}</td>

@@ -18,7 +18,7 @@ export default function AdminPage({ account, onLogout }) {
     const [assignedPairs, setAssignedPairs] = useState([]);
     const [activePage, setActivePage] = useState("manageDokter");
 
-    // Ambil daftar dokter
+    // Fetch daftar dokter dari blockchain
     const fetchDokterList = async () => {
         try {
             const total = await contract.methods.totalDokter().call();
@@ -40,7 +40,7 @@ export default function AdminPage({ account, onLogout }) {
         }
     };
 
-    // Ambil daftar pasien dengan nama dari rekam medis pertama
+    // Fetch daftar pasien dengan nama dari rekam medis pertama
     const fetchPasienList = async () => {
         try {
             const pasienArray = await contract.methods.getDaftarPasien().call();
@@ -61,7 +61,7 @@ export default function AdminPage({ account, onLogout }) {
         }
     };
 
-    // Ambil pasangan dokter-pasien
+    // Fetch pasangan dokter-pasien
     const fetchAssignedPairs = async (dokterList) => {
         try {
             let pairs = [];
@@ -159,7 +159,7 @@ export default function AdminPage({ account, onLogout }) {
         }
     };
 
-    // Assign pasien ke dokter (tidak diubah sesuai permintaan)
+    // Assign pasien ke dokter (tidak diubah)
     const assignPasien = async () => {
         if (!selectedDokter || !pasienAddress) {
             alert("Pilih dokter dan masukkan alamat pasien.");

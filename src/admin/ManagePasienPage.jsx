@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 export default function ManagePasienPage({
     pasienAddress,
@@ -9,6 +9,17 @@ export default function ManagePasienPage({
     loading,
     listPasien, // array objek { address, nama }
 }) {
+    const [searchPasien, setSearchPasien] = useState("");
+
+    // Filter pasien berdasar nama atau alamat wallet
+    const filteredPasienList = listPasien.filter((pasien) => {
+        const nama = pasien.nama ? pasien.nama.toLowerCase() : "";
+        const alamat = pasien.address ? pasien.address.toLowerCase() : "";
+        const keyword = searchPasien.toLowerCase();
+
+        return nama.includes(keyword) || alamat.includes(keyword);
+    });
+
     return (
         <div>
             <h3>Daftarkan Pasien Baru</h3>
@@ -31,8 +42,17 @@ export default function ManagePasienPage({
             </button>
 
             <h3>Daftar Pasien Terdaftar</h3>
-            {listPasien.length === 0 ? (
-                <p>Belum ada pasien terdaftar.</p>
+
+            <input
+                type="text"
+                placeholder="Cari pasien berdasarkan nama atau alamat"
+                value={searchPasien}
+                onChange={(e) => setSearchPasien(e.target.value)}
+                style={{ marginBottom: "10px", width: "100%", padding: "8px", borderRadius: "5px", border: "1px solid #ccc" }}
+            />
+
+            {filteredPasienList.length === 0 ? (
+                <p>Pasien tidak ditemukan.</p>
             ) : (
                 <table border="1" cellPadding="5" cellSpacing="0" style={{ width: "100%", marginTop: "10px" }}>
                     <thead style={{ backgroundColor: "#3182ce", color: "white" }}>
@@ -43,9 +63,9 @@ export default function ManagePasienPage({
                         </tr>
                     </thead>
                     <tbody>
-                        {listPasien.map(({ address, nama }, index) => (
+                        {filteredPasienList.map(({ address, nama }, index) => (
                             <tr key={address}>
-                                <td>{index + 1}</td> {/* Nomor urut */}
+                                <td>{index + 1}</td>
                                 <td>{nama || "-"}</td>
                                 <td>{address}</td>
                             </tr>
