@@ -6,6 +6,8 @@ contract RekamMedis {
 
     struct Dokter {
         string nama;
+        string spesialisasi;
+        string nomorLisensi;
         bool aktif;
         address[] assignedPasien;
     }
@@ -51,7 +53,12 @@ contract RekamMedis {
     );
     event RekamMedisDiperbarui(uint id, string diagnosa, string catatan);
     event AdminDitetapkan(address newAdmin);
-    event DokterTerdaftar(address dokter, string nama);
+    event DokterTerdaftar(
+        address dokter,
+        string nama,
+        string spesialisasi,
+        string nomorLisensi
+    );
     event DokterStatusDiubah(address dokter, bool aktif);
     event PasienDiassignKeDokter(address dokter, address pasien);
     event PasienTerdaftar(address pasien);
@@ -96,21 +103,27 @@ contract RekamMedis {
         _;
     }
 
+    // Register dokter baru dengan tambahan spesialisasi dan nomor lisensi
     function registerDokter(
         address _dokter,
-        string memory _nama
+        string memory _nama,
+        string memory _spesialisasi,
+        string memory _nomorLisensi
     ) public hanyaAdmin {
         require(!isDokter[_dokter], "Dokter sudah terdaftar.");
         require(!isPasien[_dokter], "Alamat sudah terdaftar sebagai Pasien.");
         isDokter[_dokter] = true;
         dataDokter[_dokter] = Dokter({
             nama: _nama,
+            spesialisasi: _spesialisasi,
+            nomorLisensi: _nomorLisensi,
             aktif: true,
             assignedPasien: new address[](0)
         });
         daftarDokter.push(_dokter);
-        emit DokterTerdaftar(_dokter, _nama);
+        emit DokterTerdaftar(_dokter, _nama, _spesialisasi, _nomorLisensi);
     }
+
     function totalDokter() public view returns (uint) {
         return daftarDokter.length;
     }
@@ -120,10 +133,25 @@ contract RekamMedis {
         return daftarDokter[index];
     }
 
+    // Set status dokter aktif/nonaktif (tidak perlu ubah spesialisasi dan lisensi di sini)
     function setStatusDokter(address _dokter, bool _aktif) public hanyaAdmin {
         require(isDokter[_dokter], "Dokter tidak terdaftar.");
         dataDokter[_dokter].aktif = _aktif;
         emit DokterStatusDiubah(_dokter, _aktif);
+    }
+
+    // Update data dokter (misal untuk update nama, spesialisasi, atau nomor lisensi)
+    function updateDataDokter(
+        address _dokter,
+        string memory _nama,
+        string memory _spesialisasi,
+        string memory _nomorLisensi
+    ) public hanyaAdmin {
+        require(isDokter[_dokter], "Dokter tidak terdaftar.");
+        dataDokter[_dokter].nama = _nama;
+        dataDokter[_dokter].spesialisasi = _spesialisasi;
+        dataDokter[_dokter].nomorLisensi = _nomorLisensi;
+        // Emit event jika perlu dibuat event update dokter (tidak wajib)
     }
 
     function assignPasienToDokter(
@@ -163,15 +191,28 @@ contract RekamMedis {
         return dataDokter[_dokter].assignedPasien;
     }
 
+    // Get data dokter lengkap termasuk spesialisasi dan nomor lisensi
     function getDokter(
         address _dokter
     )
         public
         view
-        returns (string memory nama, bool aktif, address[] memory pasien)
+        returns (
+            string memory nama,
+            string memory spesialisasi,
+            string memory nomorLisensi,
+            bool aktif,
+            address[] memory pasien
+        )
     {
         Dokter storage d = dataDokter[_dokter];
-        return (d.nama, d.aktif, d.assignedPasien);
+        return (
+            d.nama,
+            d.spesialisasi,
+            d.nomorLisensi,
+            d.aktif,
+            d.assignedPasien
+        );
     }
 
     // Daftarkan pasien oleh admin tanpa menyimpan nama secara terpisah,

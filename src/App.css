@@ -52,7 +52,7 @@
 /* kartu kanan: area tombol login */
 .card-right {
   flex: 1;
-  background: #beadad;
+  background: #978a8a;
   padding: 40px;
   display: flex;
   flex-direction: column;
@@ -71,7 +71,7 @@
   width: 100%;
   padding: 12px 75px 12px 12px;
   /* kanan buat ruang logo */
-  background: #3182ce;
+  background: #ecdbdb;
   color: #000000;
   border: none;
   border-radius: 6px;

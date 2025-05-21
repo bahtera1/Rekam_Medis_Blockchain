@@ -1,3 +1,4 @@
+// DokterPage.jsx
 import React, { useState, useEffect } from "react";
 import DokterSideBar from "./DokterSideBar";
 import UpdateRekamMedis from "./UpdateRekamMedis";
@@ -14,11 +15,19 @@ export default function DokterPage() {
         async function fetchData() {
             const accounts = await web3.eth.getAccounts();
             setAccount(accounts[0]);
+
             const dokterData = await contract.methods.getDokter(accounts[0]).call();
-            setAssignedPatients(dokterData[2]);
+            console.log("dokterData:", dokterData);
+
+            // Ambil array pasien dari index 4 atau properti pasien
+            const assignedPasien = dokterData[4] || dokterData.pasien || [];
+            console.log("assignedPatients (alamat):", assignedPasien);
+
+            setAssignedPatients(assignedPasien);
         }
         fetchData();
     }, []);
+
 
     return (
         <div className="dokter-container">
@@ -30,12 +39,7 @@ export default function DokterPage() {
                         <p>Total Pasien Terdaftar: {assignedPatients.length}</p>
                     </div>
                 )}
-                {view === "update" && (
-                    <UpdateRekamMedis
-                        account={account}
-                        assignedPatients={assignedPatients}
-                    />
-                )}
+                {view === "update" && <UpdateRekamMedis account={account} assignedPatients={assignedPatients} />}
             </div>
         </div>
     );

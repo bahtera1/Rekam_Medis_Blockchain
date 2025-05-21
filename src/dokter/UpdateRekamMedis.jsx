@@ -1,6 +1,7 @@
+// UpdateRekamMedis.jsx
 import React, { useState } from "react";
 import contract from "../contract";
-import "./DokterPage.css"; // kita pakai .form-container dari sini
+import "./DokterPage.css";
 
 export default function UpdateRekamMedis({ account, assignedPatients }) {
     const [selectedPatient, setSelectedPatient] = useState("");
@@ -19,7 +20,6 @@ export default function UpdateRekamMedis({ account, assignedPatients }) {
         catatan: "",
     });
 
-    // Ambil rekam medis pasien saat pasien dipilih
     const fetchRekamMedis = async (pasienAddress) => {
         if (!pasienAddress) {
             setRekamMedisId(null);
@@ -38,37 +38,38 @@ export default function UpdateRekamMedis({ account, assignedPatients }) {
             });
             return;
         }
-        const ids = await contract.methods
-            .getRekamMedisIdsByPasien(pasienAddress)
-            .call();
-        if (ids.length === 0) {
-            alert("Pasien belum memiliki rekam medis.");
-            setRekamMedisId(null);
-            return;
+        try {
+            const ids = await contract.methods.getRekamMedisIdsByPasien(pasienAddress).call();
+            if (ids.length === 0) {
+                alert("Pasien belum memiliki rekam medis.");
+                setRekamMedisId(null);
+                return;
+            }
+            setRekamMedisId(ids[0]);
+            const rekam = await contract.methods.rekamMedis(ids[0]).call();
+            setFormData({
+                nama: rekam.nama,
+                umur: rekam.umur,
+                golonganDarah: rekam.golonganDarah,
+                tanggalLahir: rekam.tanggalLahir,
+                gender: rekam.gender,
+                alamat: rekam.alamat,
+                noTelepon: rekam.noTelepon,
+                email: rekam.email,
+                diagnosa: rekam.diagnosa,
+                foto: rekam.foto,
+                catatan: rekam.catatan,
+            });
+        } catch (error) {
+            console.error("Gagal mengambil rekam medis:", error);
+            alert("Gagal mengambil data rekam medis.");
         }
-        setRekamMedisId(ids[0]);
-        const rekam = await contract.methods.rekamMedis(ids[0]).call();
-        setFormData({
-            nama: rekam.nama,
-            umur: rekam.umur,
-            golonganDarah: rekam.golonganDarah,
-            tanggalLahir: rekam.tanggalLahir,
-            gender: rekam.gender,
-            alamat: rekam.alamat,
-            noTelepon: rekam.noTelepon,
-            email: rekam.email,
-            diagnosa: rekam.diagnosa,
-            foto: rekam.foto,
-            catatan: rekam.catatan,
-        });
     };
 
-    // Update form field
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Kirim update rekam medis ke smart contract
     const submitUpdate = async () => {
         if (!rekamMedisId) {
             alert("Pilih pasien dengan rekam medis yang valid.");
@@ -110,7 +111,8 @@ export default function UpdateRekamMedis({ account, assignedPatients }) {
                 }}
             >
                 <option value="">-- Pilih Pasien --</option>
-                {assignedPatients.map((p) => (
+                {/* Pastikan assignedPatients adalah array */}
+                {(Array.isArray(assignedPatients) ? assignedPatients : []).map((p) => (
                     <option key={p} value={p}>
                         {p}
                     </option>
@@ -119,12 +121,7 @@ export default function UpdateRekamMedis({ account, assignedPatients }) {
 
             {rekamMedisId && (
                 <div className="form-container">
-                    <input
-                        name="nama"
-                        value={formData.nama}
-                        onChange={handleChange}
-                        placeholder="Nama"
-                    />
+                    <input name="nama" value={formData.nama} onChange={handleChange} placeholder="Nama" />
                     <input
                         name="umur"
                         type="number"
@@ -145,31 +142,15 @@ export default function UpdateRekamMedis({ account, assignedPatients }) {
                         onChange={handleChange}
                         placeholder="Tanggal Lahir"
                     />
-                    <input
-                        name="gender"
-                        value={formData.gender}
-                        onChange={handleChange}
-                        placeholder="Gender"
-                    />
-                    <input
-                        name="alamat"
-                        value={formData.alamat}
-                        onChange={handleChange}
-                        placeholder="Alamat"
-                    />
+                    <input name="gender" value={formData.gender} onChange={handleChange} placeholder="Gender" />
+                    <input name="alamat" value={formData.alamat} onChange={handleChange} placeholder="Alamat" />
                     <input
                         name="noTelepon"
                         value={formData.noTelepon}
                         onChange={handleChange}
                         placeholder="No Telepon"
                     />
-                    <input
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Email"
-                    />
+                    <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="Email" />
                     <input
                         name="diagnosa"
                         value={formData.diagnosa}
