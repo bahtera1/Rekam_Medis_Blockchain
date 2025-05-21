@@ -34,6 +34,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  font-family: 'Courier New', Courier, monospace;
 }
 
 .card-left h2 {
@@ -51,7 +52,7 @@
 /* kartu kanan: area tombol login */
 .card-right {
   flex: 1;
-  background: #fff;
+  background: #beadad;
   padding: 40px;
   display: flex;
   flex-direction: column;
@@ -65,21 +66,24 @@
   text-align: center;
 }
 
-/* tombol MetaMask + icon lewat CSS */
 .metamask-login {
   position: relative;
   width: 100%;
-  padding: 12px 12px 12px 44px;
+  padding: 12px 75px 12px 12px;
+  /* kanan buat ruang logo */
   background: #3182ce;
-  color: #fff;
+  color: #000000;
   border: none;
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: 0.75rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  /* vertical center teks */
   justify-content: center;
   transition: background 0.2s ease, transform 0.2s ease;
+  font-family: 'Times New Roman', Times, sans-serif;
+  font-weight: normal;
 }
 
 .metamask-login:hover {
@@ -87,18 +91,23 @@
   transform: translateY(-2px);
 }
 
-.metamask-login::before {
+.metamask-login::after {
   content: '';
   position: absolute;
-  left: 12px;
+  /* ubah fixed jadi absolute */
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  background-image: url('./logo-metamask.png');
+  width: 65px;
+  /* ukuran logo */
+  height: 65px;
+  background-image: url('./logo.png');
   background-size: contain;
   background-repeat: no-repeat;
+  background-position: center;
 }
+
+
 
 /* ===== Halaman utama setelah login (Dokter/Admin/Pasien) ===== */
 .main-page {

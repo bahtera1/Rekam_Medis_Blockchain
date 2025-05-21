@@ -56,13 +56,13 @@ function App() {
           <div className="login-page">
             <div className="card-wrapper">
               <div className="card-left">
-                <h2>Get Ready!</h2>
-                <h1>Your Adventure Is Here</h1>
+                <h1>SISTEM</h1>
+                <h1>REKAM MEDIS</h1>
               </div>
               <div className="card-right">
-                <h2>Login</h2>
+                {/* <h2>Login</h2> */}
                 <button className="metamask-login" onClick={loginWithMetaMask}>
-                  Login with MetaMask
+                  LOGIN WITH
                 </button>
               </div>
             </div>
