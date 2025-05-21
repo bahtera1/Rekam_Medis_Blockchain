@@ -11,12 +11,14 @@ export default function AdminPage({ account, onLogout }) {
     const [dokterNama, setDokterNama] = useState("");
     const [dokterList, setDokterList] = useState([]);
     const [pasienAddress, setPasienAddress] = useState("");
+    const [pasienNama, setPasienNama] = useState("");
+    const [listPasien, setListPasien] = useState([]);
     const [selectedDokter, setSelectedDokter] = useState("");
     const [loading, setLoading] = useState(false);
-    const [listPasien, setListPasien] = useState([]);
     const [assignedPairs, setAssignedPairs] = useState([]);
-    const [activePage, setActivePage] = useState("manageDokter"); // halaman aktif default
+    const [activePage, setActivePage] = useState("manageDokter");
 
+    // Ambil daftar dokter
     const fetchDokterList = async () => {
         try {
             const total = await contract.methods.totalDokter().call();
@@ -38,16 +40,28 @@ export default function AdminPage({ account, onLogout }) {
         }
     };
 
+    // Ambil daftar pasien dengan nama dari rekam medis pertama
     const fetchPasienList = async () => {
         try {
             const pasienArray = await contract.methods.getDaftarPasien().call();
-            setListPasien(pasienArray);
+            const list = [];
+            for (const addr of pasienArray) {
+                const ids = await contract.methods.getRekamMedisIdsByPasien(addr).call();
+                let nama = "-";
+                if (ids.length > 0) {
+                    const rekam = await contract.methods.rekamMedis(ids[0]).call();
+                    nama = rekam.nama;
+                }
+                list.push({ address: addr, nama });
+            }
+            setListPasien(list);
         } catch (err) {
             console.error("Gagal ambil daftar pasien:", err);
             alert("Gagal ambil daftar pasien.");
         }
     };
 
+    // Ambil pasangan dokter-pasien
     const fetchAssignedPairs = async (dokterList) => {
         try {
             let pairs = [];
@@ -71,6 +85,8 @@ export default function AdminPage({ account, onLogout }) {
         fetchDokterList();
         fetchPasienList();
     }, []);
+
+    // Daftarkan dokter baru
     const registerDokter = async () => {
         if (!dokterAddress || !dokterNama) {
             alert("Alamat dan nama dokter harus diisi.");
@@ -91,25 +107,44 @@ export default function AdminPage({ account, onLogout }) {
         }
     };
 
+    // Daftarkan pasien baru sekaligus tambah rekam medis awal (nama saja)
     const registerPasien = async () => {
-        if (!pasienAddress) {
-            alert("Alamat pasien harus diisi.");
+        if (!pasienAddress || !pasienNama) {
+            alert("Alamat dan nama pasien harus diisi.");
             return;
         }
         try {
             setLoading(true);
             await contract.methods.registerPasien(pasienAddress).send({ from: account });
-            alert("Pasien berhasil didaftarkan.");
+            await contract.methods
+                .tambahRekamMedis(
+                    pasienAddress,
+                    pasienNama,
+                    0,
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                )
+                .send({ from: account }); // transaksi dari admin
+            alert("Pasien berhasil didaftarkan dan data rekam medis awal tersimpan.");
             setPasienAddress("");
+            setPasienNama("");
             await fetchPasienList();
         } catch (err) {
-            console.error("Gagal mendaftarkan pasien:", err);
-            alert("Pasien gagal didaftarkan.");
+            console.error("Gagal mendaftarkan pasien dan simpan data rekam medis:", err);
+            alert("Gagal mendaftarkan pasien dan simpan data rekam medis.");
         } finally {
             setLoading(false);
         }
     };
 
+    // Toggle status dokter aktif/nonaktif
     const toggleStatusDokter = async (address, currentStatus) => {
         try {
             setLoading(true);
@@ -124,6 +159,7 @@ export default function AdminPage({ account, onLogout }) {
         }
     };
 
+    // Assign pasien ke dokter (tidak diubah sesuai permintaan)
     const assignPasien = async () => {
         if (!selectedDokter || !pasienAddress) {
             alert("Pilih dokter dan masukkan alamat pasien.");
@@ -169,6 +205,8 @@ export default function AdminPage({ account, onLogout }) {
                     <ManagePasienPage
                         pasienAddress={pasienAddress}
                         setPasienAddress={setPasienAddress}
+                        pasienNama={pasienNama}
+                        setPasienNama={setPasienNama}
                         registerPasien={registerPasien}
                         loading={loading}
                         listPasien={listPasien}

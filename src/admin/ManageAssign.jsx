@@ -35,8 +35,8 @@ export default function ManageAssign({
             >
                 <option value="">Pilih Pasien</option>
                 {listPasien.map((pasien) => (
-                    <option key={pasien} value={pasien}>
-                        {pasien}
+                    <option key={pasien.address} value={pasien.address}>
+                        {pasien.nama || pasien.address}
                     </option>
                 ))}
             </select>

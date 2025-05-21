@@ -38,8 +38,11 @@ contract RekamMedis {
     mapping(address => uint[]) public rekamMedisByPasien;
 
     uint public rekamMedisCount;
+
     // Versi history rekam medis
     mapping(uint => RekamMedisData[]) public rekamMedisVersions;
+
+    // Events
     event RekamMedisDitambahkan(
         uint id,
         address pasien,
@@ -54,7 +57,7 @@ contract RekamMedis {
     event PasienTerdaftar(address pasien);
 
     constructor() {
-        admin = 0xB0dC0Bf642d339517438017Fc185Bb0f758A01D2;
+        admin = msg.sender; // Set pembuat kontrak sebagai admin awal
     }
 
     modifier hanyaAdmin() {
@@ -93,7 +96,6 @@ contract RekamMedis {
         _;
     }
 
-    // Register dokter baru dengan nama dan aktifkan langsung
     function registerDokter(
         address _dokter,
         string memory _nama
@@ -109,44 +111,38 @@ contract RekamMedis {
         daftarDokter.push(_dokter);
         emit DokterTerdaftar(_dokter, _nama);
     }
-
-    // Ambil total dokter terdaftar
     function totalDokter() public view returns (uint) {
         return daftarDokter.length;
     }
 
-    // Ambil alamat dokter berdasarkan index
     function getDokterByIndex(uint index) public view returns (address) {
         require(index < daftarDokter.length, "Index dokter tidak valid.");
         return daftarDokter[index];
     }
 
-    // Set status dokter aktif/nonaktif
     function setStatusDokter(address _dokter, bool _aktif) public hanyaAdmin {
         require(isDokter[_dokter], "Dokter tidak terdaftar.");
         dataDokter[_dokter].aktif = _aktif;
         emit DokterStatusDiubah(_dokter, _aktif);
     }
 
-    // Assign pasien ke dokter tertentu
     function assignPasienToDokter(
         address _dokter,
         address _pasien
     ) public hanyaAdmin {
         require(isDokter[_dokter], "Dokter tidak terdaftar.");
         require(isPasien[_pasien], "Pasien tidak terdaftar.");
-
         address[] storage pasienDokter = dataDokter[_dokter].assignedPasien;
         for (uint i = 0; i < pasienDokter.length; i++) {
-            if (pasienDokter[i] == _pasien) {
-                revert("Pasien sudah ditugaskan ke dokter ini.");
-            }
+            require(
+                pasienDokter[i] != _pasien,
+                "Pasien sudah ditugaskan ke dokter ini."
+            );
         }
         pasienDokter.push(_pasien);
         emit PasienDiassignKeDokter(_dokter, _pasien);
     }
 
-    // Cek apakah pasien sudah diassign ke dokter
     function isPasienAssignedToDokter(
         address _dokter,
         address _pasien
@@ -160,7 +156,6 @@ contract RekamMedis {
         return false;
     }
 
-    // Ambil daftar pasien yang diassign ke dokter tertentu
     function getAssignedPasienByDokter(
         address _dokter
     ) public view returns (address[] memory) {
@@ -168,7 +163,6 @@ contract RekamMedis {
         return dataDokter[_dokter].assignedPasien;
     }
 
-    // Get data dokter
     function getDokter(
         address _dokter
     )
@@ -180,7 +174,8 @@ contract RekamMedis {
         return (d.nama, d.aktif, d.assignedPasien);
     }
 
-    // Register pasien oleh admin
+    // Daftarkan pasien oleh admin tanpa menyimpan nama secara terpisah,
+    // nama pasien diambil dari data rekam medis pertama
     function registerPasien(address _pasien) public hanyaAdmin {
         require(!isDokter[_pasien], "Alamat sudah terdaftar sebagai Dokter.");
         require(!isPasien[_pasien], "Pasien sudah terdaftar.");
@@ -189,7 +184,7 @@ contract RekamMedis {
         emit PasienTerdaftar(_pasien);
     }
 
-    // Self register pasien
+    // Self register pasien tanpa nama (bisa dikembangkan)
     function selfRegisterPasien() public {
         require(!isPasien[msg.sender], "Anda sudah terdaftar sebagai Pasien.");
         isPasien[msg.sender] = true;
@@ -197,7 +192,7 @@ contract RekamMedis {
         emit PasienTerdaftar(msg.sender);
     }
 
-    // Get role user
+    // Ambil role user
     function getUserRole(address _user) public view returns (string memory) {
         if (_user == admin) return "Admin";
         if (isDokter[_user]) return "Dokter";
@@ -217,13 +212,24 @@ contract RekamMedis {
         return daftarPasien;
     }
 
+    // Ambil nama pasien dari rekam medis pertama (jika ada)
+    function getNamaPasien(
+        address _pasien
+    ) public view returns (string memory) {
+        uint[] memory ids = rekamMedisByPasien[_pasien];
+        if (ids.length == 0) {
+            return "";
+        }
+        return rekamMedis[ids[0]].nama;
+    }
+
     // Set admin baru
     function setAdmin(address _newAdmin) public hanyaAdmin {
         admin = _newAdmin;
         emit AdminDitetapkan(_newAdmin);
     }
 
-    // Tambah rekam medis pasien
+    // Tambah rekam medis pasien (self data input)
     function tambahRekamMedis(
         address _pasien,
         string memory _nama,
@@ -237,24 +243,52 @@ contract RekamMedis {
         string memory _diagnosa,
         string memory _foto,
         string memory _catatan
-    ) public hanyaPasien(_pasien) {
-        rekamMedisCount++;
-        rekamMedis[rekamMedisCount] = RekamMedisData(
-            rekamMedisCount,
-            _pasien,
-            _nama,
-            _umur,
-            _golonganDarah,
-            _tanggalLahir,
-            _gender,
-            _alamat,
-            _noTelepon,
-            _email,
-            _diagnosa,
-            _foto,
-            _catatan,
-            true
+    ) public {
+        require(
+            msg.sender == _pasien || msg.sender == admin,
+            "Hanya pasien atau admin yang bisa menambah rekam medis."
         );
+
+        rekamMedisCount++;
+
+        if (msg.sender == admin) {
+            // Jika admin, simpan hanya nama, sisanya kosong atau default
+            rekamMedis[rekamMedisCount] = RekamMedisData(
+                rekamMedisCount,
+                _pasien,
+                _nama,
+                0, // umur default
+                "", // golonganDarah kosong
+                "", // tanggalLahir kosong
+                "", // gender kosong
+                "", // alamat kosong
+                "", // noTelepon kosong
+                "", // email kosong
+                "", // diagnosa kosong
+                "", // foto kosong
+                "", // catatan kosong
+                true
+            );
+        } else {
+            // Jika pasien, simpan semua data sesuai input
+            rekamMedis[rekamMedisCount] = RekamMedisData(
+                rekamMedisCount,
+                _pasien,
+                _nama,
+                _umur,
+                _golonganDarah,
+                _tanggalLahir,
+                _gender,
+                _alamat,
+                _noTelepon,
+                _email,
+                _diagnosa,
+                _foto,
+                _catatan,
+                true
+            );
+        }
+
         rekamMedisByPasien[_pasien].push(rekamMedisCount);
         emit RekamMedisDitambahkan(rekamMedisCount, _pasien, _diagnosa, true);
     }
@@ -275,10 +309,7 @@ contract RekamMedis {
         string memory _catatan
     ) public hanyaDokterAktifUntukPasien(rekamMedis[_id].pasien) {
         RekamMedisData storage rekam = rekamMedis[_id];
-        // Simpan versi lama ke array versi
         rekamMedisVersions[_id].push(rekam);
-
-        // Update data rekam medis
         rekam.nama = _nama;
         rekam.umur = _umur;
         rekam.golonganDarah = _golonganDarah;
