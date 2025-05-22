@@ -9,61 +9,73 @@ import RekamMedisHistory from "./RekamMedisHistory";
 
 export default function PasienPage() {
     const [account, setAccount] = useState("");
-    const [hasData, setHasData] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [dataDiri, setDataDiri] = useState(null);
-    const [historyRekamMedis, setHistoryRekamMedis] = useState([]);
 
-    // Form initial (jika pasien belum isi data)
+    // Data diri pasien
+    const [dataDiri, setDataDiri] = useState(null);
+
+    // Form data diri untuk pendaftaran pasien baru
     const [nama, setNama] = useState("");
     const [umur, setUmur] = useState("");
+    const [golonganDarah, setGolonganDarah] = useState("");
     const [tanggalLahir, setTanggalLahir] = useState("");
     const [gender, setGender] = useState("");
     const [alamat, setAlamat] = useState("");
     const [noTelepon, setNoTelepon] = useState("");
     const [email, setEmail] = useState("");
 
+    // History rekam medis pasien
+    const [historyRekamMedis, setHistoryRekamMedis] = useState([]);
+
     // Tab aktif: 'dataDiri' atau 'riwayat'
     const [activeTab, setActiveTab] = useState("dataDiri");
+
+    // State apakah pasien sudah terdaftar data diri
+    const [isRegistered, setIsRegistered] = useState(false);
 
     useEffect(() => {
         async function fetchData() {
             try {
                 const accounts = await web3.eth.getAccounts();
-                if (accounts.length === 0) return;
+                if (accounts.length === 0) {
+                    setLoading(false);
+                    return;
+                }
 
                 const aktif = accounts[0];
                 setAccount(aktif);
 
-                // ambil semua ID rekam medis pasien
-                const ids = await contract.methods
-                    .getRekamMedisIdsByPasien(aktif)
-                    .call();
+                // Cek apakah sudah terdaftar sebagai pasien dan data lengkap
+                const pasienData = await contract.methods.getPasienData(aktif).call();
 
-                if (ids.length > 0) {
-                    setHasData(true);
-
-                    // Data diri = rekam pertama
-                    const pertama = await contract.methods.rekamMedis(ids[0]).call();
+                // Jika nama pasien kosong ("") berarti belum daftar
+                if (!pasienData[0]) {
+                    // Pasien baru, belum isi data diri
+                    setIsRegistered(false);
+                } else {
+                    // Sudah terdaftar, simpan data diri ke state
+                    setIsRegistered(true);
                     setDataDiri({
-                        nama: pertama.nama,
-                        umur: pertama.umur,
-                        tanggalLahir: pertama.tanggalLahir,
-                        gender: pertama.gender,
-                        alamat: pertama.alamat,
-                        noTelepon: pertama.noTelepon,
-                        email: pertama.email,
-                        diagnosa: pertama.diagnosa,
-                        catatan: pertama.catatan,
-                        foto: pertama.foto,
-                        valid: pertama.valid,
+                        nama: pasienData[0],
+                        umur: pasienData[1],
+                        golonganDarah: pasienData[2],
+                        tanggalLahir: pasienData[3],
+                        gender: pasienData[4],
+                        alamat: pasienData[5],
+                        noTelepon: pasienData[6],
+                        email: pasienData[7],
                     });
 
-                    // seluruh versi untuk riwayat
-                    const all = await Promise.all(
-                        ids.map((id) => contract.methods.rekamMedis(id).call())
-                    );
-                    setHistoryRekamMedis(all);
+                    // Ambil semua ID rekam medis pasien
+                    const ids = await contract.methods.getRekamMedisIdsByPasien(aktif).call();
+
+                    if (ids.length > 0) {
+                        // Ambil semua rekam medis untuk riwayat
+                        const all = await Promise.all(
+                            ids.map((id) => contract.methods.getRekamMedis(id).call())
+                        );
+                        setHistoryRekamMedis(all);
+                    }
                 }
             } catch (err) {
                 console.error("Gagal ambil data pasien:", err);
@@ -71,92 +83,80 @@ export default function PasienPage() {
                 setLoading(false);
             }
         }
-
         fetchData();
     }, []);
 
-    const submitData = async () => {
+    // Fungsi submit data diri pasien (registrasi)
+    const submitDataDiri = async () => {
         if (
             !nama ||
             !umur ||
+            !golonganDarah ||
             !tanggalLahir ||
             !gender ||
             !alamat ||
             !noTelepon ||
             !email
         ) {
-            alert("Mohon isi semua data yang diperlukan.");
+            alert("Mohon isi semua data diri dengan lengkap.");
             return;
         }
+
         try {
             const [from] = await web3.eth.getAccounts();
+
             await contract.methods
-                .tambahRekamMedis(
-                    from,
+                .selfRegisterPasien(
                     nama,
                     parseInt(umur, 10),
-                    "", // golonganDarah kosong
+                    golonganDarah,
                     tanggalLahir,
                     gender,
                     alamat,
                     noTelepon,
-                    email,
-                    "", // diagnosa kosong
-                    "", // foto kosong
-                    "" // catatan kosong
+                    email
                 )
                 .send({ from });
 
-            alert("Data rekam medis berhasil disimpan.");
+            alert("Registrasi data diri berhasil.");
 
-            // refresh data
-            const ids = await contract.methods
-                .getRekamMedisIdsByPasien(from)
-                .call();
-            const pertama = await contract.methods.rekamMedis(ids[0]).call();
+            // Segera fetch ulang data pasien
+            const pasienData = await contract.methods.getPasienData(from).call();
+
+            setIsRegistered(true);
             setDataDiri({
-                nama: pertama.nama,
-                umur: pertama.umur,
-                tanggalLahir: pertama.tanggalLahir,
-                gender: pertama.gender,
-                alamat: pertama.alamat,
-                noTelepon: pertama.noTelepon,
-                email: pertama.email,
-                diagnosa: pertama.diagnosa,
-                catatan: pertama.catatan,
-                foto: pertama.foto,
-                valid: pertama.valid,
+                nama: pasienData[0],
+                umur: pasienData[1],
+                golonganDarah: pasienData[2],
+                tanggalLahir: pasienData[3],
+                gender: pasienData[4],
+                alamat: pasienData[5],
+                noTelepon: pasienData[6],
+                email: pasienData[7],
             });
-            const all = await Promise.all(
-                ids.map((id) => contract.methods.rekamMedis(id).call())
-            );
-            setHistoryRekamMedis(all);
-            setHasData(true);
         } catch (err) {
-            console.error("Gagal simpan data:", err);
-            alert("Gagal menyimpan data.");
+            console.error("Gagal simpan data diri:", err);
+            alert("Gagal simpan data diri.");
         }
     };
 
     if (loading) return <p>Loading data pasien…</p>;
-    if (!account)
-        return <p>Silakan koneksikan wallet MetaMask Anda terlebih dahulu.</p>;
+    if (!account) return <p>Silakan koneksikan wallet MetaMask Anda terlebih dahulu.</p>;
 
     return (
         <div className="pasien-container">
-            <PasienSideBar
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-            />
+            <PasienSideBar activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <div className="pasien-main">
                 {activeTab === "dataDiri" && (
                     <>
                         <h2>Data Diri Pasien</h2>
 
-                        {!hasData ? (
+                        {!isRegistered ? (
+                            // Form input data diri untuk pasien baru
                             <div className="form-section">
                                 <h3>Isi Data Diri</h3>
+
                                 <div>
                                     <label>Nama Lengkap:</label>
                                     <input
@@ -165,6 +165,7 @@ export default function PasienPage() {
                                         onChange={(e) => setNama(e.target.value)}
                                     />
                                 </div>
+
                                 <div>
                                     <label>Umur:</label>
                                     <input
@@ -173,6 +174,16 @@ export default function PasienPage() {
                                         onChange={(e) => setUmur(e.target.value)}
                                     />
                                 </div>
+
+                                <div>
+                                    <label>Golongan Darah:</label>
+                                    <input
+                                        type="text"
+                                        value={golonganDarah}
+                                        onChange={(e) => setGolonganDarah(e.target.value)}
+                                    />
+                                </div>
+
                                 <div>
                                     <label>Tanggal Lahir:</label>
                                     <input
@@ -181,18 +192,17 @@ export default function PasienPage() {
                                         onChange={(e) => setTanggalLahir(e.target.value)}
                                     />
                                 </div>
+
                                 <div>
                                     <label>Gender:</label>
-                                    <select
-                                        value={gender}
-                                        onChange={(e) => setGender(e.target.value)}
-                                    >
+                                    <select value={gender} onChange={(e) => setGender(e.target.value)}>
                                         <option value="">Pilih</option>
                                         <option value="Laki-laki">Laki-laki</option>
                                         <option value="Perempuan">Perempuan</option>
                                         <option value="Lainnya">Lainnya</option>
                                     </select>
                                 </div>
+
                                 <div>
                                     <label>Alamat:</label>
                                     <textarea
@@ -200,6 +210,7 @@ export default function PasienPage() {
                                         onChange={(e) => setAlamat(e.target.value)}
                                     />
                                 </div>
+
                                 <div>
                                     <label>No. Telepon:</label>
                                     <input
@@ -208,6 +219,7 @@ export default function PasienPage() {
                                         onChange={(e) => setNoTelepon(e.target.value)}
                                     />
                                 </div>
+
                                 <div>
                                     <label>Email:</label>
                                     <input
@@ -216,52 +228,38 @@ export default function PasienPage() {
                                         onChange={(e) => setEmail(e.target.value)}
                                     />
                                 </div>
-                                <button onClick={submitData}>Simpan Data</button>
+
+                                <button onClick={submitDataDiri}>Simpan Data Diri</button>
                             </div>
                         ) : (
+                            // Tampilkan data diri pasien jika sudah terdaftar
                             <div className="card data-diri">
                                 <div className="card-body">
                                     <h3 className="card-title">Data Diri</h3>
-                                    <p className="info-item">
+                                    <p>
                                         <strong>Nama:</strong> {dataDiri.nama}
                                     </p>
-                                    <p className="info-item">
+                                    <p>
                                         <strong>Umur:</strong> {dataDiri.umur}
                                     </p>
-                                    <p className="info-item">
+                                    <p>
+                                        <strong>Golongan Darah:</strong> {dataDiri.golonganDarah}
+                                    </p>
+                                    <p>
                                         <strong>Tanggal Lahir:</strong> {dataDiri.tanggalLahir}
                                     </p>
-                                    <p className="info-item">
+                                    <p>
                                         <strong>Gender:</strong> {dataDiri.gender}
                                     </p>
-                                    <p className="info-item">
+                                    <p>
                                         <strong>Alamat:</strong> {dataDiri.alamat}
                                     </p>
-                                    <p className="info-item">
+                                    <p>
                                         <strong>No. Telepon:</strong> {dataDiri.noTelepon}
                                     </p>
-                                    <p className="info-item">
+                                    <p>
                                         <strong>Email:</strong> {dataDiri.email}
                                     </p>
-                                    <p className="info-item">
-                                        <strong>Diagnosa:</strong> {dataDiri.diagnosa || "-"}
-                                    </p>
-                                    <p className="info-item">
-                                        <strong>Catatan:</strong> {dataDiri.catatan || "-"}
-                                    </p>
-                                    <p className="info-item">
-                                        <strong>Status:</strong>{" "}
-                                        {dataDiri.valid ? "Valid" : "Tidak Valid"}
-                                    </p>
-                                    {dataDiri.foto && (
-                                        <div style={{ marginTop: 16 }}>
-                                            <img
-                                                src={dataDiri.foto}
-                                                alt="Medis"
-                                                className="img-thumbnail"
-                                            />
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         )}
@@ -274,9 +272,7 @@ export default function PasienPage() {
                         {historyRekamMedis.length === 0 ? (
                             <p>Tidak ada riwayat versi rekam medis.</p>
                         ) : (
-                            <RekamMedisHistory
-                                rekamMedisId={historyRekamMedis[0].id}
-                            />
+                            <RekamMedisHistory rekamMedisId={historyRekamMedis[0].id} />
                         )}
                     </div>
                 )}

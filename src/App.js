@@ -13,25 +13,30 @@ function App() {
   const [role, setRole] = useState("");
 
   const loginWithMetaMask = async () => {
-    if (window.ethereum) {
-      try {
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        const accounts = await web3.eth.getAccounts();
-        const active = accounts[0];
-        setAccount(active);
-
-        let userRole = await contract.methods.getUserRole(active).call();
-        if (userRole === "Unknown") {
-          await contract.methods.selfRegisterPasien().send({ from: active });
-          userRole = await contract.methods.getUserRole(active).call();
-          alert("Anda telah terdaftar sebagai Pasien otomatis.");
-        }
-        setRole(userRole);
-      } catch (err) {
-        console.error("Error connecting wallet:", err);
-      }
-    } else {
+    if (!window.ethereum) {
       alert("MetaMask tidak terdeteksi. Silakan pasang MetaMask dan coba lagi.");
+      return;
+    }
+
+    try {
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      const accounts = await web3.eth.getAccounts();
+      const active = accounts[0];
+      setAccount(active);
+
+      // Ambil role user dari smart contract
+      let userRole = await contract.methods.getUserRole(active).call();
+
+      // Jika belum terdaftar, treat sebagai pasien baru,
+      // role di-set "Pasien" agar diarahkan ke halaman pasien
+      if (userRole === "Unknown") {
+        userRole = "Pasien";
+      }
+
+      setRole(userRole);
+    } catch (err) {
+      console.error("Error connecting wallet:", err);
+      alert("Gagal login menggunakan MetaMask.");
     }
   };
 
@@ -42,10 +47,14 @@ function App() {
 
   const getRedirectPath = (role) => {
     switch (role) {
-      case "Admin": return "/admin";
-      case "Dokter": return "/dokter";
-      case "Pasien": return "/pasien";
-      default: return "/";
+      case "Admin":
+        return "/admin";
+      case "Dokter":
+        return "/dokter";
+      case "Pasien":
+        return "/pasien";
+      default:
+        return "/";
     }
   };
 
@@ -60,9 +69,8 @@ function App() {
                 <h1>REKAM MEDIS</h1>
               </div>
               <div className="card-right">
-                {/* <h2>Login</h2> */}
                 <button className="metamask-login" onClick={loginWithMetaMask}>
-                  LOGIN WITH
+                  LOGIN WITH METAMASK
                 </button>
               </div>
             </div>
@@ -83,11 +91,23 @@ function App() {
               />
               <Route
                 path="/dokter"
-                element={role === "Dokter" ? <DoctorPage /> : <Navigate to="/" replace />}
+                element={
+                  role === "Dokter" ? (
+                    <DoctorPage account={account} onLogout={handleLogout} />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
               />
               <Route
                 path="/pasien"
-                element={role === "Pasien" ? <PasienPage /> : <Navigate to="/" replace />}
+                element={
+                  role === "Pasien" ? (
+                    <PasienPage account={account} onLogout={handleLogout} />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

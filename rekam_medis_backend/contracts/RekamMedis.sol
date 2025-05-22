@@ -186,29 +186,6 @@ contract RekamMedis {
         );
     }
 
-    // --- Pasien management ---
-    function registerPasien(
-        address _pasien,
-        string calldata _nama
-    ) external hanyaAdmin {
-        require(!isPasien[_pasien], "Pasien sudah terdaftar.");
-        require(!isDokter[_pasien], "Alamat milik dokter.");
-        isPasien[_pasien] = true;
-        dataPasien[_pasien] = Pasien({
-            nama: _nama,
-            umur: 0,
-            golonganDarah: "",
-            tanggalLahir: "",
-            gender: "",
-            alamat: "",
-            noTelepon: "",
-            email: "",
-            exists: true
-        });
-        daftarPasien.push(_pasien);
-        emit PasienTerdaftar(_pasien, _nama);
-    }
-
     function selfRegisterPasien(
         string calldata _nama,
         uint _umur,
@@ -241,35 +218,39 @@ contract RekamMedis {
         return daftarPasien;
     }
 
-    function getPasienData(
-        address _pasien
+function getPasienData(
+    address _pasien
+)
+    external
+    view
+    returns (
+        string memory nama,
+        uint umur,
+        string memory golonganDarah,
+        string memory tanggalLahir,
+        string memory gender,
+        string memory alamat,
+        string memory noTelepon,
+        string memory email
     )
-        external
-        view
-        returns (
-            string memory nama,
-            uint umur,
-            string memory golonganDarah,
-            string memory tanggalLahir,
-            string memory gender,
-            string memory alamat,
-            string memory noTelepon,
-            string memory email
-        )
-    {
-        require(isPasien[_pasien], "Pasien belum terdaftar.");
-        Pasien storage p = dataPasien[_pasien];
-        return (
-            p.nama,
-            p.umur,
-            p.golonganDarah,
-            p.tanggalLahir,
-            p.gender,
-            p.alamat,
-            p.noTelepon,
-            p.email
-        );
+{
+    if (!isPasien[_pasien]) {
+        // kembalikan nilai kosong jika pasien belum terdaftar
+        return ("", 0, "", "", "", "", "", "");
     }
+    Pasien storage p = dataPasien[_pasien];
+    return (
+        p.nama,
+        p.umur,
+        p.golonganDarah,
+        p.tanggalLahir,
+        p.gender,
+        p.alamat,
+        p.noTelepon,
+        p.email
+    );
+}
+
 
     // --- Assignment ---
     function assignPasienToDokter(
