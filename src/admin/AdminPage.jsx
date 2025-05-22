@@ -13,16 +13,16 @@ export default function AdminPage({ account, onLogout }) {
   const [dokterNomorLisensi, setDokterNomorLisensi] = useState("");
   const [dokterList, setDokterList] = useState([]);
 
+  // Masih kita simpan pasienAddress untuk ManageAssign
   const [pasienAddress, setPasienAddress] = useState("");
-  const [pasienNama, setPasienNama] = useState("");
   const [listPasien, setListPasien] = useState([]);
 
   const [selectedDokter, setSelectedDokter] = useState("");
-  const [loading, setLoading] = useState(false);
   const [assignedPairs, setAssignedPairs] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [activePage, setActivePage] = useState("manageDokter");
 
-  // --- fetch dokter ---
+  // --- Fetch Dokter ---
   const fetchDokterList = async () => {
     try {
       const total = await contract.methods.totalDokter().call();
@@ -30,6 +30,7 @@ export default function AdminPage({ account, onLogout }) {
       for (let i = 0; i < total; i++) {
         const addr = await contract.methods.getDokterByIndex(i).call();
         const result = await contract.methods.getDokter(addr).call();
+        // getDokter returns [nama, spesialisasi, nomorLisensi, aktif, assignedPasien]
         list.push({
           address: addr,
           nama: result[0],
@@ -47,15 +48,14 @@ export default function AdminPage({ account, onLogout }) {
     }
   };
 
-  // --- fetch pasien ---
+  // --- Fetch Pasien ---
   const fetchPasienList = async () => {
     try {
       const pasienArray = await contract.methods.getDaftarPasien().call();
       const list = [];
       for (const addr of pasienArray) {
-        // pull nama langsung dari dataPasien struct
         const data = await contract.methods.getPasienData(addr).call();
-        // getPasienData returns [nama, umur, …], so nama = data[0]
+        // getPasienData returns [nama, umur, golDar, tglLhr, gender, alamat, telp, email]
         list.push({ address: addr, nama: data[0] });
       }
       setListPasien(list);
@@ -65,23 +65,19 @@ export default function AdminPage({ account, onLogout }) {
     }
   };
 
-  // --- fetch assignment pairs ---
-  const fetchAssignedPairs = async (dokterList) => {
-    try {
-      let pairs = [];
-      for (const dokter of dokterList) {
-        for (const pasienAddr of dokter.assignedPasien) {
-          pairs.push({
-            dokterNama: dokter.nama,
-            dokterAddress: dokter.address,
-            pasienAddress: pasienAddr,
-          });
-        }
-      }
-      setAssignedPairs(pairs);
-    } catch (err) {
-      console.error("Gagal ambil pasangan dokter-pasien:", err);
-    }
+  // --- Fetch Pairing ---
+  const fetchAssignedPairs = (dokterList) => {
+    const pairs = [];
+    dokterList.forEach((dok) => {
+      dok.assignedPasien.forEach((pasien) => {
+        pairs.push({
+          dokterNama: dok.nama,
+          dokterAddress: dok.address,
+          pasienAddress: pasien,
+        });
+      });
+    });
+    setAssignedPairs(pairs);
   };
 
   useEffect(() => {
@@ -89,7 +85,7 @@ export default function AdminPage({ account, onLogout }) {
     fetchPasienList();
   }, []);
 
-  // --- register dokter ---
+  // --- Register Dokter ---
   const registerDokter = async () => {
     if (!dokterAddress || !dokterNama || !dokterSpesialisasi || !dokterNomorLisensi) {
       alert("Semua data dokter harus diisi.");
@@ -108,42 +104,17 @@ export default function AdminPage({ account, onLogout }) {
       await fetchDokterList();
     } catch (err) {
       console.error("Gagal mendaftarkan dokter:", err);
-      alert("Dokter gagal didaftarkan.");
+      alert("Gagal mendaftarkan dokter.");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- register pasien ---
-  const registerPasien = async () => {
-    if (!pasienAddress || !pasienNama) {
-      alert("Alamat dan nama pasien harus diisi.");
-      return;
-    }
-    try {
-      setLoading(true);
-      await contract.methods
-        .registerPasien(pasienAddress, pasienNama)
-        .send({ from: account });
-      alert("Pasien berhasil didaftarkan.");
-      setPasienAddress("");
-      setPasienNama("");
-      await fetchPasienList();
-    } catch (err) {
-      console.error("Gagal mendaftarkan pasien:", err);
-      alert("Pasien gagal didaftarkan.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // --- toggle dokter status ---
+  // --- Toggle Status Dokter ---
   const toggleStatusDokter = async (addr, cur) => {
     try {
       setLoading(true);
-      await contract.methods
-        .setStatusDokter(addr, !cur)
-        .send({ from: account });
+      await contract.methods.setStatusDokter(addr, !cur).send({ from: account });
       alert("Status dokter diperbarui.");
       await fetchDokterList();
     } catch (err) {
@@ -154,7 +125,7 @@ export default function AdminPage({ account, onLogout }) {
     }
   };
 
-  // --- assign pasien ke dokter ---
+  // --- Assign Pasien ke Dokter ---
   const assignPasien = async () => {
     if (!selectedDokter || !pasienAddress) {
       alert("Pilih dokter dan masukkan alamat pasien.");
@@ -180,11 +151,7 @@ export default function AdminPage({ account, onLogout }) {
 
   return (
     <div className="admin-container">
-      <AdminSideBar
-        activePage={activePage}
-        setActivePage={setActivePage}
-        onLogout={onLogout}
-      />
+      <AdminSideBar activePage={activePage} setActivePage={setActivePage} onLogout={onLogout} />
 
       <div className="main-content">
         <h2>Admin Panel</h2>
@@ -208,11 +175,6 @@ export default function AdminPage({ account, onLogout }) {
 
         {activePage === "managePasien" && (
           <ManagePasienPage
-            pasienAddress={pasienAddress}
-            setPasienAddress={setPasienAddress}
-            pasienNama={pasienNama}
-            setPasienNama={setPasienNama}
-            registerPasien={registerPasien}
             loading={loading}
             listPasien={listPasien}
           />
