@@ -1,177 +1,186 @@
-// UpdateRekamMedis.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import contract from "../contract";
-import "./DokterPage.css";
 
 export default function UpdateRekamMedis({ account, assignedPatients }) {
-    const [selectedPatient, setSelectedPatient] = useState("");
+    const [editingPatient, setEditingPatient] = useState(null);
     const [rekamMedisId, setRekamMedisId] = useState(null);
+    const [pasienData, setPasienData] = useState(null);
     const [formData, setFormData] = useState({
-        nama: "",
-        umur: "",
-        golonganDarah: "",
-        tanggalLahir: "",
-        gender: "",
-        alamat: "",
-        noTelepon: "",
-        email: "",
         diagnosa: "",
         foto: "",
         catatan: "",
     });
 
-    const fetchRekamMedis = async (pasienAddress) => {
-        if (!pasienAddress) {
-            setRekamMedisId(null);
-            setFormData({
-                nama: "",
-                umur: "",
-                golonganDarah: "",
-                tanggalLahir: "",
-                gender: "",
-                alamat: "",
-                noTelepon: "",
-                email: "",
-                diagnosa: "",
-                foto: "",
-                catatan: "",
-            });
-            return;
-        }
+    // Load data pasien dan rekam medis terbaru saat mulai edit pasien
+    const loadPatientAndRekam = async (pasienAddress) => {
+        if (!pasienAddress) return;
+
         try {
+            // Ambil data pasien (read-only)
+            const pData = await contract.methods.getPasienData(pasienAddress).call();
+            setPasienData({
+                nama: pData[0],
+                umur: pData[1],
+                golonganDarah: pData[2],
+                tanggalLahir: pData[3],
+                gender: pData[4],
+                alamat: pData[5],
+                noTelepon: pData[6],
+                email: pData[7],
+            });
+
+            // Ambil rekam medis terbaru pasien
             const ids = await contract.methods.getRekamMedisIdsByPasien(pasienAddress).call();
             if (ids.length === 0) {
-                alert("Pasien belum memiliki rekam medis.");
                 setRekamMedisId(null);
-                return;
+                setFormData({ diagnosa: "", foto: "", catatan: "" });
+            } else {
+                const id = ids[ids.length - 1]; // rekam medis terbaru
+                setRekamMedisId(id);
+                const rekam = await contract.methods.getRekamMedis(id).call();
+                setFormData({
+                    diagnosa: rekam.diagnosa,
+                    foto: rekam.foto,
+                    catatan: rekam.catatan,
+                });
             }
-            setRekamMedisId(ids[0]);
-            const rekam = await contract.methods.rekamMedis(ids[0]).call();
-            setFormData({
-                nama: rekam.nama,
-                umur: rekam.umur,
-                golonganDarah: rekam.golonganDarah,
-                tanggalLahir: rekam.tanggalLahir,
-                gender: rekam.gender,
-                alamat: rekam.alamat,
-                noTelepon: rekam.noTelepon,
-                email: rekam.email,
-                diagnosa: rekam.diagnosa,
-                foto: rekam.foto,
-                catatan: rekam.catatan,
-            });
-        } catch (error) {
-            console.error("Gagal mengambil rekam medis:", error);
-            alert("Gagal mengambil data rekam medis.");
+        } catch (err) {
+            console.error("Gagal load data pasien atau rekam medis:", err);
+            alert("Gagal mengambil data pasien atau rekam medis.");
         }
+    };
+
+    // Saat mulai edit pasien
+    const handleEditClick = (pasienAddress) => {
+        setEditingPatient(pasienAddress);
+        loadPatientAndRekam(pasienAddress);
+    };
+
+    const handleCancel = () => {
+        setEditingPatient(null);
+        setRekamMedisId(null);
+        setPasienData(null);
+        setFormData({ diagnosa: "", foto: "", catatan: "" });
     };
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        setFormData((f) => ({ ...f, [e.target.name]: e.target.value }));
     };
 
-    const submitUpdate = async () => {
-        if (!rekamMedisId) {
-            alert("Pilih pasien dengan rekam medis yang valid.");
-            return;
-        }
+    const handleSubmit = async () => {
+        if (!editingPatient) return;
+
         try {
-            await contract.methods
-                .updateRekamMedis(
-                    rekamMedisId,
-                    formData.nama,
-                    parseInt(formData.umur),
-                    formData.golonganDarah,
-                    formData.tanggalLahir,
-                    formData.gender,
-                    formData.alamat,
-                    formData.noTelepon,
-                    formData.email,
-                    formData.diagnosa,
-                    formData.foto,
-                    formData.catatan
-                )
-                .send({ from: account });
-            alert("Rekam medis berhasil diperbarui.");
+            if (rekamMedisId === null) {
+                // Tambah rekam medis baru
+                await contract.methods
+                    .tambahRekamMedis(editingPatient, formData.diagnosa, formData.foto, formData.catatan)
+                    .send({ from: account });
+                alert("Rekam medis berhasil ditambahkan.");
+            } else {
+                // Update rekam medis yang sudah ada
+                await contract.methods
+                    .updateRekamMedis(rekamMedisId, formData.diagnosa, formData.foto, formData.catatan)
+                    .send({ from: account });
+                alert("Rekam medis berhasil diperbarui.");
+            }
+
+            // Kembali ke daftar pasien setelah berhasil simpan
+            handleCancel();
         } catch (err) {
-            console.error("Gagal update rekam medis:", err);
-            alert("Gagal update data rekam medis.");
+            console.error("Gagal simpan rekam medis:", err);
+            alert("Gagal menyimpan rekam medis.");
         }
     };
 
     return (
-        <>
-            <h2>Update Rekam Medis</h2>
-            <label>Pilih Pasien:</label>
-            <select
-                value={selectedPatient}
-                onChange={(e) => {
-                    setSelectedPatient(e.target.value);
-                    fetchRekamMedis(e.target.value);
-                }}
-            >
-                <option value="">-- Pilih Pasien --</option>
-                {/* Pastikan assignedPatients adalah array */}
-                {(Array.isArray(assignedPatients) ? assignedPatients : []).map((p) => (
-                    <option key={p} value={p}>
-                        {p}
-                    </option>
-                ))}
-            </select>
+        <div>
+            {!editingPatient ? (
+                <>
+                    <h2>Daftar Pasien</h2>
+                    {assignedPatients.length === 0 ? (
+                        <p>Belum ada pasien yang diassign.</p>
+                    ) : (
+                        <table border="1" cellPadding="5" style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead style={{ backgroundColor: "#3182ce", color: "white" }}>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>Alamat Pasien</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {assignedPatients.map((pasienAddr, idx) => (
+                                    <tr key={pasienAddr}>
+                                        <td style={{ textAlign: "center" }}>{idx + 1}</td>
+                                        <td>{pasienAddr}</td>
+                                        <td>
+                                            <button onClick={() => handleEditClick(pasienAddr)}>Update Data Pasien</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </>
+            ) : (
+                <>
+                    <h2>Update Rekam Medis Pasien</h2>
+                    <p><strong>Alamat Pasien:</strong> {editingPatient}</p>
 
-            {rekamMedisId && (
-                <div className="form-container">
-                    <input name="nama" value={formData.nama} onChange={handleChange} placeholder="Nama" />
-                    <input
-                        name="umur"
-                        type="number"
-                        value={formData.umur}
-                        onChange={handleChange}
-                        placeholder="Umur"
-                    />
-                    <input
-                        name="golonganDarah"
-                        value={formData.golonganDarah}
-                        onChange={handleChange}
-                        placeholder="Golongan Darah"
-                    />
-                    <input
-                        name="tanggalLahir"
-                        type="date"
-                        value={formData.tanggalLahir}
-                        onChange={handleChange}
-                        placeholder="Tanggal Lahir"
-                    />
-                    <input name="gender" value={formData.gender} onChange={handleChange} placeholder="Gender" />
-                    <input name="alamat" value={formData.alamat} onChange={handleChange} placeholder="Alamat" />
-                    <input
-                        name="noTelepon"
-                        value={formData.noTelepon}
-                        onChange={handleChange}
-                        placeholder="No Telepon"
-                    />
-                    <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="Email" />
-                    <input
-                        name="diagnosa"
-                        value={formData.diagnosa}
-                        onChange={handleChange}
-                        placeholder="Diagnosa"
-                    />
-                    <input
-                        name="foto"
-                        value={formData.foto}
-                        onChange={handleChange}
-                        placeholder="Foto (URL atau hash)"
-                    />
-                    <textarea
-                        name="catatan"
-                        value={formData.catatan}
-                        onChange={handleChange}
-                        placeholder="Catatan"
-                    />
-                    <button onClick={submitUpdate}>Update Rekam Medis</button>
-                </div>
+                    {pasienData && (
+                        <div style={{ marginBottom: 20, border: "1px solid #ccc", padding: 10, borderRadius: 4 }}>
+                            <h3>Data Pasien (Informasi)</h3>
+                            <p><strong>Nama:</strong> {pasienData.nama}</p>
+                            <p><strong>Umur:</strong> {pasienData.umur}</p>
+                            <p><strong>Golongan Darah:</strong> {pasienData.golonganDarah}</p>
+                            <p><strong>Tanggal Lahir:</strong> {pasienData.tanggalLahir}</p>
+                            <p><strong>Gender:</strong> {pasienData.gender}</p>
+                            <p><strong>Alamat:</strong> {pasienData.alamat}</p>
+                            <p><strong>No Telepon:</strong> {pasienData.noTelepon}</p>
+                            <p><strong>Email:</strong> {pasienData.email}</p>
+                        </div>
+                    )}
+
+                    <div style={{ marginBottom: "1rem" }}>
+                        <label>Diagnosa:</label>
+                        <input
+                            type="text"
+                            name="diagnosa"
+                            value={formData.diagnosa}
+                            onChange={handleChange}
+                            style={{ width: "100%" }}
+                        />
+                    </div>
+
+                    <div style={{ marginBottom: "1rem" }}>
+                        <label>Foto (URL atau hash):</label>
+                        <input
+                            type="text"
+                            name="foto"
+                            value={formData.foto}
+                            onChange={handleChange}
+                            style={{ width: "100%" }}
+                        />
+                    </div>
+
+                    <div style={{ marginBottom: "1rem" }}>
+                        <label>Catatan:</label>
+                        <textarea
+                            name="catatan"
+                            value={formData.catatan}
+                            onChange={handleChange}
+                            rows={4}
+                            style={{ width: "100%" }}
+                        />
+                    </div>
+
+                    <button onClick={handleSubmit} style={{ marginRight: 10 }}>
+                        Simpan
+                    </button>
+                    <button onClick={handleCancel}>Batal</button>
+                </>
             )}
-        </>
+        </div>
     );
 }

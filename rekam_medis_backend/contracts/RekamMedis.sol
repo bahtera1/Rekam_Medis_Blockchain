@@ -69,7 +69,7 @@ contract RekamMedis {
     event RekamMedisDiperbarui(uint id, string diagnosa, string catatan);
 
     constructor() {
-        admin = 0xB0dC0Bf642d339517438017Fc185Bb0f758A01D2;
+        admin = msg.sender;
     }
 
     modifier hanyaAdmin() {
@@ -114,6 +114,7 @@ contract RekamMedis {
         if (isPasien[_user]) return "Pasien";
         return "Unknown";
     }
+
     // --- Dokter management ---
     function registerDokter(
         address _dokter,
@@ -160,7 +161,6 @@ contract RekamMedis {
         dataDokter[_dokter].nama = _nama;
         dataDokter[_dokter].spesialisasi = _spesialisasi;
         dataDokter[_dokter].nomorLisensi = _nomorLisensi;
-        // Could emit an UpdateDokter event here if desired
     }
 
     function getDokter(
@@ -184,6 +184,29 @@ contract RekamMedis {
             d.aktif,
             d.assignedPasien
         );
+    }
+
+    // --- Pasien management ---
+    function registerPasien(
+        address _pasien,
+        string calldata _nama
+    ) external hanyaAdmin {
+        require(!isPasien[_pasien], "Pasien sudah terdaftar.");
+        require(!isDokter[_pasien], "Alamat milik dokter.");
+        isPasien[_pasien] = true;
+        dataPasien[_pasien] = Pasien({
+            nama: _nama,
+            umur: 0,
+            golonganDarah: "",
+            tanggalLahir: "",
+            gender: "",
+            alamat: "",
+            noTelepon: "",
+            email: "",
+            exists: true
+        });
+        daftarPasien.push(_pasien);
+        emit PasienTerdaftar(_pasien, _nama);
     }
 
     function selfRegisterPasien(
@@ -218,39 +241,38 @@ contract RekamMedis {
         return daftarPasien;
     }
 
-function getPasienData(
-    address _pasien
-)
-    external
-    view
-    returns (
-        string memory nama,
-        uint umur,
-        string memory golonganDarah,
-        string memory tanggalLahir,
-        string memory gender,
-        string memory alamat,
-        string memory noTelepon,
-        string memory email
+    function getPasienData(
+        address _pasien
     )
-{
-    if (!isPasien[_pasien]) {
-        // kembalikan nilai kosong jika pasien belum terdaftar
-        return ("", 0, "", "", "", "", "", "");
+        external
+        view
+        returns (
+            string memory nama,
+            uint umur,
+            string memory golonganDarah,
+            string memory tanggalLahir,
+            string memory gender,
+            string memory alamat,
+            string memory noTelepon,
+            string memory email
+        )
+    {
+        if (!isPasien[_pasien]) {
+            // Kembalikan nilai kosong jika pasien belum terdaftar
+            return ("", 0, "", "", "", "", "", "");
+        }
+        Pasien storage p = dataPasien[_pasien];
+        return (
+            p.nama,
+            p.umur,
+            p.golonganDarah,
+            p.tanggalLahir,
+            p.gender,
+            p.alamat,
+            p.noTelepon,
+            p.email
+        );
     }
-    Pasien storage p = dataPasien[_pasien];
-    return (
-        p.nama,
-        p.umur,
-        p.golonganDarah,
-        p.tanggalLahir,
-        p.gender,
-        p.alamat,
-        p.noTelepon,
-        p.email
-    );
-}
-
 
     // --- Assignment ---
     function assignPasienToDokter(
@@ -275,6 +297,7 @@ function getPasienData(
     }
 
     // --- Rekam Medis ---
+    // Update fungsi tambahRekamMedis agar bisa dipanggil oleh pasien sendiri atau dokter aktif yg diassign ke pasien tersebut
     function tambahRekamMedis(
         address _pasien,
         string calldata _diagnosa,
@@ -282,8 +305,12 @@ function getPasienData(
         string calldata _catatan
     ) external {
         require(
-            msg.sender == _pasien || msg.sender == admin,
-            "Hanya pasien atau admin."
+            (msg.sender == _pasien) ||
+                (isDokter[msg.sender] &&
+                    dataDokter[msg.sender].aktif &&
+                    isPasien[_pasien] &&
+                    isAssigned(msg.sender, _pasien)),
+            "Hanya pasien sendiri atau dokter aktif yang diassign ke pasien."
         );
         require(isPasien[_pasien], "Pasien tidak terdaftar.");
 
@@ -298,6 +325,20 @@ function getPasienData(
         });
         rekamMedisByPasien[_pasien].push(rekamMedisCount);
         emit RekamMedisDitambahkan(rekamMedisCount, _pasien, _diagnosa, true);
+    }
+
+    // Fungsi helper untuk cek apakah dokter diassign ke pasien
+    function isAssigned(
+        address _dokter,
+        address _pasien
+    ) internal view returns (bool) {
+        address[] storage list = dataDokter[_dokter].assignedPasien;
+        for (uint i = 0; i < list.length; i++) {
+            if (list[i] == _pasien) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function updateRekamMedis(

@@ -17,17 +17,13 @@ export default function DokterPage() {
             setAccount(accounts[0]);
 
             const dokterData = await contract.methods.getDokter(accounts[0]).call();
-            console.log("dokterData:", dokterData);
 
-            // Ambil array pasien dari index 4 atau properti pasien
-            const assignedPasien = dokterData[4] || dokterData.pasien || [];
-            console.log("assignedPatients (alamat):", assignedPasien);
-
+            // Ambil array pasien (index 4)
+            const assignedPasien = dokterData[4] || [];
             setAssignedPatients(assignedPasien);
         }
         fetchData();
     }, []);
-
 
     return (
         <div className="dokter-container">
@@ -39,7 +35,9 @@ export default function DokterPage() {
                         <p>Total Pasien Terdaftar: {assignedPatients.length}</p>
                     </div>
                 )}
-                {view === "update" && <UpdateRekamMedis account={account} assignedPatients={assignedPatients} />}
+                {view === "update" && (
+                    <UpdateRekamMedis account={account} assignedPatients={assignedPatients} />
+                )}
             </div>
         </div>
     );
