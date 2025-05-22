@@ -16,14 +16,13 @@ export default function ManageDokterPage({
 }) {
   const [search, setSearch] = useState("");
 
-  // Filter dokter sesuai pencarian (nama, alamat, spesialisasi, nomor lisensi)
-  const filteredDokter = dokterList.filter((dokter) => {
-    const searchLower = search.toLowerCase();
+  const filteredDokter = dokterList.filter((d) => {
+    const q = search.toLowerCase();
     return (
-      (dokter.nama && dokter.nama.toLowerCase().includes(searchLower)) ||
-      (dokter.address && dokter.address.toLowerCase().includes(searchLower)) ||
-      (dokter.spesialisasi && dokter.spesialisasi.toLowerCase().includes(searchLower)) ||
-      (dokter.nomorLisensi && dokter.nomorLisensi.toLowerCase().includes(searchLower))
+      d.nama.toLowerCase().includes(q) ||
+      d.address.toLowerCase().includes(q) ||
+      d.spesialisasi.toLowerCase().includes(q) ||
+      d.nomorLisensi.toLowerCase().includes(q)
     );
   });
 
@@ -62,14 +61,17 @@ export default function ManageDokterPage({
         {loading ? "Loading..." : "Daftarkan Dokter"}
       </button>
 
-      <h3>Daftar Dokter</h3>
+      <h3 style={{ marginTop: "2rem" }}>Daftar Dokter</h3>
+      <p>Total dokter terdaftar: <strong>{dokterList.length}</strong></p>
+
       <input
         type="text"
         placeholder="Cari dokter..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        style={{ marginBottom: "10px", width: "100%", padding: "5px" }}
+        style={{ margin: "10px 0", width: "100%", padding: "5px" }}
       />
+
       {filteredDokter.length === 0 ? (
         <p>Belum ada dokter yang sesuai pencarian.</p>
       ) : (
@@ -85,19 +87,19 @@ export default function ManageDokterPage({
             </tr>
           </thead>
           <tbody>
-            {filteredDokter.map((dokter) => (
-              <tr key={dokter.address}>
-                <td>{dokter.address}</td>
-                <td>{dokter.nama}</td>
-                <td>{dokter.spesialisasi || "-"}</td>
-                <td>{dokter.nomorLisensi || "-"}</td>
-                <td>{dokter.aktif ? "Aktif" : "Tidak Aktif"}</td>
+            {filteredDokter.map((d) => (
+              <tr key={d.address}>
+                <td>{d.address}</td>
+                <td>{d.nama}</td>
+                <td>{d.spesialisasi}</td>
+                <td>{d.nomorLisensi}</td>
+                <td>{d.aktif ? "Aktif" : "Tidak Aktif"}</td>
                 <td>
                   <button
-                    onClick={() => toggleStatusDokter(dokter.address, dokter.aktif)}
+                    onClick={() => toggleStatusDokter(d.address, d.aktif)}
                     disabled={loading}
                   >
-                    {dokter.aktif ? "Nonaktifkan" : "Aktifkan"}
+                    {d.aktif ? "Nonaktifkan" : "Aktifkan"}
                   </button>
                 </td>
               </tr>
