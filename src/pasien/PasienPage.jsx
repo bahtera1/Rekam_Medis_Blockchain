@@ -2,12 +2,10 @@
 import React, { useState, useEffect } from "react";
 import contract from "../contract";
 import web3 from "../web3";
-import "./PasienPage.css";
-
 import PasienSideBar from "./PasienSideBar";
 import RekamMedisHistory from "./RekamMedisHistory";
 
-export default function PasienPage() {
+export default function PasienPage({ onLogout }) {
     const [account, setAccount] = useState("");
     const [loading, setLoading] = useState(true);
 
@@ -26,10 +24,11 @@ export default function PasienPage() {
 
     // History rekam medis pasien
     const [historyRekamMedis, setHistoryRekamMedis] = useState([]);
+    // Rekam medis terbaru
+    const [rekamMedisTerbaru, setRekamMedisTerbaru] = useState(null);
 
     // Tab aktif: 'dataDiri' atau 'riwayat'
     const [activeTab, setActiveTab] = useState("dataDiri");
-
     // State apakah pasien sudah terdaftar data diri
     const [isRegistered, setIsRegistered] = useState(false);
 
@@ -41,7 +40,6 @@ export default function PasienPage() {
                     setLoading(false);
                     return;
                 }
-
                 const aktif = accounts[0];
                 setAccount(aktif);
 
@@ -50,10 +48,8 @@ export default function PasienPage() {
 
                 // Jika nama pasien kosong ("") berarti belum daftar
                 if (!pasienData[0]) {
-                    // Pasien baru, belum isi data diri
                     setIsRegistered(false);
                 } else {
-                    // Sudah terdaftar, simpan data diri ke state
                     setIsRegistered(true);
                     setDataDiri({
                         nama: pasienData[0],
@@ -74,7 +70,14 @@ export default function PasienPage() {
                         const all = await Promise.all(
                             ids.map((id) => contract.methods.getRekamMedis(id).call())
                         );
+                        // inject id ke setiap objek rekam medis (jaga-jaga untuk table)
+                        all.forEach((rekam, i) => rekam.id = ids[i]);
                         setHistoryRekamMedis(all);
+                        // Ambil rekam medis terbaru
+                        setRekamMedisTerbaru(all[all.length - 1]);
+                    } else {
+                        setHistoryRekamMedis([]);
+                        setRekamMedisTerbaru(null);
                     }
                 }
             } catch (err) {
@@ -140,126 +143,119 @@ export default function PasienPage() {
         }
     };
 
-    if (loading) return <p>Loading data pasien…</p>;
-    if (!account) return <p>Silakan koneksikan wallet MetaMask Anda terlebih dahulu.</p>;
+    // Handler logout (opsional, agar bisa dipanggil di sidebar)
+    const handleLogout = () => {
+        if (onLogout) onLogout();
+        else window.location.reload();
+    };
+
+    if (loading) return <p className="p-8 text-center">Loading data pasien…</p>;
+    if (!account) return <p className="p-8 text-center">Silakan koneksikan wallet MetaMask Anda terlebih dahulu.</p>;
 
     return (
-        <div className="pasien-container">
-            <PasienSideBar activeTab={activeTab} setActiveTab={setActiveTab} />
-
-            <div className="pasien-main">
+        <div className="min-h-screen flex flex-row bg-gradient-to-tr from-blue-50 to-blue-100">
+            <PasienSideBar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
+            <div className="flex-1 px-8 py-10 sm:px-4 transition-all duration-300">
                 {activeTab === "dataDiri" && (
                     <>
-                        <h2>Data Diri Pasien</h2>
-
+                        <h2 className="text-3xl font-bold text-blue-800 mb-4">Data Diri Pasien</h2>
                         {!isRegistered ? (
-                            // Form input data diri untuk pasien baru
-                            <div className="form-section">
-                                <h3>Isi Data Diri</h3>
-
-                                <div>
-                                    <label>Nama Lengkap:</label>
-                                    <input
-                                        type="text"
-                                        value={nama}
-                                        onChange={(e) => setNama(e.target.value)}
-                                    />
+                            <div className="bg-white rounded-xl shadow-md p-8 max-w-lg mx-auto">
+                                <h3 className="text-lg font-bold mb-6 text-blue-700">Isi Data Diri</h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block font-medium mb-1">Nama Lengkap:</label>
+                                        <input type="text" className="w-full border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                                            value={nama} onChange={e => setNama(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="block font-medium mb-1">Umur:</label>
+                                        <input type="number" className="w-full border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                                            value={umur} onChange={e => setUmur(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="block font-medium mb-1">Golongan Darah:</label>
+                                        <input type="text" className="w-full border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                                            value={golonganDarah} onChange={e => setGolonganDarah(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="block font-medium mb-1">Tanggal Lahir:</label>
+                                        <input type="date" className="w-full border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                                            value={tanggalLahir} onChange={e => setTanggalLahir(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="block font-medium mb-1">Gender:</label>
+                                        <select className="w-full border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                                            value={gender} onChange={e => setGender(e.target.value)}>
+                                            <option value="">Pilih</option>
+                                            <option value="Laki-laki">Laki-laki</option>
+                                            <option value="Perempuan">Perempuan</option>
+                                            <option value="Lainnya">Lainnya</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block font-medium mb-1">Alamat:</label>
+                                        <textarea className="w-full border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                                            value={alamat} onChange={e => setAlamat(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="block font-medium mb-1">No. Telepon:</label>
+                                        <input type="tel" className="w-full border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                                            value={noTelepon} onChange={e => setNoTelepon(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label className="block font-medium mb-1">Email:</label>
+                                        <input type="email" className="w-full border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                                            value={email} onChange={e => setEmail(e.target.value)} />
+                                    </div>
                                 </div>
-
-                                <div>
-                                    <label>Umur:</label>
-                                    <input
-                                        type="number"
-                                        value={umur}
-                                        onChange={(e) => setUmur(e.target.value)}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label>Golongan Darah:</label>
-                                    <input
-                                        type="text"
-                                        value={golonganDarah}
-                                        onChange={(e) => setGolonganDarah(e.target.value)}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label>Tanggal Lahir:</label>
-                                    <input
-                                        type="date"
-                                        value={tanggalLahir}
-                                        onChange={(e) => setTanggalLahir(e.target.value)}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label>Gender:</label>
-                                    <select value={gender} onChange={(e) => setGender(e.target.value)}>
-                                        <option value="">Pilih</option>
-                                        <option value="Laki-laki">Laki-laki</option>
-                                        <option value="Perempuan">Perempuan</option>
-                                        <option value="Lainnya">Lainnya</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label>Alamat:</label>
-                                    <textarea
-                                        value={alamat}
-                                        onChange={(e) => setAlamat(e.target.value)}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label>No. Telepon:</label>
-                                    <input
-                                        type="tel"
-                                        value={noTelepon}
-                                        onChange={(e) => setNoTelepon(e.target.value)}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label>Email:</label>
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                    />
-                                </div>
-
-                                <button onClick={submitDataDiri}>Simpan Data Diri</button>
+                                <button className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold w-full transition"
+                                    onClick={submitDataDiri}>
+                                    Simpan Data Diri
+                                </button>
                             </div>
                         ) : (
-                            // Tampilkan data diri pasien jika sudah terdaftar
-                            <div className="card data-diri">
-                                <div className="card-body">
-                                    <h3 className="card-title">Data Diri</h3>
-                                    <p>
-                                        <strong>Nama:</strong> {dataDiri.nama}
-                                    </p>
-                                    <p>
-                                        <strong>Umur:</strong> {dataDiri.umur}
-                                    </p>
-                                    <p>
-                                        <strong>Golongan Darah:</strong> {dataDiri.golonganDarah}
-                                    </p>
-                                    <p>
-                                        <strong>Tanggal Lahir:</strong> {dataDiri.tanggalLahir}
-                                    </p>
-                                    <p>
-                                        <strong>Gender:</strong> {dataDiri.gender}
-                                    </p>
-                                    <p>
-                                        <strong>Alamat:</strong> {dataDiri.alamat}
-                                    </p>
-                                    <p>
-                                        <strong>No. Telepon:</strong> {dataDiri.noTelepon}
-                                    </p>
-                                    <p>
-                                        <strong>Email:</strong> {dataDiri.email}
-                                    </p>
+                            <div className="flex flex-col lg:flex-row gap-6 max-w-4xl mx-auto">
+                                {/* Data Diri Pasien */}
+                                <div className="bg-white rounded-xl shadow-md p-8 w-full lg:w-1/2 mb-8 lg:mb-0">
+                                    <h3 className="text-lg font-bold mb-6 text-blue-700">Profil Pasien</h3>
+                                    <div className="space-y-2">
+                                        <p><span className="font-medium">Nama:</span> {dataDiri.nama}</p>
+                                        <p><span className="font-medium">Umur:</span> {dataDiri.umur}</p>
+                                        <p><span className="font-medium">Golongan Darah:</span> {dataDiri.golonganDarah}</p>
+                                        <p><span className="font-medium">Tanggal Lahir:</span> {dataDiri.tanggalLahir}</p>
+                                        <p><span className="font-medium">Gender:</span> {dataDiri.gender}</p>
+                                        <p><span className="font-medium">Alamat:</span> {dataDiri.alamat}</p>
+                                        <p><span className="font-medium">No. Telepon:</span> {dataDiri.noTelepon}</p>
+                                        <p><span className="font-medium">Email:</span> {dataDiri.email}</p>
+                                    </div>
+                                </div>
+                                {/* Rekam Medis Terbaru */}
+                                <div className="bg-white rounded-xl shadow-md p-8 w-full lg:w-1/2">
+                                    <h3 className="text-lg font-bold mb-6 text-blue-700">Rekam Medis Terbaru</h3>
+                                    {rekamMedisTerbaru ? (
+                                        <div className="space-y-2">
+                                            <p><span className="font-medium">ID:</span> {rekamMedisTerbaru.id}</p>
+                                            <p><span className="font-medium">Diagnosa:</span> {rekamMedisTerbaru.diagnosa}</p>
+                                            <p><span className="font-medium">Catatan:</span> {rekamMedisTerbaru.catatan}</p>
+                                            <p>
+                                                <span className="font-medium">Foto:</span>{" "}
+                                                {rekamMedisTerbaru.foto ?
+                                                    <a href={rekamMedisTerbaru.foto} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">Lihat Foto</a>
+                                                    : <span className="italic text-gray-500">Tidak ada</span>
+                                                }
+                                            </p>
+                                            <p>
+                                                <span className="font-medium">Status Valid:</span>{" "}
+                                                {rekamMedisTerbaru.valid ?
+                                                    <span className="text-green-600 font-bold">Valid</span>
+                                                    : <span className="text-red-600 font-bold">Tidak Valid</span>
+                                                }
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <p className="italic text-gray-500">Belum ada rekam medis.</p>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -267,12 +263,12 @@ export default function PasienPage() {
                 )}
 
                 {activeTab === "riwayat" && (
-                    <div className="history-section">
-                        <h2>Riwayat Rekam Medis</h2>
+                    <div className="history-section bg-white rounded-xl shadow-md p-8 max-w-4xl mx-auto">
+                        <h2 className="text-2xl font-bold mb-4 text-blue-700">Riwayat Rekam Medis</h2>
                         {historyRekamMedis.length === 0 ? (
-                            <p>Tidak ada riwayat versi rekam medis.</p>
+                            <p className="italic text-gray-500">Tidak ada riwayat versi rekam medis.</p>
                         ) : (
-                            <RekamMedisHistory rekamMedisId={historyRekamMedis[0].id} />
+                            <RekamMedisHistory rekamMedisId={historyRekamMedis.map(rm => rm.id)} />
                         )}
                     </div>
                 )}

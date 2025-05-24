@@ -48,7 +48,6 @@ export default function AdminSideBar({ activePage, setActivePage, onLogout }) {
                 </nav>
             </div>
 
-            {/* Tombol Logout di pojok kiri bawah */}
             <button
                 className="absolute bottom-7 left-6 right-6 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-lg shadow-red-900/20 text-white py-3 px-4 rounded-xl font-bold text-base transition-all duration-150"
                 onClick={handleLogout}
