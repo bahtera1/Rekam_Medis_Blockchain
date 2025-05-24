@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import web3 from "./web3";
 import contract from "./contract";
-import "./App.css";
+import "./App.css"; // Tetap impor App.css jika ada styling tambahan yang masih diperlukan
 
 import AdminPage from "./admin/AdminPage.jsx";
 import DoctorPage from "./dokter/DokterPage.jsx";
@@ -60,23 +60,30 @@ function App() {
 
   return (
     <Router>
-      <div className="App">
+      <div className="min-h-screen w-full bg-transparent">
         {!account ? (
-          <div className="login-page">
-            <div className="card-wrapper">
-              <div className="card-left">
-                <h1>SISTEM</h1>
-                <h1>REKAM MEDIS</h1>
+          <div
+            className="login-page flex h-screen items-center justify-center bg-login-bg bg-center bg-cover"
+            style={{ backgroundImage: "url('/bakground.jpg')" }}
+          >
+            <div className="card-wrapper flex w-[700px] max-w-[90%] rounded-lg overflow-hidden shadow-lg">
+              <div className="card-left flex-2 p-10 text-white bg-black/40 backdrop-blur-md flex flex-col justify-center font-mono">
+                <h1 className="text-lg uppercase tracking-wide mb-2">Sistem</h1>
+                <h1 className="text-4xl leading-tight">Rekam Medis</h1>
               </div>
-              <div className="card-right">
-                <button className="metamask-login" onClick={loginWithMetaMask}>
+              <div className="card-right flex-1 bg-gray-400 p-10 flex flex-col justify-center">
+                <button
+                  className="metamask-login relative w-full px-4 py-3 bg-gray-200 text-black rounded-lg text-sm cursor-pointer flex items-center justify-center transition-all duration-200 hover:bg-blue-700 hover:-translate-y-2 font-serif"
+                  onClick={loginWithMetaMask}
+                >
                   LOGIN WITH METAMASK
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 w-16 h-16 bg-[url('./logo.png')] bg-contain bg-no-repeat bg-center"></span>
                 </button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="main-page">
+          <div className="main-page w-full min-h-screen block">
             <Routes>
               <Route path="/" element={<Navigate to={getRedirectPath(role)} replace />} />
               <Route

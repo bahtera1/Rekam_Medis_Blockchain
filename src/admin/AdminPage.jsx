@@ -4,7 +4,6 @@ import ManageDokterPage from "./ManageDokterPage";
 import ManagePasienPage from "./ManagePasienPage";
 import ManageAssign from "./ManageAssign";
 import AdminSideBar from "./AdminSideBar";
-import "./AdminPage.css";
 
 export default function AdminPage({ account, onLogout }) {
   const [dokterAddress, setDokterAddress] = useState("");
@@ -15,11 +14,10 @@ export default function AdminPage({ account, onLogout }) {
   const [pasienAddress, setPasienAddress] = useState("");
   const [listPasien, setListPasien] = useState([]);
   const [selectedDokter, setSelectedDokter] = useState("");
-  const [assignedPairs, setAssignedPairs] = useState([]); // New: pairs per dokter
+  const [assignedPairs, setAssignedPairs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activePage, setActivePage] = useState("manageDokter");
+  const [activePage, setActivePage] = useState("manageDokter"); // Default ke manageDokter
 
-  // --- Fetch Dokter ---
   const fetchDokterList = async () => {
     try {
       const total = await contract.methods.totalDokter().call();
@@ -27,14 +25,13 @@ export default function AdminPage({ account, onLogout }) {
       for (let i = 0; i < total; i++) {
         const addr = await contract.methods.getDokterByIndex(i).call();
         const result = await contract.methods.getDokter(addr).call();
-        // [nama, spesialisasi, nomorLisensi, aktif, assignedPasien]
         list.push({
           address: addr,
           nama: result[0],
           spesialisasi: result[1],
           nomorLisensi: result[2],
           aktif: result[3],
-          assignedPasien: result[4], // array of address
+          assignedPasien: result[4],
         });
       }
       setDokterList(list);
@@ -44,14 +41,12 @@ export default function AdminPage({ account, onLogout }) {
     }
   };
 
-  // --- Fetch Pasien ---
   const fetchPasienList = async () => {
     try {
       const pasienArray = await contract.methods.getDaftarPasien().call();
       const list = [];
       for (const addr of pasienArray) {
         const data = await contract.methods.getPasienData(addr).call();
-        // getPasienData: [nama, umur, golDar, tglLhr, gender, alamat, telp, email]
         list.push({ address: addr, nama: data[0] });
       }
       setListPasien(list);
@@ -61,10 +56,8 @@ export default function AdminPage({ account, onLogout }) {
     }
   };
 
-  // --- Fetch Pairing Dokter-Pasien --- (kelompokkan pasien per dokter)
   const fetchAssignedPairs = async () => {
     try {
-      // dokterList dan listPasien sudah di-fetch duluan
       const pairs = dokterList
         .filter(dok => dok.assignedPasien && dok.assignedPasien.length > 0)
         .map(dok => ({
@@ -86,7 +79,6 @@ export default function AdminPage({ account, onLogout }) {
   };
 
   useEffect(() => {
-    // Fetch dokter dan pasien, lalu fetch pairing
     async function fetchAll() {
       await fetchDokterList();
       await fetchPasienList();
@@ -95,14 +87,11 @@ export default function AdminPage({ account, onLogout }) {
   }, []);
 
   useEffect(() => {
-    // Setelah dokterList dan listPasien berubah, update pairs
     if (dokterList.length > 0 && listPasien.length > 0) {
       fetchAssignedPairs();
     }
-    // eslint-disable-next-line
   }, [dokterList, listPasien]);
 
-  // --- Register Dokter ---
   const registerDokter = async () => {
     if (!dokterAddress || !dokterNama || !dokterSpesialisasi || !dokterNomorLisensi) {
       alert("Semua data dokter harus diisi.");
@@ -127,7 +116,6 @@ export default function AdminPage({ account, onLogout }) {
     }
   };
 
-  // --- Toggle Status Dokter ---
   const toggleStatusDokter = async (addr, cur) => {
     try {
       setLoading(true);
@@ -142,7 +130,6 @@ export default function AdminPage({ account, onLogout }) {
     }
   };
 
-  // --- Assign Pasien ke Dokter ---
   const assignPasien = async () => {
     if (!selectedDokter || !pasienAddress) {
       alert("Pilih dokter dan masukkan alamat pasien.");
@@ -167,48 +154,51 @@ export default function AdminPage({ account, onLogout }) {
   };
 
   return (
-    <div className="admin-container">
+    <div className="flex flex-row min-h-screen w-full">
       <AdminSideBar activePage={activePage} setActivePage={setActivePage} onLogout={onLogout} />
 
-      <div className="main-content">
-        <h2>Admin Panel</h2>
-
-        {activePage === "manageDokter" && (
-          <ManageDokterPage
-            dokterList={dokterList}
-            dokterAddress={dokterAddress}
-            dokterNama={dokterNama}
-            dokterSpesialisasi={dokterSpesialisasi}
-            dokterNomorLisensi={dokterNomorLisensi}
-            loading={loading}
-            setDokterAddress={setDokterAddress}
-            setDokterNama={setDokterNama}
-            setDokterSpesialisasi={setDokterSpesialisasi}
-            setDokterNomorLisensi={setDokterNomorLisensi}
-            registerDokter={registerDokter}
-            toggleStatusDokter={toggleStatusDokter}
-          />
-        )}
-
-        {activePage === "managePasien" && (
-          <ManagePasienPage
-            loading={loading}
-            listPasien={listPasien}
-          />
-        )}
-
-        {activePage === "manageAssign" && (
-          <ManageAssign
-            dokterList={dokterList}
-            listPasien={listPasien}
-            selectedDokter={selectedDokter}
-            setSelectedDokter={setSelectedDokter}
-            pasienAddress={pasienAddress}
-            setPasienAddress={setPasienAddress}
-            assignPasien={assignPasien}
-            loading={loading}
-            assignedPairs={assignedPairs}
-          />
+      <div className="flex-1 p-12 bg-white shadow-inner overflow-y-auto transition-all duration-300 sm:p-8 xs:p-6">
+        {activePage && (
+          <>
+            <h2 className="mb-8 text-4xl font-bold text-gray-800 tracking-tight relative animate-fadeIn sm:text-3xl xs:text-2xl after:content-[''] after:absolute after:bottom-[-10px] after:left-0 after:w-20 after:h-1 after:bg-blue-500 after:rounded">
+              Admin Panel
+            </h2>
+            {activePage === "manageDokter" && (
+              <ManageDokterPage
+                dokterList={dokterList}
+                dokterAddress={dokterAddress}
+                dokterNama={dokterNama}
+                dokterSpesialisasi={dokterSpesialisasi}
+                dokterNomorLisensi={dokterNomorLisensi}
+                loading={loading}
+                setDokterAddress={setDokterAddress}
+                setDokterNama={setDokterNama}
+                setDokterSpesialisasi={setDokterSpesialisasi}
+                setDokterNomorLisensi={setDokterNomorLisensi}
+                registerDokter={registerDokter}
+                toggleStatusDokter={toggleStatusDokter}
+              />
+            )}
+            {activePage === "managePasien" && (
+              <ManagePasienPage
+                loading={loading}
+                listPasien={listPasien}
+              />
+            )}
+            {activePage === "manageAssign" && (
+              <ManageAssign
+                dokterList={dokterList}
+                listPasien={listPasien}
+                selectedDokter={selectedDokter}
+                setSelectedDokter={setSelectedDokter}
+                pasienAddress={pasienAddress}
+                setPasienAddress={setPasienAddress}
+                assignPasien={assignPasien}
+                loading={loading}
+                assignedPairs={assignedPairs}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
