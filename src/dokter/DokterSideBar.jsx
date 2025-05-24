@@ -39,7 +39,7 @@ export default function DokterSideBar({ onSelect, activeTab }) {
                         onClick={() => onSelect('update')}
                     >
                         <span className={activeTab === 'update' ? "font-bold" : "font-medium"}>
-                            Update Rekam Medis
+                            Data Pasien
                         </span>
                         {activeTab === 'update' && (
                             <span className="absolute left-0 top-0 h-full w-2 bg-blue-400 rounded-l-xl shadow-md" />
@@ -47,7 +47,7 @@ export default function DokterSideBar({ onSelect, activeTab }) {
                     </button>
                 </nav>
             </div>
-            {/* Tombol Logout (Fixed di kiri bawah sidebar) */}
+            {/* Tombol Logout */}
             <button
                 className="absolute bottom-7 left-6 right-6 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-lg shadow-red-900/20 text-white py-3 px-4 rounded-xl font-bold text-base transition-all duration-150"
                 onClick={() => onSelect('logout')}
@@ -55,5 +55,5 @@ export default function DokterSideBar({ onSelect, activeTab }) {
                 Logout
             </button>
         </aside>
-    )
+    );
 }
