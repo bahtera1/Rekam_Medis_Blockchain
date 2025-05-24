@@ -23,7 +23,7 @@ export default function AdminSideBar({ activePage, setActivePage, onLogout }) {
                     className={activePage === "managePasien" ? "active" : ""}
                     onClick={() => setActivePage("managePasien")}
                 >
-                    Manajemen Pasien
+                    Pasien Terdaftar
                 </button>
                 <button
                     className={activePage === "manageAssign" ? "active" : ""}

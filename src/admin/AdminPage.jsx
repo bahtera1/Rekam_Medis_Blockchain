@@ -12,13 +12,10 @@ export default function AdminPage({ account, onLogout }) {
   const [dokterSpesialisasi, setDokterSpesialisasi] = useState("");
   const [dokterNomorLisensi, setDokterNomorLisensi] = useState("");
   const [dokterList, setDokterList] = useState([]);
-
-  // Masih kita simpan pasienAddress untuk ManageAssign
   const [pasienAddress, setPasienAddress] = useState("");
   const [listPasien, setListPasien] = useState([]);
-
   const [selectedDokter, setSelectedDokter] = useState("");
-  const [assignedPairs, setAssignedPairs] = useState([]);
+  const [assignedPairs, setAssignedPairs] = useState([]); // New: pairs per dokter
   const [loading, setLoading] = useState(false);
   const [activePage, setActivePage] = useState("manageDokter");
 
@@ -30,18 +27,17 @@ export default function AdminPage({ account, onLogout }) {
       for (let i = 0; i < total; i++) {
         const addr = await contract.methods.getDokterByIndex(i).call();
         const result = await contract.methods.getDokter(addr).call();
-        // getDokter returns [nama, spesialisasi, nomorLisensi, aktif, assignedPasien]
+        // [nama, spesialisasi, nomorLisensi, aktif, assignedPasien]
         list.push({
           address: addr,
           nama: result[0],
           spesialisasi: result[1],
           nomorLisensi: result[2],
           aktif: result[3],
-          assignedPasien: result[4],
+          assignedPasien: result[4], // array of address
         });
       }
       setDokterList(list);
-      fetchAssignedPairs(list);
     } catch (err) {
       console.error("Gagal ambil daftar dokter:", err);
       alert("Gagal ambil daftar dokter.");
@@ -55,7 +51,7 @@ export default function AdminPage({ account, onLogout }) {
       const list = [];
       for (const addr of pasienArray) {
         const data = await contract.methods.getPasienData(addr).call();
-        // getPasienData returns [nama, umur, golDar, tglLhr, gender, alamat, telp, email]
+        // getPasienData: [nama, umur, golDar, tglLhr, gender, alamat, telp, email]
         list.push({ address: addr, nama: data[0] });
       }
       setListPasien(list);
@@ -65,25 +61,46 @@ export default function AdminPage({ account, onLogout }) {
     }
   };
 
-  // --- Fetch Pairing ---
-  const fetchAssignedPairs = (dokterList) => {
-    const pairs = [];
-    dokterList.forEach((dok) => {
-      dok.assignedPasien.forEach((pasien) => {
-        pairs.push({
+  // --- Fetch Pairing Dokter-Pasien --- (kelompokkan pasien per dokter)
+  const fetchAssignedPairs = async () => {
+    try {
+      // dokterList dan listPasien sudah di-fetch duluan
+      const pairs = dokterList
+        .filter(dok => dok.assignedPasien && dok.assignedPasien.length > 0)
+        .map(dok => ({
           dokterNama: dok.nama,
+          dokterLisensi: dok.nomorLisensi,
           dokterAddress: dok.address,
-          pasienAddress: pasien,
-        });
-      });
-    });
-    setAssignedPairs(pairs);
+          pasienList: dok.assignedPasien.map(addr => {
+            const pasienData = listPasien.find(p => p.address === addr);
+            return {
+              nama: pasienData ? pasienData.nama : "-",
+              address: addr,
+            };
+          }),
+        }));
+      setAssignedPairs(pairs);
+    } catch (err) {
+      console.error("Gagal ambil pairing dokter-pasien:", err);
+    }
   };
 
   useEffect(() => {
-    fetchDokterList();
-    fetchPasienList();
+    // Fetch dokter dan pasien, lalu fetch pairing
+    async function fetchAll() {
+      await fetchDokterList();
+      await fetchPasienList();
+    }
+    fetchAll();
   }, []);
+
+  useEffect(() => {
+    // Setelah dokterList dan listPasien berubah, update pairs
+    if (dokterList.length > 0 && listPasien.length > 0) {
+      fetchAssignedPairs();
+    }
+    // eslint-disable-next-line
+  }, [dokterList, listPasien]);
 
   // --- Register Dokter ---
   const registerDokter = async () => {
