@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import contract from "../contract";
+import { uploadToPinata } from "../PinataUpload"; // Import fungsi upload
 
 export default function DataPasien({ account, assignedPatients }) {
     const [selectedPatient, setSelectedPatient] = useState(null);
@@ -12,8 +13,11 @@ export default function DataPasien({ account, assignedPatients }) {
         foto: "",
         catatan: "",
     });
-    const [patientInfos, setPatientInfos] = useState([]); // Untuk fitur search
+    const [fotoFile, setFotoFile] = useState(null); // State baru untuk file foto
+    const [uploading, setUploading] = useState(false);
+    const [patientInfos, setPatientInfos] = useState([]);
     const [search, setSearch] = useState("");
+
 
     // Fetch info nama pasien untuk fitur search & tampil di tabel daftar pasien
     useEffect(() => {
@@ -70,6 +74,7 @@ export default function DataPasien({ account, assignedPatients }) {
     }, [selectedPatient]);
 
     const openModal = () => {
+        setFotoFile(null);
         if (rekamMedisList.length > 0) {
             const rm = rekamMedisList[0];
             setEditingRM(rm.id);
@@ -89,18 +94,40 @@ export default function DataPasien({ account, assignedPatients }) {
         setShowModal(true);
     };
 
+    // Fungsi upload ke Pinata jika ada file
+    const handleFotoUpload = async () => {
+        if (fotoFile) {
+            setUploading(true);
+            try {
+                const url = await uploadToPinata(fotoFile);
+                setFormData(f => ({ ...f, foto: url }));
+                setUploading(false);
+                return url;
+            } catch (e) {
+                setUploading(false);
+                alert("Upload foto ke IPFS gagal.");
+                throw e;
+            }
+        }
+        return formData.foto;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            let fotoUrl = formData.foto;
+            if (fotoFile) {
+                fotoUrl = await handleFotoUpload();
+            }
             if (!selectedPatient) return;
             if (editingRM) {
                 await contract.methods
-                    .updateRekamMedis(editingRM, formData.diagnosa, formData.foto, formData.catatan)
+                    .updateRekamMedis(editingRM, formData.diagnosa, fotoUrl, formData.catatan)
                     .send({ from: account });
                 alert("Rekam medis berhasil diperbarui.");
             } else {
                 await contract.methods
-                    .tambahRekamMedis(selectedPatient, formData.diagnosa, formData.foto, formData.catatan)
+                    .tambahRekamMedis(selectedPatient, formData.diagnosa, fotoUrl, formData.catatan)
                     .send({ from: account });
                 alert("Rekam medis berhasil ditambahkan.");
             }
@@ -224,7 +251,13 @@ export default function DataPasien({ account, assignedPatients }) {
                                         {rekamMedisList.map((rm, idx) => (
                                             <tr key={rm.id} className="hover:bg-blue-50">
                                                 <td className="px-2 py-2">{rm.diagnosa}</td>
-                                                <td className="px-2 py-2">{rm.foto}</td>
+                                                <td className="px-2 py-2">
+                                                    {rm.foto ? (
+                                                        <a href={rm.foto} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Lihat Foto</a>
+                                                    ) : (
+                                                        <span className="italic text-gray-400">Tidak Ada</span>
+                                                    )}
+                                                </td>
                                                 <td className="px-2 py-2">{rm.catatan}</td>
                                                 <td className="px-2 py-2 text-center">
                                                     <span className={rm.valid ? "text-green-600 font-bold" : "text-red-600 font-semibold"}>
@@ -261,14 +294,19 @@ export default function DataPasien({ account, assignedPatients }) {
                                         />
                                     </div>
                                     <div className="mb-4">
-                                        <label className="block font-semibold mb-1">Foto (URL/hash):</label>
+                                        <label className="block font-semibold mb-1">Foto (Gambar/Scan):</label>
                                         <input
-                                            type="text"
-                                            name="foto"
-                                            value={formData.foto}
-                                            onChange={e => setFormData(f => ({ ...f, foto: e.target.value }))}
-                                            className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={e => setFotoFile(e.target.files[0])}
+                                            className="w-full px-3 py-2 border border-blue-300 rounded-md"
                                         />
+                                        {uploading && <div className="text-sm text-blue-700 mt-1">Uploading ke IPFS...</div>}
+                                        {formData.foto && (
+                                            <div className="mt-2">
+                                                <a href={formData.foto} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Preview Foto</a>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="mb-6">
                                         <label className="block font-semibold mb-1">Catatan:</label>
@@ -281,7 +319,7 @@ export default function DataPasien({ account, assignedPatients }) {
                                         />
                                     </div>
                                     <div className="flex gap-3">
-                                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition">
+                                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold transition" disabled={uploading}>
                                             Simpan
                                         </button>
                                         <button type="button" onClick={() => setShowModal(false)} className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded-lg font-semibold transition">
@@ -289,6 +327,7 @@ export default function DataPasien({ account, assignedPatients }) {
                                         </button>
                                     </div>
                                 </form>
+
                             </div>
                         </div>
                     )}
