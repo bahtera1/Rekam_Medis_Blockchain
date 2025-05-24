@@ -26,7 +26,7 @@ export default function DokterDashboard({ assignedPatients, dokterProfile }) {
             )}
 
             <p className="text-lg text-gray-700 font-medium">
-                Total Pasien Terdaftar:{" "}
+                Total Pasien Yang Anda Tangani:{" "}
                 <span className="font-bold text-blue-700">{assignedPatients.length}</span>
             </p>
         </section>
