@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import web3 from "./web3";
 import contract from "./contract";
-import "./App.css"; // Tetap impor App.css jika ada styling tambahan yang masih diperlukan
 
 import AdminPage from "./admin/AdminPage.jsx";
 import DoctorPage from "./dokter/DokterPage.jsx";
@@ -60,11 +59,11 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen w-full bg-transparent">
+      <div className="min-h-screen w-full">
         {!account ? (
           <div
-            className="login-page flex h-screen items-center justify-center bg-login-bg bg-center bg-cover"
-            style={{ backgroundImage: "url('/bakground.jpg')" }}
+            className="login-page flex h-screen items-center justify-center bg-login-bg bg-center bg-cover bg-[url('./background.jpg')]"
+            style={{ backgroundImage: "url('./background.jpg')" }}
           >
             <div className="card-wrapper flex w-[700px] max-w-[90%] rounded-lg overflow-hidden shadow-lg">
               <div className="card-left flex-2 p-10 text-white bg-black/40 backdrop-blur-md flex flex-col justify-center font-mono">
