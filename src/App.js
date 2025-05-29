@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import web3 from "./web3";
 import contract from "./contract";
 
+import SuperAdminPage from "./superadmin/SuperAdminPage.jsx";
 import AdminPage from "./admin/AdminPage.jsx";
 import DoctorPage from "./dokter/DokterPage.jsx";
 import PasienPage from "./pasien/PasienPage.jsx";
@@ -46,7 +47,11 @@ function App() {
 
   const getRedirectPath = (role) => {
     switch (role) {
-      case "Admin":
+      case "SuperAdmin":
+        return "/superadmin";
+      case "AdminRS":
+        return "/admin";
+      case "Admin": // fallback if still pakai role lama
         return "/admin";
       case "Dokter":
         return "/dokter";
@@ -86,9 +91,19 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to={getRedirectPath(role)} replace />} />
               <Route
+                path="/superadmin"
+                element={
+                  role === "SuperAdmin" ? (
+                    <SuperAdminPage account={account} onLogout={handleLogout} />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+              <Route
                 path="/admin"
                 element={
-                  role === "Admin" ? (
+                  role === "AdminRS" || role === "Admin" ? (
                     <AdminPage account={account} onLogout={handleLogout} />
                   ) : (
                     <Navigate to="/" replace />
