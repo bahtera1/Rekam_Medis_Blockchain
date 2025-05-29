@@ -3,16 +3,20 @@ import contract from "../contract";
 
 export default function RekamMedisHistory({ rekamMedisId }) {
     const [historyVersions, setHistoryVersions] = useState({}); // { id: [RekamMedisData, ...] }
-    const [currentData, setCurrentData] = useState([]); // data rekam medis terbaru
+    const [currentData, setCurrentData] = useState([]); // Data rekam medis terbaru
     const [updateHistory, setUpdateHistory] = useState({}); // { id: [{dokter, timestamp}, ...] }
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [error, setError] = useState(null); // Untuk menampilkan pesan error di UI
 
     useEffect(() => {
         async function fetchHistory() {
             setLoading(true);
+            setError(null);
+            console.log("Fetching history for rekamMedisId:", rekamMedisId); // Debug
             try {
                 if (!rekamMedisId || rekamMedisId.length === 0) {
+                    console.log("No rekamMedisId provided, resetting state.");
                     setCurrentData([]);
                     setHistoryVersions({});
                     setUpdateHistory({});
@@ -21,21 +25,30 @@ export default function RekamMedisHistory({ rekamMedisId }) {
                 }
 
                 let idArr = Array.isArray(rekamMedisId) ? rekamMedisId : [rekamMedisId];
+                console.log("ID array:", idArr); // Debug
 
                 // Ambil data rekam medis terbaru semua ID
                 const latestData = await Promise.all(
                     idArr.map((id) =>
-                        contract.methods.getRekamMedis(id).call().then((data) => ({
-                            id,
-                            pasien: data.pasien,
-                            diagnosa: data.diagnosa,
-                            foto: data.foto,
-                            catatan: data.catatan,
-                            valid: data.valid,
-                        }))
+                        contract.methods.getRekamMedis(id).call().then((data) => {
+                            console.log(`Latest data for ID ${id}:`, data); // Debug
+                            return {
+                                id,
+                                pasien: data.pasien,
+                                diagnosa: data.diagnosa,
+                                foto: data.foto,
+                                catatan: data.catatan,
+                                valid: data.valid,
+                            };
+                        }).catch((err) => {
+                            console.error(`Error fetching getRekamMedis for ID ${id}:`, err);
+                            return null;
+                        })
                     )
                 );
-                setCurrentData(latestData.reverse());
+                const validLatestData = latestData.filter((data) => data !== null).reverse();
+                setCurrentData(validLatestData);
+                console.log("Current data set:", validLatestData); // Debug
 
                 // Ambil semua versi rekam medis untuk tiap ID
                 const versions = {};
@@ -43,7 +56,6 @@ export default function RekamMedisHistory({ rekamMedisId }) {
                     idArr.map(async (id) => {
                         try {
                             const vers = await contract.methods.getRekamMedisVersions(id).call();
-                            // Map versi jadi array object yang mudah pakai
                             versions[id.toString()] = vers.map((v) => ({
                                 id: v.id,
                                 pasien: v.pasien,
@@ -52,32 +64,51 @@ export default function RekamMedisHistory({ rekamMedisId }) {
                                 catatan: v.catatan,
                                 valid: v.valid,
                             }));
-                        } catch {
+                            console.log(`Versions for ID ${id}:`, versions[id.toString()]); // Debug
+                        } catch (err) {
+                            console.error(`Error fetching versions for ID ${id}:`, err);
                             versions[id.toString()] = [];
                         }
                     })
                 );
                 setHistoryVersions(versions);
+                console.log("History versions set:", versions); // Debug
 
                 // Ambil riwayat update dokter + timestamp
                 const updateHistories = {};
                 await Promise.all(
                     idArr.map(async (id) => {
                         try {
-                            const [dokters, timestamps] =
-                                await contract.methods.getRekamMedisUpdateHistory(id).call();
+                            const result = await contract.methods.getRekamMedisUpdateHistory(id).call();
+                            console.log(`Raw result for ID ${id}:`, result); // Debug
+                            if (!result || !Array.isArray(result) || result.length < 2) {
+                                console.warn(`Invalid result for ID ${id}:`, result);
+                                updateHistories[id.toString()] = [];
+                                return;
+                            }
+                            const [dokters, timestamps] = result;
+                            if (!Array.isArray(dokters) || !Array.isArray(timestamps)) {
+                                console.warn(`Non-array result for ID ${id}:`, { dokters, timestamps });
+                                updateHistories[id.toString()] = [];
+                                return;
+                            }
                             const updates = dokters.map((dokter, i) => ({
                                 dokter,
-                                timestamp: parseInt(timestamps[i], 10),
+                                timestamp: parseInt(timestamps[i], 10) || 0,
                             }));
                             updateHistories[id.toString()] = updates;
-                        } catch {
+                            console.log(`Update history for ID ${id}:`, updates); // Debug
+                        } catch (err) {
+                            console.error(`Error fetching update history for ID ${id}:`, err);
                             updateHistories[id.toString()] = [];
                         }
                     })
                 );
                 setUpdateHistory(updateHistories);
+                console.log("Update history set:", updateHistories); // Debug
             } catch (err) {
+                console.error("General error in fetchHistory:", err);
+                setError("Gagal memuat riwayat rekam medis. Silakan coba lagi.");
                 setCurrentData([]);
                 setHistoryVersions({});
                 setUpdateHistory({});
@@ -97,7 +128,9 @@ export default function RekamMedisHistory({ rekamMedisId }) {
     const formatTimestamp = (ts) => {
         if (!ts) return "-";
         const date = new Date(ts * 1000);
-        return date.toLocaleString();
+        const formatted = date.toLocaleString();
+        console.log(`Formatting timestamp ${ts}:`, formatted); // Debug
+        return formatted;
     };
 
     return (
@@ -112,6 +145,10 @@ export default function RekamMedisHistory({ rekamMedisId }) {
                     onChange={(e) => setSearch(e.target.value)}
                 />
             </div>
+
+            {error && (
+                <div className="text-red-600 text-center py-4">{error}</div>
+            )}
 
             <div className="overflow-x-auto">
                 <table className="min-w-full border-collapse rounded-xl shadow text-sm">
@@ -144,6 +181,7 @@ export default function RekamMedisHistory({ rekamMedisId }) {
                             filtered.map((item, idx) => {
                                 const versions = historyVersions[item.id.toString()] || [];
                                 const updates = updateHistory[item.id.toString()] || [];
+                                console.log(`Rendering item ${item.id}:`, { versions, updates }); // Debug
 
                                 // Jika versi kosong, tampilkan data terbaru saja sebagai versi ke-1
                                 if (versions.length === 0) {

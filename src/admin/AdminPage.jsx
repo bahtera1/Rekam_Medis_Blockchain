@@ -90,6 +90,7 @@ export default function AdminPage({ account, onLogout }) {
           dokterAddress: dok.address,
           pasienList: dok.assignedPasien.map(addr => {
             const pasienData = listPasien.find(p => p.address === addr);
+            console.log("Ini adalah list pasien:", pasienData);
             return {
               nama: pasienData ? pasienData.nama : "-",
               address: addr,
