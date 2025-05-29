@@ -19,29 +19,32 @@ export default function AdminPage({ account, onLogout }) {
   const [activePage, setActivePage] = useState("manageDokter"); // Default ke manageDokter
   const [namaRumahSakit, setNamaRumahSakit] = useState("");
 
-  // Ambil nama RS untuk dashboard
+  // Ambil nama RS untuk sidebar
   useEffect(() => {
     const fetchNamaRS = async () => {
       try {
         const adminData = await contract.methods.dataAdmin(account).call();
-        setNamaRumahSakit(adminData.namaRumahSakit);
-      } catch {
+        if (adminData && adminData.namaRumahSakit) {
+          setNamaRumahSakit(adminData.namaRumahSakit);
+        } else {
+          setNamaRumahSakit("");
+        }
+      } catch (err) {
+        console.error("Gagal ambil nama RS:", err);
         setNamaRumahSakit("");
       }
     };
-    fetchNamaRS();
+    if (account) fetchNamaRS();
   }, [account]);
 
   // Fetch dokter list
   const fetchDokterList = async () => {
     try {
-      // Hanya dokter di RS ini (RS == account)
       const total = await contract.methods.totalDokter().call();
       const list = [];
       for (let i = 0; i < total; i++) {
         const addr = await contract.methods.getDokterByIndex(i).call();
         const result = await contract.methods.getDokter(addr).call();
-        // Cek adminRS == account
         if (result[5] === account) {
           list.push({
             address: addr,
@@ -68,7 +71,6 @@ export default function AdminPage({ account, onLogout }) {
       const list = [];
       for (const addr of pasienArray) {
         const data = await contract.methods.getPasienData(addr).call();
-        // Hanya pasien yg rumahSakitPenanggungJawab == account
         if (data[8] === account) {
           list.push({ address: addr, nama: data[0] });
         }
@@ -80,6 +82,7 @@ export default function AdminPage({ account, onLogout }) {
     }
   };
 
+  // Fetch pasangan dokter-pasien yang sudah diassign
   const fetchAssignedPairs = async () => {
     try {
       const pairs = dokterList
@@ -90,7 +93,6 @@ export default function AdminPage({ account, onLogout }) {
           dokterAddress: dok.address,
           pasienList: dok.assignedPasien.map(addr => {
             const pasienData = listPasien.find(p => p.address === addr);
-            console.log("Ini adalah list pasien:", pasienData);
             return {
               nama: pasienData ? pasienData.nama : "-",
               address: addr,
@@ -164,9 +166,7 @@ export default function AdminPage({ account, onLogout }) {
     }
     try {
       setLoading(true);
-      await contract.methods
-        .assignPasienToDokter(selectedDokter, pasienAddress)
-        .send({ from: account });
+      await contract.methods.assignPasienToDokter(selectedDokter, pasienAddress).send({ from: account });
       alert("Pasien berhasil diassign ke dokter.");
       setPasienAddress("");
       setSelectedDokter("");
@@ -182,11 +182,20 @@ export default function AdminPage({ account, onLogout }) {
 
   return (
     <div className="flex flex-row min-h-screen w-full">
-      <AdminSideBar activePage={activePage} setActivePage={setActivePage} onLogout={onLogout} />
+      <AdminSideBar
+        activePage={activePage}
+        setActivePage={setActivePage}
+        onLogout={onLogout}
+        namaRumahSakit={namaRumahSakit} // Tetap kirim ke sidebar
+      />
       <div className="flex-1 p-12 bg-white shadow-inner overflow-y-auto transition-all duration-300 sm:p-8 xs:p-6">
-        <h2 className="mb-8 text-4xl font-bold text-gray-800 tracking-tight relative animate-fadeIn sm:text-3xl xs:text-2xl after:content-[''] after:absolute after:bottom-[-10px] after:left-0 after:w-20 after:h-1 after:bg-blue-500 after:rounded">
-          Admin Panel {namaRumahSakit && <span className="ml-3 text-blue-700 text-2xl">{namaRumahSakit}</span>}
+        <h2
+          className="mb-8 text-4xl font-bold text-gray-800 tracking-tight relative animate-fadeIn sm:text-3xl xs:text-2xl
+            after:content-[''] after:absolute after:bottom-[-10px] after:left-0 after:w-20 after:h-1 after:bg-blue-500 after:rounded"
+        >
+          Admin Panel
         </h2>
+
         {activePage === "manageDokter" && (
           <ManageDokterPage
             dokterList={dokterList}
@@ -203,12 +212,7 @@ export default function AdminPage({ account, onLogout }) {
             toggleStatusDokter={toggleStatusDokter}
           />
         )}
-        {activePage === "managePasien" && (
-          <ManagePasienPage
-            loading={loading}
-            listPasien={listPasien}
-          />
-        )}
+        {activePage === "managePasien" && <ManagePasienPage loading={loading} listPasien={listPasien} />}
         {activePage === "manageAssign" && (
           <ManageAssign
             dokterList={dokterList}
