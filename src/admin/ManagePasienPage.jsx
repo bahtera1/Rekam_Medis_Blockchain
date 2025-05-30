@@ -1,73 +1,162 @@
 import React, { useState } from "react";
 
+// Komponen untuk ikon search (menggunakan path dari Heroicons sebagai contoh)
+const SearchIcon = () => (
+  <svg
+    className="w-5 h-5 text-slate-400"
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 20 20"
+  >
+    <path
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+    />
+  </svg>
+);
+
+// Komponen untuk spinner sederhana
+const Spinner = () => (
+  <svg
+    className="animate-spin h-5 w-5 text-blue-600"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+  >
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    ></circle>
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    ></path>
+  </svg>
+);
+
 export default function ManagePasienPage({
   loading,
-  listPasien,    // [{ address, nama }, …]
+  listPasien, // [{ address, nama }, …]
 }) {
   const [q, setQ] = useState("");
 
-  const filtered = listPasien.filter(p => {
-    const l = p.nama?.toLowerCase() || "";
-    const a = p.address.toLowerCase();
-    return l.includes(q.toLowerCase()) || a.includes(q.toLowerCase());
+  // Pastikan listPasien adalah array sebelum melakukan filter untuk menghindari error runtime
+  const safeListPasien = Array.isArray(listPasien) ? listPasien : [];
+
+  const filtered = safeListPasien.filter(p => {
+    // Pastikan p (objek pasien) dan propertinya ada sebelum diakses
+    const nameLower = p?.nama?.toLowerCase() || "";
+    // Pastikan p.address ada dan merupakan string sebelum toLowerCase
+    const addressLower = (typeof p?.address === 'string' ? p.address.toLowerCase() : "");
+    const queryLower = q.toLowerCase();
+    return nameLower.includes(queryLower) || addressLower.includes(queryLower);
   });
 
   return (
-    <div className="bg-[#f8fbff] p-8 rounded-2xl shadow-md w-full">
-      <h3 className="text-2xl font-bold mb-6 text-blue-800">Daftar Pasien Terdaftar</h3>
+    // Kontainer utama halaman - max-w-7xl dihilangkan untuk memperbesar card
+    <div className="bg-slate-50 p-6 sm:p-8 rounded-xl sm:rounded-2xl shadow-xl w-full mx-auto my-8"> {/* max-w-7xl dihilangkan dari sini */}
+      {/* Judul Halaman */}
+      <h3 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-slate-700">
+        Daftar Pasien Terdaftar
+      </h3>
 
-      {/* Search Box with icon */}
-      <div className="relative mb-6">
-        <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none transform translate-x-1">
-          {/* Icon cari dengan ukuran yang disesuaikan */}
-          <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" fill="none" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="2" />
-          </svg>
+      {/* Kotak Pencarian */}
+      <div className="relative mb-6 sm:mb-8">
+        <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <SearchIcon />
         </span>
         <input
-          type="text"
-          placeholder="Cari pasien..."
+          type="search" // Menggunakan type="search" untuk input pencarian
+          placeholder="Cari berdasarkan nama atau alamat wallet..."
           value={q}
           onChange={e => setQ(e.target.value)}
-          disabled={loading}
-          className="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-100 shadow-sm bg-white text-gray-800 placeholder:text-blue-400 focus:ring-2 focus:ring-blue-300 focus:outline-none"
+          disabled={loading} // Nonaktifkan input saat loading
+          className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 shadow-sm 
+                     bg-white text-slate-800 placeholder:text-slate-400 
+                     focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none
+                     transition duration-150 ease-in-out text-sm sm:text-base"
         />
       </div>
 
-
-
-      <div className="rounded-xl overflow-hidden shadow w-full">
-        <table className="w-full table-fixed text-center border-separate border-spacing-0">
-          <colgroup>
-            <col style={{ width: '60px' }} />
-            <col style={{ width: '220px' }} />
-            <col />
-          </colgroup>
-          <thead>
-            <tr className="bg-[#2351e2] text-white text-base">
-              <th className="py-3 px-4 font-bold">No.</th>
-              <th className="py-3 px-4 font-bold">Nama</th>
-              <th className="py-3 px-4 font-bold">Alamat Wallet</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white text-gray-700">
-            {filtered.length === 0 ? (
+      {/* Kontainer Tabel */}
+      <div className="rounded-lg sm:rounded-xl shadow-lg overflow-hidden bg-white">
+        {/* Wrapper untuk scroll horizontal pada tabel di layar kecil */}
+        <div className="overflow-x-auto">
+          {/* min-w pada tabel disesuaikan menjadi 900px */}
+          <table className="w-full min-w-[900px] text-sm">
+            <colgroup>
+              <col style={{ width: '60px' }} /> {/* Kolom Nomor */}
+              <col style={{ width: '30%' }} />   {/* Kolom Nama */}
+              <col style={{ minWidth: '400px' }} /> {/* Kolom Alamat Wallet, minWidth ditambah */}
+            </colgroup>
+            {/* Header Tabel */}
+            <thead className="bg-blue-600 text-white">
               <tr>
-                <td colSpan={3} className="py-6 text-gray-400">Tidak ada pasien.</td>
+                <th className="py-3.5 px-4 font-semibold text-center">No.</th>
+                <th className="py-3.5 px-4 font-semibold text-left">Nama</th>
+                <th className="py-3.5 px-4 font-semibold text-left">Alamat Wallet</th>
               </tr>
-            ) : (
-              filtered.map((p, i) => (
-                <tr key={p.address} className="hover:bg-blue-50 transition">
-                  <td className="py-3 px-4">{i + 1}</td>
-                  <td className="py-3 px-4">{p.nama}</td>
-                  <td className="py-3 px-4 font-mono text-xs break-all">{p.address}</td>
+            </thead>
+            {/* Body Tabel */}
+            <tbody className="divide-y divide-slate-200">
+              {loading ? (
+                // State Loading
+                <tr>
+                  <td colSpan={3} className="py-10 px-4 text-center text-slate-500">
+                    <div className="flex justify-center items-center space-x-2">
+                      <Spinner />
+                      <span>Memuat data pasien...</span>
+                    </div>
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : filtered.length === 0 ? (
+                // State Tidak Ada Data (baik karena filter atau memang kosong)
+                <tr>
+                  <td colSpan={3} className="py-8 px-4 text-center text-slate-500">
+                    {q ? "Tidak ada pasien yang cocok dengan pencarian Anda." : "Belum ada pasien terdaftar."}
+                  </td>
+                </tr>
+              ) : (
+                // Menampilkan data pasien yang sudah difilter
+                filtered.map((p, i) => (
+                  <tr
+                    key={p?.address || `pasien-${i}`} // Fallback key jika address tidak ada
+                    className="hover:bg-blue-50 transition-colors duration-150 ease-in-out"
+                  >
+                    <td className="py-3.5 px-4 text-center text-slate-600">{i + 1}</td>
+                    <td className="py-3.5 px-4 text-left text-slate-800 font-medium">{p?.nama || "-"}</td>
+                    <td className="py-3.5 px-4 text-left text-slate-600 font-mono text-xs break-all">
+                      {p?.address || "Alamat tidak tersedia"}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* Pesan tambahan jika tidak ada hasil pencarian namun ada data asli */}
+      {!loading && safeListPasien.length > 0 && filtered.length === 0 && q && (
+        <p className="text-center text-slate-500 mt-6 text-sm">
+          Tidak ditemukan pasien dengan kata kunci "<span className="font-semibold">{q}</span>". Silakan coba kata kunci lain.
+        </p>
+      )}
+      {/* Pesan tambahan jika memang tidak ada data sama sekali dari awal */}
+      {!loading && safeListPasien.length === 0 && !q && (
+        <p className="text-center text-slate-500 mt-6 text-sm">
+          Saat ini belum ada data pasien yang terdaftar di sistem.
+        </p>
+      )}
     </div>
   );
 }

@@ -1,9 +1,5 @@
 import React, { useState } from "react";
 
-// --- SVG Icons ---
-// It's generally better to use a library like Heroicons or Material Icons,
-// but for simplicity, here are some basic inline SVGs.
-
 const UserGroupIcon = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-3.741-5.192M2.985 19.644A2.25 2.25 0 0 1 5.235 17.5h13.531c1.228 0 2.276.736 2.61 1.808a9.03 9.03 0 0 1-.698 5.396M15 9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
