@@ -92,10 +92,8 @@ export default function ManageDokterPage({
 
 
   return (
-    // Perubahan: Menghilangkan bg-slate-50, min-h-screen, dan padding luar (p-4 sm:p-6 lg:p-8)
-    // agar komponen ini menyatu dengan background dan padding dari AdminPage.
     <div className="w-full">
-      <div className="mx-auto"> {/* Kontainer ini mungkin perlu disesuaikan jika ada max-width global */}
+      <div className="mx-auto">
         {/* Bagian Pendaftaran Dokter Baru */}
         <div className="bg-white rounded-xl shadow-xl p-6 sm:p-8 mb-8">
           <h3 className="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3">
@@ -181,7 +179,6 @@ export default function ManageDokterPage({
             <strong className="font-medium">{dokterList.length}</strong>
           </p>
 
-          {/* Input Pencarian dengan Ikon */}
           <div className="relative my-4">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg
@@ -234,8 +231,9 @@ export default function ManageDokterPage({
                   {filteredDokter.map((d, index) => (
                     <tr key={d.address} className="hover:bg-slate-50 transition-colors duration-150">
                       <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{index + 1}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
-                        <div className="w-32 truncate" title={d.address}>{d.address}</div>
+                      {/* Perubahan di sini: Menghapus div dengan class w-32 dan truncate */}
+                      <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap break-all">
+                        {d.address}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900 font-medium whitespace-nowrap">{d.nama}</td>
                       <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{d.spesialisasi}</td>
