@@ -7,6 +7,7 @@ import SuperAdminPage from "./superadmin/SuperAdminPage.jsx";
 import AdminPage from "./admin/AdminPage.jsx";
 import DoctorPage from "./dokter/DokterPage.jsx";
 import PasienPage from "./pasien/PasienPage.jsx";
+import BackgroundImage from './background.jpg';
 
 function App() {
   const [account, setAccount] = useState("");
@@ -50,7 +51,6 @@ function App() {
       case "SuperAdmin":
         return "/superadmin";
       case "AdminRS":
-        return "/admin";
       case "Admin": // fallback if still pakai role lama
         return "/admin";
       case "Dokter":
@@ -64,25 +64,37 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen w-full">
+      <div className="min-h-screen w-full font-sans">
         {!account ? (
           <div
-            className="login-page flex h-screen items-center justify-center bg-login-bg bg-center bg-cover bg-[url('./background.jpg')]"
-            style={{ backgroundImage: "url('./background.jpg')" }}
+            className="login-page flex h-screen items-center justify-center bg-cover bg-center"
+            style={{ backgroundImage: `url(${BackgroundImage})` }} // Tetap menggunakan style prop untuk background utama
           >
-            <div className="card-wrapper flex w-[700px] max-w-[90%] rounded-lg overflow-hidden shadow-lg">
-              <div className="card-left flex-2 p-10 text-white bg-black/40 backdrop-blur-md flex flex-col justify-center font-mono">
-                <h1 className="text-lg uppercase tracking-wide mb-2">Sistem</h1>
-                <h1 className="text-4xl leading-tight">Rekam Medis</h1>
+            <div className="card-wrapper flex w-[800px] max-w-[95%] rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 hover:shadow-3xl border border-gray-100">
+              {/* Left Section: Branding/Title */}
+              <div className="card-left flex-1 p-10 text-white bg-gradient-to-br from-blue-800/70 to-indigo-900/70 backdrop-blur-md flex flex-col justify-center text-center sm:text-left">
+                <h1 className="text-xl sm:text-2xl uppercase tracking-wider mb-3 font-light">Sistem Informasi</h1>
+                <h2 className="text-4xl sm:text-5xl font-extrabold leading-tight">Rekam Medis Digital</h2>
+                <p className="mt-4 text-blue-100 text-sm sm:text-base">
+                  Platform terdesentralisasi untuk pengelolaan rekam medis yang aman dan transparan.
+                </p>
               </div>
-              <div className="card-right flex-1 bg-gray-400 p-10 flex flex-col justify-center">
+
+              {/* Right Section: Login Button */}
+              <div className="card-right flex-1 bg-white p-10 flex flex-col justify-center items-center">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">Masuk ke Dashboard</h3>
                 <button
-                  className="metamask-login relative w-full px-4 py-3 bg-gray-200 text-black rounded-lg text-sm cursor-pointer flex items-center justify-center transition-all duration-200 hover:bg-blue-700 hover:-translate-y-2 font-serif"
+                  className="metamask-login relative w-full px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg text-base font-semibold cursor-pointer flex items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-orange-300 focus:ring-opacity-75"
                   onClick={loginWithMetaMask}
                 >
-                  LOGIN WITH METAMASK
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 w-16 h-16 bg-[url('./logo.png')] bg-contain bg-no-repeat bg-center"></span>
+                  <div className="flex items-center space-x-2">
+                    <span>LOGIN WITH</span>
+                    <span className="w-20 h-20 bg-[url('./logo-metamask.png')] bg-contain bg-no-repeat bg-center"></span>
+                  </div>
                 </button>
+                <p className="text-gray-500 text-sm mt-4">
+                  Pastikan MetaMask Anda sudah terhubung ke jaringan yang benar.
+                </p>
               </div>
             </div>
           </div>
