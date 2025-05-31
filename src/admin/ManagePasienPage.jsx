@@ -48,7 +48,8 @@ export default function ManagePasienPage({
   listPasien, // [{ address, nama }, …]
 }) {
   const [q, setQ] = useState("");
-
+  console.log("Prop listPasien yang diterima:", listPasien); // <--- TAMBAHKAN INI
+  console.log("Prop loading yang diterima:", loading); // <--- Tambahkan ini juga untuk konteks
   // Pastikan listPasien adalah array sebelum melakukan filter untuk menghindari error runtime
   const safeListPasien = Array.isArray(listPasien) ? listPasien : [];
 
@@ -91,12 +92,11 @@ export default function ManagePasienPage({
       <div className="rounded-lg sm:rounded-xl shadow-lg overflow-hidden bg-white">
         {/* Wrapper untuk scroll horizontal pada tabel di layar kecil */}
         <div className="overflow-x-auto">
-          {/* min-w pada tabel disesuaikan menjadi 900px */}
           <table className="w-full min-w-[900px] text-sm">
             <colgroup>
               <col style={{ width: '60px' }} /> {/* Kolom Nomor */}
-              <col style={{ width: '30%' }} />   {/* Kolom Nama */}
-              <col style={{ minWidth: '400px' }} /> {/* Kolom Alamat Wallet, minWidth ditambah */}
+              <col style={{ width: '30%' }} />  {/* Kolom Nama */}
+              <col style={{ minWidth: '400px' }} /> {/* Kolom Alamat Wallet */}
             </colgroup>
             {/* Header Tabel */}
             <thead className="bg-blue-600 text-white">

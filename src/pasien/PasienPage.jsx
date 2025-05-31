@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import contract from "../contract";
-import web3 from "../web3";
+import contract from "../contract"; // Pastikan path ini benar
+import web3 from "../web3"; // Pastikan path ini benar
 import PasienSideBar from "./PasienSideBar";
 import DataDiriPasien from "./DataDiriPasien";
 import RekamMedisHistory from "./RekamMedisHistory";
@@ -12,7 +12,6 @@ export default function PasienPage({ onLogout }) {
   const [dataDiri, setDataDiri] = useState(null);
   const [form, setForm] = useState({
     nama: "",
-    umur: "",
     golonganDarah: "",
     tanggalLahir: "",
     gender: "",
@@ -54,50 +53,66 @@ export default function PasienPage({ onLogout }) {
         setListAdminRS(admins);
 
         // Ambil data pasien
+        // Kontrak getPasienData sekarang mengembalikan: nama, golonganDarah, tanggalLahir, gender, alamat, noTelepon, email, rumahSakitPenanggungJawab
         const pasienData = await contract.methods.getPasienData(aktif).call();
 
-        if (!pasienData[0]) {
+        if (!pasienData[0]) { // Cek berdasarkan nama, jika nama kosong berarti belum terdaftar
           setIsRegistered(false);
           setDataDiri(null);
           // Kosongkan form dan set adminRS default (ambil admin RS pertama)
           setForm((f) => ({
-            ...f,
+            nama: "", // Pastikan semua field form direset
+            golonganDarah: "",
+            tanggalLahir: "",
+            gender: "",
+            alamat: "",
+            noTelepon: "",
+            email: "",
             adminRS: admins.length > 0 ? admins[0].address : "",
           }));
         } else {
           setIsRegistered(true);
           setDataDiri({
             nama: pasienData[0],
-            umur: pasienData[1],
-            golonganDarah: pasienData[2],
-            tanggalLahir: pasienData[3],
-            gender: pasienData[4],
-            alamat: pasienData[5],
-            noTelepon: pasienData[6],
-            email: pasienData[7],
-            adminRS: pasienData[8],
+            golonganDarah: pasienData[1],
+            tanggalLahir: pasienData[2],
+            gender: pasienData[3],
+            alamat: pasienData[4],
+            noTelepon: pasienData[5],
+            email: pasienData[6],
+            adminRS: pasienData[7],
           });
           setForm({
             nama: pasienData[0],
-            umur: pasienData[1],
-            golonganDarah: pasienData[2],
-            tanggalLahir: pasienData[3],
-            gender: pasienData[4],
-            alamat: pasienData[5],
-            noTelepon: pasienData[6],
-            email: pasienData[7],
-            adminRS: pasienData[8],
+            golonganDarah: pasienData[1],
+            tanggalLahir: pasienData[2],
+            gender: pasienData[3],
+            alamat: pasienData[4],
+            noTelepon: pasienData[5],
+            email: pasienData[6],
+            adminRS: pasienData[7],
           });
 
           // Ambil riwayat rekam medis
           const ids = await contract.methods.getRekamMedisIdsByPasien(aktif).call();
           if (ids.length > 0) {
             const all = await Promise.all(
-              ids.map((id) => contract.methods.getRekamMedis(id).call())
+              ids.map(async (id) => {
+                const rekam = await contract.methods.getRekamMedis(id).call();
+                // getRekamMedis mengembalikan: pasien, diagnosa, foto, catatan, valid
+                // Kita tambahkan ID rekam medisnya secara manual ke objek
+                return {
+                  id: id.toString(), // ID Rekam Medis Utama
+                  pasien: rekam[0],
+                  diagnosa: rekam[1],
+                  foto: rekam[2],
+                  catatan: rekam[3],
+                  valid: rekam[4]
+                };
+              })
             );
-            all.forEach((rekam, i) => (rekam.id = ids[i]));
             setHistoryRekamMedis(all);
-            setRekamMedisTerbaru(all[all.length - 1]);
+            setRekamMedisTerbaru(all.length > 0 ? all[all.length - 1] : null);
           } else {
             setHistoryRekamMedis([]);
             setRekamMedisTerbaru(null);
@@ -110,12 +125,11 @@ export default function PasienPage({ onLogout }) {
       }
     }
     fetchData();
-  }, []);
+  }, []); // Dependency array kosong agar hanya run sekali saat mount
 
   const submitDataDiri = async () => {
     const {
       nama,
-      umur,
       golonganDarah,
       tanggalLahir,
       gender,
@@ -127,7 +141,6 @@ export default function PasienPage({ onLogout }) {
 
     if (
       !nama ||
-      !umur ||
       !golonganDarah ||
       !tanggalLahir ||
       !gender ||
@@ -145,7 +158,6 @@ export default function PasienPage({ onLogout }) {
       await contract.methods
         .selfRegisterPasien(
           nama,
-          parseInt(umur, 10),
           golonganDarah,
           tanggalLahir,
           gender,
@@ -162,35 +174,33 @@ export default function PasienPage({ onLogout }) {
       setIsRegistered(true);
       setDataDiri({
         nama: pasienData[0],
-        umur: pasienData[1],
-        golonganDarah: pasienData[2],
-        tanggalLahir: pasienData[3],
-        gender: pasienData[4],
-        alamat: pasienData[5],
-        noTelepon: pasienData[6],
-        email: pasienData[7],
-        adminRS: pasienData[8],
+        golonganDarah: pasienData[1],
+        tanggalLahir: pasienData[2],
+        gender: pasienData[3],
+        alamat: pasienData[4],
+        noTelepon: pasienData[5],
+        email: pasienData[6],
+        adminRS: pasienData[7],
       });
-      setForm({
+      setForm({ // Update form juga setelah berhasil
         nama: pasienData[0],
-        umur: pasienData[1],
-        golonganDarah: pasienData[2],
-        tanggalLahir: pasienData[3],
-        gender: pasienData[4],
-        alamat: pasienData[5],
-        noTelepon: pasienData[6],
-        email: pasienData[7],
-        adminRS: pasienData[8],
+        golonganDarah: pasienData[1],
+        tanggalLahir: pasienData[2],
+        gender: pasienData[3],
+        alamat: pasienData[4],
+        noTelepon: pasienData[5],
+        email: pasienData[6],
+        adminRS: pasienData[7],
       });
     } catch (err) {
       console.error("Gagal simpan data diri:", err);
-      alert("Gagal simpan data diri.");
+      alert(`Gagal simpan data diri: ${err.message}`);
     }
   };
 
   const handleLogout = () => {
     if (onLogout) onLogout();
-    else window.location.reload();
+    else window.location.reload(); // Fallback jika onLogout tidak disediakan
   };
 
   if (loading)
@@ -218,19 +228,22 @@ export default function PasienPage({ onLogout }) {
           />
         )}
         {activeTab === "riwayat" && (
-          <div className="history-section bg-white rounded-xl shadow-md p-8 max-w-4xl mx-auto">
+          <div className="history-section bg-white rounded-xl shadow-md p-8  mx-auto">
             <h2 className="text-2xl font-bold mb-4 text-blue-700 text-center">
               Riwayat Rekam Medis
             </h2>
             {historyRekamMedis.length === 0 ? (
-              <p className="italic text-gray-500">
-                Tidak ada riwayat versi rekam medis.
+              <p className="italic text-gray-500 text-center">
+                Tidak ada riwayat rekam medis.
               </p>
             ) : (
-              <RekamMedisHistory rekamMedisId={historyRekamMedis.map((rm) => rm.id)} />
+              <RekamMedisHistory
+                rekamMedisId={historyRekamMedis.map(rm => rm.id)} // Kirim array ID saja
+              />
             )}
           </div>
         )}
+
       </div>
     </div>
   );

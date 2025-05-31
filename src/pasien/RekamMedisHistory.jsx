@@ -2,124 +2,161 @@ import React, { useEffect, useState } from "react";
 import contract from "../contract";
 
 export default function RekamMedisHistory({ rekamMedisId }) {
-    const [historyVersions, setHistoryVersions] = useState({}); // { id: [RekamMedisData, ...] }
-    const [currentData, setCurrentData] = useState([]); // Data rekam medis terbaru
+    const [allRecordsFlat, setAllRecordsFlat] = useState([]); // Semua versi rekam medis, diratakan dan diformat
     const [updateHistory, setUpdateHistory] = useState({}); // { id: [{dokter, timestamp}, ...] }
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [error, setError] = useState(null); // Untuk menampilkan pesan error di UI
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         async function fetchHistory() {
             setLoading(true);
             setError(null);
-            console.log("Fetching history for rekamMedisId:", rekamMedisId); // Debug
+            setAllRecordsFlat([]); // Bersihkan data sebelumnya
+            setUpdateHistory({});
+
+            if (!rekamMedisId || (Array.isArray(rekamMedisId) && rekamMedisId.length === 0)) {
+                setLoading(false);
+                return;
+            }
+
             try {
-                if (!rekamMedisId || rekamMedisId.length === 0) {
-                    console.log("No rekamMedisId provided, resetting state.");
-                    setCurrentData([]);
-                    setHistoryVersions({});
-                    setUpdateHistory({});
-                    setLoading(false);
-                    return;
+                let idsToFetch = Array.isArray(rekamMedisId) ? rekamMedisId : [rekamMedisId];
+                let tempAllRecords = [];
+                let tempUpdateHistories = {};
+
+                for (const id of idsToFetch) {
+                    const idStr = id.toString();
+
+                    // 1. Ambil versi historis dari rekam medis
+                    let versionsRaw = [];
+                    try {
+                        versionsRaw = await contract.methods.getRekamMedisVersions(idStr).call();
+                        // console.log(`Raw versions for ID ${idStr}:`, versionsRaw); // Debugging
+                    } catch (e) {
+                        console.warn(`Could not fetch versions for RM ID ${idStr}:`, e);
+                    }
+
+                    // 2. Ambil data rekam medis terbaru (current state)
+                    let latestDataFromContract = null;
+                    try {
+                        // Urutan return dari getRekamMedis: uint id, address pasien, string diagnosa, string foto, string catatan, bool valid
+                        const result = await contract.methods.getRekamMedis(idStr).call();
+                        latestDataFromContract = {
+                            id: result[0].toString(),
+                            pasien: result[1],
+                            diagnosa: result[2],
+                            foto: result[3],
+                            catatan: result[4],
+                            valid: result[5],
+                        };
+                        // console.log(`Latest data for ID ${idStr}:`, latestDataFromContract); // Debugging
+                    } catch (e) {
+                        console.warn(`Could not fetch latest data for RM ID ${idStr}:`, e);
+                    }
+
+                    // 3. Gabungkan versi historis dan versi terbaru, pastikan unik dan urut
+                    let combinedVersions = [];
+                    // Tambahkan versi historis yang sudah ada
+                    versionsRaw.forEach((v, idx) => {
+                        combinedVersions.push({
+                            id: v.id.toString(),
+                            pasien: v.pasien,
+                            diagnosa: v.diagnosa,
+                            foto: v.foto,
+                            catatan: v.catatan,
+                            valid: v.valid,
+                            versiKe: idx + 1, // Versi historis
+                        });
+                    });
+
+                    // Tambahkan versi terbaru jika ada dan belum termasuk di historis
+                    if (latestDataFromContract) {
+                        // Cek apakah versi terbaru sudah ada di versionsRaw (jika update terbaru tidak selalu menambah versi)
+                        const isLatestAlreadyInHistory = combinedVersions.some(
+                            v => v.diagnosa === latestDataFromContract.diagnosa &&
+                                v.foto === latestDataFromContract.foto &&
+                                v.catatan === latestDataFromContract.catatan &&
+                                v.valid === latestDataFromContract.valid &&
+                                v.id === latestDataFromContract.id // Penting: pastikan ID juga sama
+                        );
+
+                        if (!isLatestAlreadyInHistory) {
+                            combinedVersions.push({
+                                ...latestDataFromContract,
+                                versiKe: combinedVersions.length + 1, // Versi terbaru
+                            });
+                        }
+                    }
+
+                    // Urutkan versi secara descending (versi paling baru di atas)
+                    combinedVersions.sort((a, b) => b.versiKe - a.versiKe);
+
+                    // Tambahkan metadata untuk rowspan di tabel
+                    combinedVersions = combinedVersions.map((v, idx) => ({
+                        ...v,
+                        isFirstRowForId: idx === 0,
+                        rowSpanCount: combinedVersions.length,
+                    }));
+                    tempAllRecords = tempAllRecords.concat(combinedVersions);
+
+                    // 4. Ambil riwayat update (dokter dan timestamp)
+                    try {
+                        const [dokters, timestamps] = await contract.methods.getRekamMedisUpdateHistory(idStr).call();
+                        tempUpdateHistories[idStr] = dokters.map((dokter, i) => ({
+                            dokter,
+                            timestamp: parseInt(timestamps[i], 10) || 0,
+                        }));
+                    } catch (e) {
+                        console.warn(`Could not fetch update history for RM ID ${idStr}:`, e);
+                        tempUpdateHistories[idStr] = [];
+                    }
                 }
 
-                let idArr = Array.isArray(rekamMedisId) ? rekamMedisId : [rekamMedisId];
-                console.log("ID array:", idArr); // Debug
+                // Urutkan semua rekam medis dari ID yang berbeda berdasarkan ID (tertinggi di atas)
+                // dan kemudian berdasarkan versi (tertinggi di atas)
+                tempAllRecords.sort((a, b) => {
+                    const idDiff = parseInt(b.id) - parseInt(a.id);
+                    if (idDiff !== 0) return idDiff;
+                    return b.versiKe - a.versiKe;
+                });
 
-                // Ambil data rekam medis terbaru semua ID
-                const latestData = await Promise.all(
-                    idArr.map((id) =>
-                        contract.methods.getRekamMedis(id).call().then((data) => {
-                            console.log(`Latest data for ID ${id}:`, data); // Debug
-                            return {
-                                id,
-                                pasien: data.pasien,
-                                diagnosa: data.diagnosa,
-                                foto: data.foto,
-                                catatan: data.catatan,
-                                valid: data.valid,
-                            };
-                        }).catch((err) => {
-                            console.error(`Error fetching getRekamMedis for ID ${id}:`, err);
-                            return null;
-                        })
-                    )
-                );
-                const validLatestData = latestData.filter((data) => data !== null).reverse();
-                setCurrentData(validLatestData);
-                console.log("Current data set:", validLatestData); // Debug
+                // Perbaiki `isFirstRowForId` dan `rowSpanCount` setelah sorting global
+                const finalGroupedRecords = {};
+                tempAllRecords.forEach(record => {
+                    if (!finalGroupedRecords[record.id]) {
+                        finalGroupedRecords[record.id] = [];
+                    }
+                    finalGroupedRecords[record.id].push(record);
+                });
 
-                // Ambil semua versi rekam medis untuk tiap ID
-                const versions = {};
-                await Promise.all(
-                    idArr.map(async (id) => {
-                        try {
-                            const vers = await contract.methods.getRekamMedisVersions(id).call();
-                            versions[id.toString()] = vers.map((v) => ({
-                                id: v.id,
-                                pasien: v.pasien,
-                                diagnosa: v.diagnosa,
-                                foto: v.foto,
-                                catatan: v.catatan,
-                                valid: v.valid,
-                            }));
-                            console.log(`Versions for ID ${id}:`, versions[id.toString()]); // Debug
-                        } catch (err) {
-                            console.error(`Error fetching versions for ID ${id}:`, err);
-                            versions[id.toString()] = [];
-                        }
-                    })
-                );
-                setHistoryVersions(versions);
-                console.log("History versions set:", versions); // Debug
+                let finalFlatRecords = [];
+                Object.keys(finalGroupedRecords).sort((a, b) => parseInt(b) - parseInt(a)).forEach(id => {
+                    const group = finalGroupedRecords[id].sort((a, b) => b.versiKe - a.versiKe); // Sort each group
+                    group.forEach((record, idx) => {
+                        finalFlatRecords.push({
+                            ...record,
+                            isFirstRowForId: idx === 0,
+                            rowSpanCount: group.length,
+                        });
+                    });
+                });
 
-                // Ambil riwayat update dokter + timestamp
-                const updateHistories = {};
-                await Promise.all(
-                    idArr.map(async (id) => {
-                        try {
-                            const result = await contract.methods.getRekamMedisUpdateHistory(id).call();
-                            console.log(`Raw result for ID ${id}:`, result); // Debug
-                            if (!result || !Array.isArray(result) || result.length < 2) {
-                                console.warn(`Invalid result for ID ${id}:`, result);
-                                updateHistories[id.toString()] = [];
-                                return;
-                            }
-                            const [dokters, timestamps] = result;
-                            if (!Array.isArray(dokters) || !Array.isArray(timestamps)) {
-                                console.warn(`Non-array result for ID ${id}:`, { dokters, timestamps });
-                                updateHistories[id.toString()] = [];
-                                return;
-                            }
-                            const updates = dokters.map((dokter, i) => ({
-                                dokter,
-                                timestamp: parseInt(timestamps[i], 10) || 0,
-                            }));
-                            updateHistories[id.toString()] = updates;
-                            console.log(`Update history for ID ${id}:`, updates); // Debug
-                        } catch (err) {
-                            console.error(`Error fetching update history for ID ${id}:`, err);
-                            updateHistories[id.toString()] = [];
-                        }
-                    })
-                );
-                setUpdateHistory(updateHistories);
-                console.log("Update history set:", updateHistories); // Debug
+                setAllRecordsFlat(finalFlatRecords);
+                setUpdateHistory(tempUpdateHistories);
+
             } catch (err) {
-                console.error("General error in fetchHistory:", err);
-                setError("Gagal memuat riwayat rekam medis. Silakan coba lagi.");
-                setCurrentData([]);
-                setHistoryVersions({});
-                setUpdateHistory({});
+                setError("Gagal memuat riwayat rekam medis.");
+                console.error("Kesalahan dalam fetching history:", err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         }
-        fetchHistory();
-    }, [rekamMedisId]);
 
-    // Filter pencarian berdasarkan diagnosa dan catatan dari versi terbaru
-    const filtered = currentData.filter(
+        fetchHistory();
+    }, [rekamMedisId]); // Dependency array: re-fetch jika rekamMedisId berubah
+
+    const filtered = allRecordsFlat.filter(
         (item) =>
             item.diagnosa.toLowerCase().includes(search.toLowerCase()) ||
             item.catatan.toLowerCase().includes(search.toLowerCase())
@@ -128,168 +165,112 @@ export default function RekamMedisHistory({ rekamMedisId }) {
     const formatTimestamp = (ts) => {
         if (!ts) return "-";
         const date = new Date(ts * 1000);
-        const formatted = date.toLocaleString();
-        console.log(`Formatting timestamp ${ts}:`, formatted); // Debug
-        return formatted;
+        return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
     };
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-4">
-                <span className="font-semibold text-blue-700">Tabel Riwayat Rekam Medis</span>
+        <div className="w-full p-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                <h3 className="text-xl font-semibold text-blue-700">Riwayat Rekam Medis Detail</h3>
                 <input
                     type="text"
-                    className="border border-blue-200 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-400 w-64"
-                    placeholder="Cari diagnosa/catatan..."
+                    className="border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 w-full sm:w-80 shadow-sm"
+                    placeholder="Cari diagnosa atau catatan..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
             </div>
 
-            {error && (
-                <div className="text-red-600 text-center py-4">{error}</div>
-            )}
+            {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{error}</div>}
 
-            <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse rounded-xl shadow text-sm">
-                    <thead>
-                        <tr className="bg-blue-700 text-white">
-                            <th className="px-4 py-2 font-semibold">No.</th>
-                            <th className="px-4 py-2 font-semibold">ID</th>
-                            <th className="px-4 py-2 font-semibold">Versi Ke-</th>
-                            <th className="px-4 py-2 font-semibold">Diagnosa</th>
-                            <th className="px-4 py-2 font-semibold">Catatan</th>
-                            <th className="px-4 py-2 font-semibold">Foto</th>
-                            <th className="px-4 py-2 font-semibold">Status</th>
-                            <th className="px-4 py-2 font-semibold">Riwayat Update Dokter</th>
+            <div className="overflow-x-auto shadow-lg rounded-xl border border-gray-200">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-blue-600 text-white">
+                        <tr>
+                            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider border-r border-blue-500">No.</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider border-r border-blue-500">ID RM</th>
+                            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider border-r border-blue-500">Versi</th>
+                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-r border-blue-500">Diagnosa</th>
+                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-r border-blue-500">Catatan</th>
+                            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-r border-blue-500">Foto</th>
+                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider">Riwayat Update</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white">
+                    <tbody className="bg-white divide-y divide-gray-100">
                         {loading ? (
                             <tr>
-                                <td colSpan={8} className="text-center py-6 text-gray-400">
-                                    Memuat data riwayat…
+                                <td colSpan={7} className="text-center py-8 text-gray-500 text-lg">
+                                    Memuat data riwayat...
                                 </td>
                             </tr>
                         ) : filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={8} className="text-center py-6 text-gray-400 italic">
-                                    Tidak ada riwayat rekam medis.
+                                <td colSpan={7} className="text-center py-8 text-gray-500 italic text-lg">
+                                    Tidak ada riwayat rekam medis ditemukan.
                                 </td>
                             </tr>
                         ) : (
                             filtered.map((item, idx) => {
-                                const versions = historyVersions[item.id.toString()] || [];
-                                const updates = updateHistory[item.id.toString()] || [];
-                                console.log(`Rendering item ${item.id}:`, { versions, updates }); // Debug
+                                const updates = updateHistory[item.id] || [];
+                                // Sesuaikan update info dengan versi yang ditampilkan
+                                const currentUpdateInfo = updates.length > 0 && item.versiKe > 0 && (item.versiKe - 1) < updates.length
+                                    ? updates[item.versiKe - 1]
+                                    : null;
 
-                                // Jika versi kosong, tampilkan data terbaru saja sebagai versi ke-1
-                                if (versions.length === 0) {
-                                    return (
-                                        <tr key={`${item.id}-no-version`} className="hover:bg-blue-50 transition">
-                                            <td className="text-center px-4 py-2">{idx + 1}</td>
-                                            <td className="px-4 py-2">{item.id}</td>
-                                            <td className="px-4 py-2">1</td>
-                                            <td className="px-4 py-2">{item.diagnosa}</td>
-                                            <td className="px-4 py-2">{item.catatan}</td>
-                                            <td className="px-4 py-2">
-                                                {item.foto ? (
-                                                    <a
-                                                        href={item.foto}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-blue-600 underline"
-                                                    >
-                                                        Lihat
-                                                    </a>
-                                                ) : (
-                                                    <span className="italic text-gray-500">-</span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-2 text-center">
-                                                {item.valid ? (
-                                                    <span className="text-green-600 font-bold">Valid</span>
-                                                ) : (
-                                                    <span className="text-red-600 font-bold">Tidak Valid</span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-2 text-sm max-w-xs break-words">
-                                                {updates.length > 0 ? (
-                                                    <ul className="list-disc list-inside space-y-1">
-                                                        {updates.map((upd, i) => (
-                                                            <li key={i}>
-                                                                <span className="font-semibold">Dokter:</span>{" "}
-                                                                <code className="bg-gray-100 px-1 rounded">{upd.dokter}</code>{" "}
-                                                                <span className="text-gray-600 text-xs italic">
-                                                                    ({formatTimestamp(upd.timestamp)})
-                                                                </span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                ) : (
-                                                    <span className="italic text-gray-500">Tidak ada update</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                }
-
-                                // Jika ada versi, tampilkan versi2 tersebut dengan rowSpan pada No dan ID
-                                return versions.map((v, vidx) => (
-                                    <tr key={`${item.id}-version-${vidx}`} className="hover:bg-blue-50 transition">
-                                        {vidx === 0 && (
-                                            <td rowSpan={versions.length} className="text-center px-4 py-2 align-top">
-                                                {idx + 1}
+                                return (
+                                    <tr key={`${item.id}-${item.versiKe}`} className="hover:bg-blue-50 transition-colors">
+                                        {item.isFirstRowForId && (
+                                            <td rowSpan={item.rowSpanCount} className="text-center px-4 py-3 align-top border-r text-gray-700">
+                                                {/* Ini akan menampilkan nomor urut untuk ID RM (bukan versi) */}
+                                                {/* Perlu logika tambahan untuk mendapatkan nomor urut unik per ID RM */}
+                                                {filtered.filter(f => f.isFirstRowForId && parseInt(f.id) >= parseInt(item.id)).length}
                                             </td>
                                         )}
-                                        {vidx === 0 && (
-                                            <td rowSpan={versions.length} className="px-4 py-2 align-top">{item.id}</td>
+                                        {item.isFirstRowForId && (
+                                            <td rowSpan={item.rowSpanCount} className="px-4 py-3 align-top border-r font-mono text-gray-800 text-sm break-all">
+                                                {item.id}
+                                            </td>
                                         )}
-                                        <td className="px-4 py-2">{vidx + 1}</td>
-                                        <td className="px-4 py-2">{v.diagnosa}</td>
-                                        <td className="px-4 py-2">{v.catatan}</td>
-                                        <td className="px-4 py-2">
-                                            {v.foto ? (
-                                                <a
-                                                    href={v.foto}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-blue-600 underline"
-                                                >
-                                                    Lihat
+                                        <td className="px-4 py-3 text-center border-r text-gray-700">
+                                            {item.versiKe}
+                                        </td>
+                                        <td className="px-4 py-3 border-r break-words text-gray-800 max-w-xs">
+                                            {item.diagnosa}
+                                        </td>
+                                        <td className="px-4 py-3 border-r break-words text-gray-600 max-w-xs">
+                                            {item.catatan}
+                                        </td>
+                                        <td className="px-4 py-3 text-center border-r">
+                                            {item.foto ? (
+                                                <a href={item.foto} target="_blank" rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:underline text-sm font-medium">
+                                                    Lihat Foto
                                                 </a>
                                             ) : (
-                                                <span className="italic text-gray-500">-</span>
+                                                <span className="italic text-gray-500 text-sm">-</span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-2 text-center">
-                                            {v.valid ? (
-                                                <span className="text-green-600 font-bold">Valid</span>
-                                            ) : (
-                                                <span className="text-red-600 font-bold">Tidak Valid</span>
-                                            )}
-                                        </td>
-                                        {vidx === 0 && (
-                                            <td rowSpan={versions.length} className="px-4 py-2 text-sm max-w-xs break-words align-top">
+                                        {item.isFirstRowForId && (
+                                            <td rowSpan={item.rowSpanCount} className="px-4 py-3 text-sm max-w-xs break-words align-top">
                                                 {updates.length > 0 ? (
                                                     <ul className="list-disc list-inside space-y-1">
                                                         {updates.map((upd, i) => (
-                                                            <li key={i}>
-                                                                <span className="font-semibold">Dokter:</span>{" "}
-                                                                <code className="bg-gray-100 px-1 rounded">{upd.dokter}</code>{" "}
-                                                                <span className="text-gray-600 text-xs italic">
+                                                            <li key={i} className="text-gray-700">
+                                                                <span className="font-semibold">Oleh:</span>{" "}
+                                                                <code className="bg-gray-100 px-1 rounded text-xs break-all">{upd.dokter.substring(0, 6)}...{upd.dokter.substring(upd.dokter.length - 4)}</code>{" "}
+                                                                <span className="text-gray-500 text-xs italic">
                                                                     ({formatTimestamp(upd.timestamp)})
                                                                 </span>
                                                             </li>
                                                         ))}
                                                     </ul>
                                                 ) : (
-                                                    <span className="italic text-gray-500">Tidak ada update</span>
+                                                    <span className="italic text-gray-500 text-sm">Tidak ada info update</span>
                                                 )}
                                             </td>
                                         )}
                                     </tr>
-                                ));
+                                );
                             })
                         )}
                     </tbody>

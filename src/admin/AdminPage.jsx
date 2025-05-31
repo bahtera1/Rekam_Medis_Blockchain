@@ -68,7 +68,7 @@ export default function AdminPage({ account, onLogout }) {
       const list = [];
       for (const addr of pasienArray) {
         const data = await contract.methods.getPasienData(addr).call();
-        if (data[8] === account) { // data[8] adalah rumahSakitPenanggungJawab
+        if (data[7] === account) { // data[8] adalah rumahSakitPenanggungJawab
           list.push({ address: addr, nama: data[0] });
         }
       }
