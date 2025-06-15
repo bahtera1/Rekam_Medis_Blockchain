@@ -206,32 +206,6 @@ export default function DataDiriPasien({
                 />
               </div>
 
-              {/* Pilih Rumah Sakit */}
-              <div>
-                <label
-                  htmlFor="adminRS"
-                  className="block text-sm font-medium text-blue-700 mb-2"
-                >
-                  🏥 Pilih Rumah Sakit
-                </label>
-                <select
-                  id="adminRS"
-                  className="w-full border border-blue-200 rounded-xl px-5 py-3 focus:ring-3 focus:ring-blue-400 bg-blue-50 text-gray-800 placeholder-gray-400 focus:outline-none transition-all duration-300 text-base"
-                  value={form.adminRS}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, adminRS: e.target.value }))
-                  }
-                  required
-                >
-                  <option value="">-- Pilih Rumah Sakit --</option>
-                  {listAdminRS.map(({ address, nama }) => (
-                    <option key={address} value={address}>
-                      {nama}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Tombol Submit */}
               <button
                 className="mt-8 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-bold w-full shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-opacity-75 text-lg"

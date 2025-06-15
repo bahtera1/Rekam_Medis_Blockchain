@@ -18,7 +18,6 @@ export default function PasienPage({ onLogout }) {
     alamat: "",
     noTelepon: "",
     email: "",
-    adminRS: "", // alamat admin RS (rumah sakit) pilihan pasien
   });
 
   const [listAdminRS, setListAdminRS] = useState([]); // daftar Admin RS untuk dropdown
@@ -66,7 +65,6 @@ export default function PasienPage({ onLogout }) {
           alamat: "",
           noTelepon: "",
           email: "",
-          adminRS: admins.length > 0 ? admins[0].address : "",
         }));
       } else {
         setIsRegistered(true);
@@ -88,7 +86,6 @@ export default function PasienPage({ onLogout }) {
           alamat: pasienData[4],
           noTelepon: pasienData[5],
           email: pasienData[6],
-          adminRS: pasienData[7],
         });
 
         // Ambil riwayat rekam medis ID
@@ -143,7 +140,6 @@ export default function PasienPage({ onLogout }) {
       alamat,
       noTelepon,
       email,
-      adminRS,
     } = form;
 
     if (
@@ -153,10 +149,9 @@ export default function PasienPage({ onLogout }) {
       !gender ||
       !alamat ||
       !noTelepon ||
-      !email ||
-      !adminRS
+      !email
     ) {
-      alert("Mohon isi semua data diri dan pilih rumah sakit dengan lengkap.");
+      alert("Mohon isi semua data diri  dengan lengkap.");
       return;
     }
 
@@ -171,7 +166,6 @@ export default function PasienPage({ onLogout }) {
           alamat,
           noTelepon,
           email,
-          adminRS
         )
         .send({ from });
       alert("Registrasi data diri berhasil.");
