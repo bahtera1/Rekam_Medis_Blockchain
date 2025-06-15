@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react"; // Tambahkan useCallback
-import contract from "../contract"; // Pastikan path ini benar
-import web3 from "../web3"; // Pastikan path ini benar
+import React, { useState, useEffect, useCallback } from "react";
+import contract from "../contract";
+import web3 from "../web3";
 import PasienSideBar from "./PasienSideBar";
 import DataDiriPasien from "./DataDiriPasien";
 import RekamMedisHistory from "./RekamMedisHistory";
@@ -18,17 +18,16 @@ export default function PasienPage({ onLogout }) {
     alamat: "",
     noTelepon: "",
     email: "",
-    adminRS: "", // alamat admin RS (rumah sakit) pilihan pasien
+    adminRS: "", // adminRS dikembalikan ke state form
   });
 
-  const [listAdminRS, setListAdminRS] = useState([]); // daftar Admin RS untuk dropdown
+  const [listAdminRS, setListAdminRS] = useState([]);
 
-  const [historyRekamMedis, setHistoryRekamMedis] = useState([]); // Semua ID rekam medis yang dimiliki pasien
-  const [rekamMedisTerbaru, setRekamMedisTerbaru] = useState(null); // Objek rekam medis terbaru
+  const [historyRekamMedis, setHistoryRekamMedis] = useState([]);
+  const [rekamMedisTerbaru, setRekamMedisTerbaru] = useState(null);
   const [activeTab, setActiveTab] = useState("dataDiri");
   const [isRegistered, setIsRegistered] = useState(false);
 
-  // --- PERBAIKAN: Pindahkan definisi fetchData keluar dari useEffect ---
   const fetchData = useCallback(async () => {
     try {
       const accounts = await web3.eth.getAccounts();
@@ -39,7 +38,6 @@ export default function PasienPage({ onLogout }) {
       const aktif = accounts[0];
       setAccount(aktif);
 
-      // Ambil data admin RS (rumah sakit)
       const totalAdmin = await contract.methods.totalAdmin().call();
       const admins = [];
       for (let i = 0; i < totalAdmin; i++) {
@@ -51,10 +49,9 @@ export default function PasienPage({ onLogout }) {
       }
       setListAdminRS(admins);
 
-      // Ambil data pasien
       const pasienData = await contract.methods.getPasienData(aktif).call();
 
-      if (!pasienData[0]) {
+      if (!pasienData[0]) { // Cek berdasarkan nama, jika nama kosong berarti belum terdaftar
         setIsRegistered(false);
         setDataDiri(null);
         setForm((f) => ({
@@ -66,7 +63,7 @@ export default function PasienPage({ onLogout }) {
           alamat: "",
           noTelepon: "",
           email: "",
-          adminRS: admins.length > 0 ? admins[0].address : "",
+          adminRS: admins.length > 0 ? admins[0].address : "", // Admin RS default dikembalikan
         }));
       } else {
         setIsRegistered(true);
@@ -88,16 +85,14 @@ export default function PasienPage({ onLogout }) {
           alamat: pasienData[4],
           noTelepon: pasienData[5],
           email: pasienData[6],
-          adminRS: pasienData[7],
+          adminRS: pasienData[7], // adminRS dari data pasien yang sudah ada
         });
 
-        // Ambil riwayat rekam medis ID
         const ids = await contract.methods.getRekamMedisIdsByPasien(aktif).call();
         if (ids.length > 0) {
           const allRecords = await Promise.all(
             ids.map(async (id) => {
               const rekam = await contract.methods.getRekamMedis(id).call();
-              // Sesuaikan indeks agar sesuai dengan urutan return dari smart contract
               return {
                 id: rekam[0].toString(),
                 pasien: rekam[1],
@@ -109,7 +104,6 @@ export default function PasienPage({ onLogout }) {
             })
           );
 
-          // Urutkan rekam medis untuk menemukan yang terbaru (berdasarkan ID)
           const sortedRecords = allRecords.sort((a, b) => {
             return parseInt(b.id) - parseInt(a.id);
           });
@@ -127,12 +121,11 @@ export default function PasienPage({ onLogout }) {
     } finally {
       setLoading(false);
     }
-  }, []); // Dependensi kosong karena fetchData tidak bergantung pada prop atau state yang berubah dan tidak perlu di-recreate
+  }, []);
 
-  // Load data awal saat komponen mount
   useEffect(() => {
     fetchData();
-  }, [fetchData]); // Tambahkan fetchData ke dependency array useEffect
+  }, [fetchData]);
 
   const submitDataDiri = async () => {
     const {
@@ -143,7 +136,7 @@ export default function PasienPage({ onLogout }) {
       alamat,
       noTelepon,
       email,
-      adminRS,
+      adminRS, // adminRS dikembalikan ke destructuring
     } = form;
 
     if (
@@ -154,7 +147,7 @@ export default function PasienPage({ onLogout }) {
       !alamat ||
       !noTelepon ||
       !email ||
-      !adminRS
+      !adminRS // adminRS dikembalikan ke validasi
     ) {
       alert("Mohon isi semua data diri dan pilih rumah sakit dengan lengkap.");
       return;
@@ -171,18 +164,53 @@ export default function PasienPage({ onLogout }) {
           alamat,
           noTelepon,
           email,
-          adminRS
+          adminRS // adminRS dikembalikan ke pemanggilan smart contract
         )
         .send({ from });
       alert("Registrasi data diri berhasil.");
 
-      // Refresh data pasien setelah simpan
-      await fetchData(); // Panggil fetchData di sini
+      await fetchData(); // Refresh data
     } catch (err) {
       console.error("Gagal simpan data diri:", err);
       alert(`Gagal simpan data diri: ${err.message}`);
     }
   };
+
+  // --- FUNGSI BARU: Update Data Diri Pasien ---
+  const updatePasienData = async (updatedFormData) => {
+    try {
+      const [from] = await web3.eth.getAccounts();
+      await contract.methods.updatePasienData(
+        updatedFormData.nama,
+        updatedFormData.golonganDarah,
+        updatedFormData.tanggalLahir,
+        updatedFormData.gender,
+        updatedFormData.alamat,
+        updatedFormData.noTelepon,
+        updatedFormData.email
+      ).send({ from });
+      alert("Data diri berhasil diperbarui.");
+      await fetchData(); // Refresh data setelah update
+    } catch (err) {
+      console.error("Gagal memperbarui data diri pasien:", err);
+      alert(`Gagal memperbarui data diri: ${err.message}`);
+    }
+  };
+  // -----------------------------------------
+
+  // --- FUNGSI BARU: Update Rumah Sakit Penanggung Jawab Pasien ---
+  const updatePasienRumahSakit = async (newAdminRSAddress) => {
+    try {
+      const [from] = await web3.eth.getAccounts();
+      await contract.methods.updatePasienRumahSakit(newAdminRSAddress).send({ from });
+      alert("Rumah Sakit Penanggung Jawab berhasil diperbarui.");
+      await fetchData(); // Refresh data setelah update
+    } catch (err) {
+      console.error("Gagal memperbarui RS penanggung jawab:", err);
+      alert(`Gagal memperbarui RS penanggung jawab: ${err.message}`);
+    }
+  };
+  // -----------------------------------------------------------
 
   const handleLogout = () => {
     if (onLogout) onLogout();
@@ -190,7 +218,7 @@ export default function PasienPage({ onLogout }) {
   };
 
   if (loading)
-    return <p className="p-8 text-center">Loading data pasien…</p>;
+    return <p className="p-8 text-center">Memuat data pasien…</p>;
   if (!account)
     return (
       <p className="p-8 text-center">
@@ -211,6 +239,8 @@ export default function PasienPage({ onLogout }) {
             form={form}
             setForm={setForm}
             listAdminRS={listAdminRS}
+            updatePasienData={updatePasienData}
+            updatePasienRumahSakit={updatePasienRumahSakit}
           />
         )}
         {activeTab === "riwayat" && (

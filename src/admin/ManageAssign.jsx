@@ -8,6 +8,7 @@ export default function ManageAssign({
     pasienAddress,
     setPasienAddress,
     assignPasien,
+    unassignPasien, // <-- Prop ini harus diteruskan dari AdminPage
     loading,
     assignedPairs,
 }) {
@@ -35,7 +36,8 @@ export default function ManageAssign({
                         <option value="">Pilih Dokter</option>
                         {dokterList.map((dokter) => (
                             <option key={dokter.address} value={dokter.address}>
-                                {dokter.nama} ({dokter.address.substring(0, 6)}...{dokter.address.substring(dokter.address.length - 4)})
+                                {/* Menampilkan nama, spesialisasi, nomor lisensi, dan sebagian alamat */}
+                                {dokter.nama} - {dokter.spesialisasi} (Lisensi: {dokter.nomorLisensi}) ({dokter.address.substring(0, 6)}...{dokter.address.substring(dokter.address.length - 4)})
                             </option>
                         ))}
                     </select>
@@ -99,13 +101,12 @@ export default function ManageAssign({
                                                 <button
                                                     onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
                                                     className={`inline-flex items-center text-sm font-medium px-3 py-1.5 rounded-md transition-all duration-150 ease-in-out
-                            ${openIndex === idx
+                                                    ${openIndex === idx
                                                             ? "bg-blue-600 text-white hover:bg-blue-700"
                                                             : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                                                         }`}
                                                 >
                                                     {openIndex === idx ? "Sembunyikan" : `Tampilkan (${pair.pasienList.length})`}
-
                                                 </button>
                                             </td>
                                         </tr>
@@ -123,6 +124,7 @@ export default function ManageAssign({
                                                                             <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-14">No.</th>
                                                                             <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nama</th>
                                                                             <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider min-w-40">Alamat Wallet</th>
+                                                                            <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Aksi</th> {/* Kolom Aksi untuk tombol Hapus */}
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody className="divide-y divide-gray-100">
@@ -133,6 +135,17 @@ export default function ManageAssign({
                                                                                 <td className="px-3 py-2 text-xs text-gray-500 align-middle" title={p.address}>
                                                                                     {p.address.substring(0, 10)}...{p.address.substring(p.address.length - 6)}
                                                                                 </td>
+                                                                                {/* --- Tombol Hapus/Unassign --- */}
+                                                                                <td className="px-3 py-2 text-center align-middle">
+                                                                                    <button
+                                                                                        onClick={() => unassignPasien(pair.dokterAddress, p.address)}
+                                                                                        disabled={loading}
+                                                                                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                                                                                    >
+                                                                                        Hapus
+                                                                                    </button>
+                                                                                </td>
+                                                                                {/* --------------------------- */}
                                                                             </tr>
                                                                         ))}
                                                                     </tbody>

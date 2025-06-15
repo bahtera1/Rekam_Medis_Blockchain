@@ -1,4 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
+// Komponen untuk ikon (menggunakan karakter Unicode atau SVG inline sederhana)
+const IconUser = () => <span className="mr-2.5 text-blue-600 inline">👤</span>;
+const IconCalendar = () => <span className="mr-2.5 text-blue-600 inline">🎂</span>;
+const IconMail = () => <span className="mr-2.5 text-blue-600 inline">📧</span>;
+const IconPhone = () => <span className="mr-2.5 text-blue-600 inline">📞</span>;
+const IconLocation = () => <span className="mr-2.5 text-blue-600 inline">🏠</span>;
+const IconGender = () => <span className="mr-2.5 text-blue-600 inline">🚻</span>;
+const IconBloodType = () => <span className="mr-2.5 text-red-600 inline">🩸</span>;
+const IconHospital = () => <span className="mr-2.5 text-blue-600 inline">🏥</span>;
+const IconEdit = () => <span className="mr-2.5">✏️</span>; // Edit icon for button
+const IconId = () => <span className="mr-2.5 text-blue-600 inline">🆔</span>;
+const IconDiagnosa = () => <span className="mr-2.5 text-blue-600 inline">📝</span>;
+const IconCatatan = () => <span className="mr-2.5 text-blue-600 inline">🗒️</span>;
+const IconFoto = () => <span className="mr-2.5 text-blue-600 inline">📸</span>;
+const IconValid = () => <span className="mr-2.5 text-green-600 inline">✅</span>;
+const IconInvalid = () => <span className="mr-2.5 text-red-600 inline">❌</span>;
+
+
+const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
+  <p className={`flex items-start ${colSpan === 2 ? 'md:col-span-2' : ''}`}>
+    <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center">
+      {icon} {label}:
+    </span>{" "}
+    <span className="break-words flex-grow">
+      {value || "-"}
+    </span>
+  </p>
+);
 
 export default function DataDiriPasien({
   isRegistered,
@@ -8,14 +37,67 @@ export default function DataDiriPasien({
   form,
   setForm,
   listAdminRS = [],
+  updatePasienData, // Prop fungsi update data diri
+  updatePasienRumahSakit, // Prop fungsi update RS
 }) {
-  // State untuk kontrol popup pendaftaran pasien baru
   const [showPopup, setShowPopup] = useState(!isRegistered);
+  const [showEditDataDiriModal, setShowEditDataDiriModal] = useState(false);
+  const [showEditRSModal, setShowEditRSModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
+  const [selectedRSforUpdate, setSelectedRSforUpdate] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (dataDiri) {
+      setEditFormData({
+        nama: dataDiri.nama || '',
+        golonganDarah: dataDiri.golonganDarah || '',
+        tanggalLahir: dataDiri.tanggalLahir || '',
+        gender: dataDiri.gender || '',
+        alamat: dataDiri.alamat || '',
+        noTelepon: dataDiri.noTelepon || '',
+        email: dataDiri.email || '',
+      }); // Isi form edit dengan dataDiri saat ini
+      setSelectedRSforUpdate(dataDiri.rumahSakitPenanggungJawab || "");
+    }
+  }, [dataDiri]); // Dependensi dataDiri agar form edit terupdate jika dataDiri berubah
+
+  const handleEditDataDiriSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await updatePasienData(editFormData);
+      setShowEditDataDiriModal(false);
+    } catch (error) {
+      console.error("Error submitting updated data:", error);
+      alert("Gagal memperbarui data diri.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditRSSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (!selectedRSforUpdate) {
+        alert("Mohon pilih Rumah Sakit.");
+        setIsSubmitting(false);
+        return;
+      }
+      await updatePasienRumahSakit(selectedRSforUpdate);
+      setShowEditRSModal(false);
+    } catch (error) {
+      console.error("Error submitting updated RS:", error);
+      alert("Gagal memperbarui RS penanggung jawab.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!isRegistered) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        {/* Popup konfirmasi pendaftaran */}
         {showPopup && (
           <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-blue-200 transform transition-all duration-300 scale-100 opacity-100 animate-fadeIn">
@@ -36,7 +118,6 @@ export default function DataDiriPasien({
           </div>
         )}
 
-        {/* Form pendaftaran pasien baru */}
         {!showPopup && (
           <div className="bg-white rounded-3xl shadow-2xl p-8 sm:p-10 max-w-2xl mx-auto border border-blue-100 transform transition-all duration-500 hover:shadow-3xl animate-slideInUp">
             <h2 className="text-3xl sm:text-4xl font-extrabold mb-8 text-blue-800 text-center tracking-tight">
@@ -55,7 +136,7 @@ export default function DataDiriPasien({
                   htmlFor="nama"
                   className="block text-sm font-medium text-blue-700 mb-2"
                 >
-                  👤 Nama Lengkap
+                  <IconUser /> Nama Lengkap
                 </label>
                 <input
                   id="nama"
@@ -78,7 +159,7 @@ export default function DataDiriPasien({
                   htmlFor="golonganDarah"
                   className="block text-sm font-medium text-blue-700 mb-2"
                 >
-                  🩸 Golongan Darah
+                  <IconBloodType /> Golongan Darah
                 </label>
                 <input
                   id="golonganDarah"
@@ -100,7 +181,7 @@ export default function DataDiriPasien({
                   htmlFor="tanggalLahir"
                   className="block text-sm font-medium text-blue-700 mb-2"
                 >
-                  🎂 Tanggal Lahir
+                  <IconCalendar /> Tanggal Lahir
                 </label>
                 <input
                   id="tanggalLahir"
@@ -121,7 +202,7 @@ export default function DataDiriPasien({
                   htmlFor="gender"
                   className="block text-sm font-medium text-blue-700 mb-2"
                 >
-                  🚻 Gender
+                  <IconGender /> Gender
                 </label>
                 <select
                   id="gender"
@@ -146,7 +227,7 @@ export default function DataDiriPasien({
                   htmlFor="alamat"
                   className="block text-sm font-medium text-blue-700 mb-2"
                 >
-                  🏠 Alamat Lengkap
+                  <IconLocation /> Alamat Lengkap
                 </label>
                 <textarea
                   id="alamat"
@@ -168,7 +249,7 @@ export default function DataDiriPasien({
                   htmlFor="noTelepon"
                   className="block text-sm font-medium text-blue-700 mb-2"
                 >
-                  📞 No. Telepon
+                  <IconPhone /> No. Telepon
                 </label>
                 <input
                   id="noTelepon"
@@ -190,7 +271,7 @@ export default function DataDiriPasien({
                   htmlFor="email"
                   className="block text-sm font-medium text-blue-700 mb-2"
                 >
-                  📧 Email
+                  <IconMail /> Email
                 </label>
                 <input
                   id="email"
@@ -212,15 +293,13 @@ export default function DataDiriPasien({
                   htmlFor="adminRS"
                   className="block text-sm font-medium text-blue-700 mb-2"
                 >
-                  🏥 Pilih Rumah Sakit
+                  <IconHospital /> Pilih Rumah Sakit
                 </label>
                 <select
                   id="adminRS"
                   className="w-full border border-blue-200 rounded-xl px-5 py-3 focus:ring-3 focus:ring-blue-400 bg-blue-50 text-gray-800 placeholder-gray-400 focus:outline-none transition-all duration-300 text-base"
                   value={form.adminRS}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, adminRS: e.target.value }))
-                  }
+                  onChange={(e) => setForm((f) => ({ ...f, adminRS: e.target.value }))}
                   required
                 >
                   <option value="">-- Pilih Rumah Sakit --</option>
@@ -254,63 +333,41 @@ export default function DataDiriPasien({
           <h2 className="text-3xl sm:text-4xl font-extrabold mb-8 text-blue-800 text-center tracking-tight">
             Data Diri Pasien
           </h2>
+          {/* --- Tombol Edit --- */}
+          <div className="flex justify-end mb-6 gap-3">
+            <button
+              onClick={() => setShowEditDataDiriModal(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
+            >
+              <IconEdit /> Edit Data Diri
+            </button>
+            <button
+              onClick={() => setShowEditRSModal(true)}
+              className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-400"
+            >
+              <IconHospital /> Ubah RS Penanggung Jawab
+            </button>
+          </div>
+          {/* --- Akhir Tombol Edit --- */}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-gray-700 text-lg">
-            <p className="flex items-start">
-              <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center">
-                👤 Nama Lengkap:
-              </span>{" "}
-              <span className="break-words flex-grow">
-                {dataDiri.nama || "-"}
-              </span>
-            </p>
-            <p className="flex items-start">
-              <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center">
-                🩸 Golongan Darah:
-              </span>{" "}
-              <span className="break-words flex-grow">
-                {dataDiri.golonganDarah || "-"}
-              </span>
-            </p>
-            <p className="flex items-start">
-              <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center">
-                🎂 Tanggal Lahir:
-              </span>{" "}
-              <span className="break-words flex-grow">
-                {dataDiri.tanggalLahir || "-"}
-              </span>
-            </p>
-            <p className="flex items-start">
-              <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center">
-                🚻 Gender:
-              </span>{" "}
-              <span className="break-words flex-grow">
-                {dataDiri.gender || "-"}
-              </span>
-            </p>
-            <p className="flex items-start col-span-1 md:col-span-2">
-              <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center">
-                🏠 Alamat:
-              </span>{" "}
-              <span className="break-words flex-grow">
-                {dataDiri.alamat || "-"}
-              </span>
-            </p>
-            <p className="flex items-start">
-              <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center">
-                📞 No. Telepon:
-              </span>{" "}
-              <span className="break-words flex-grow">
-                {dataDiri.noTelepon || "-"}
-              </span>
-            </p>
-            <p className="flex items-start">
-              <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center">
-                📧 Email:
-              </span>{" "}
-              <span className="break-words flex-grow">
-                {dataDiri.email || "-"}
-              </span>
-            </p>
+            <DetailItem icon={<IconUser />} label="Nama Lengkap" value={dataDiri.nama} />
+            <DetailItem icon={<IconBloodType />} label="Golongan Darah" value={dataDiri.golonganDarah} />
+            <DetailItem icon={<IconCalendar />} label="Tanggal Lahir" value={dataDiri.tanggalLahir} />
+            <DetailItem icon={<IconGender />} label="Gender" value={dataDiri.gender} />
+            <DetailItem icon={<IconLocation />} label="Alamat" value={dataDiri.alamat} />
+            <DetailItem icon={<IconPhone />} label="No. Telepon" value={dataDiri.noTelepon} />
+            <DetailItem icon={<IconMail />} label="Email" value={dataDiri.email} />
+            <DetailItem
+              icon={<IconHospital />}
+              label="RS Penanggung Jawab"
+              value={
+                dataDiri.rumahSakitPenanggungJawab && dataDiri.rumahSakitPenanggungJawab !== '0x0000000000000000000000000000000000000000'
+                  ? listAdminRS.find(admin => admin.address === dataDiri.rumahSakitPenanggungJawab)?.nama || dataDiri.rumahSakitPenanggungJawab
+                  : "Belum Terdaftar"
+              }
+              colSpan={2} // Menggunakan colSpan agar memenuhi 2 kolom
+            />
           </div>
         </div>
 
@@ -321,33 +378,12 @@ export default function DataDiriPasien({
           </h3>
           {rekamMedisTerbaru ? (
             <div className="space-y-4 text-gray-700 text-lg">
+              <DetailItem icon={<IconId />} label="ID" value={rekamMedisTerbaru.id} />
+              <DetailItem icon={<IconDiagnosa />} label="Diagnosa" value={rekamMedisTerbaru.diagnosa} />
+              <DetailItem icon={<IconCatatan />} label="Catatan" value={rekamMedisTerbaru.catatan} />
               <p className="flex items-start">
                 <span className="font-semibold text-blue-700 w-36 flex-shrink-0 flex items-center">
-                  🆔 ID:
-                </span>{" "}
-                <span className="break-words flex-grow">
-                  {rekamMedisTerbaru.id}
-                </span>
-              </p>
-              <p className="flex items-start">
-                <span className="font-semibold text-blue-700 w-36 flex-shrink-0 flex items-center">
-                  📝 Diagnosa:
-                </span>{" "}
-                <span className="break-words flex-grow">
-                  {rekamMedisTerbaru.diagnosa}
-                </span>
-              </p>
-              <p className="flex items-start">
-                <span className="font-semibold text-blue-700 w-36 flex-shrink-0 flex items-center">
-                  🗒️ Catatan:
-                </span>{" "}
-                <span className="break-words flex-grow">
-                  {rekamMedisTerbaru.catatan}
-                </span>
-              </p>
-              <p className="flex items-start">
-                <span className="font-semibold text-blue-700 w-36 flex-shrink-0 flex items-center">
-                  📸 Foto:
+                  <IconFoto /> Foto:
                 </span>{" "}
                 {rekamMedisTerbaru.foto ? (
                   <a
@@ -366,7 +402,7 @@ export default function DataDiriPasien({
               </p>
               <p className="flex items-start">
                 <span className="font-semibold text-blue-700 w-36 flex-shrink-0 flex items-center">
-                  ✅ Status Valid:
+                  <IconValid /> Status Valid:
                 </span>{" "}
                 {rekamMedisTerbaru.valid ? (
                   <span className="text-green-600 font-bold flex items-center flex-grow">
@@ -374,7 +410,7 @@ export default function DataDiriPasien({
                   </span>
                 ) : (
                   <span className="text-red-600 font-bold flex items-center flex-grow">
-                    ❌ Tidak Valid
+                    <IconInvalid /> Tidak Valid
                   </span>
                 )}
               </p>
@@ -386,6 +422,119 @@ export default function DataDiriPasien({
           )}
         </div>
       </div>
+
+      {/* --- Modal Edit Data Diri --- */}
+      {showEditDataDiriModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-lg mx-auto shadow-2xl animate-fadeIn">
+            <h3 className="text-2xl font-bold mb-5 text-blue-800 text-center">Edit Data Diri</h3>
+            <form onSubmit={handleEditDataDiriSubmit} className="space-y-4">
+              {/* Nama Lengkap */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                <input type="text" name="nama" value={editFormData.nama || ''} onChange={(e) => setEditFormData({ ...editFormData, nama: e.target.value })} required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              {/* Golongan Darah */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Golongan Darah</label>
+                <input type="text" name="golonganDarah" value={editFormData.golonganDarah || ''} onChange={(e) => setEditFormData({ ...editFormData, golonganDarah: e.target.value })} required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              {/* Tanggal Lahir */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Lahir</label>
+                <input type="date" name="tanggalLahir" value={editFormData.tanggalLahir || ''} onChange={(e) => setEditFormData({ ...editFormData, tanggalLahir: e.target.value })} required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              {/* Gender */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <select name="gender" value={editFormData.gender || ''} onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value })} required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="">Pilih</option>
+                  <option value="Laki-laki">Laki-laki</option>
+                  <option value="Perempuan">Perempuan</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+              {/* Alamat */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
+                <textarea name="alamat" value={editFormData.alamat || ''} onChange={(e) => setEditFormData({ ...editFormData, alamat: e.target.value })} rows={3} required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              {/* No. Telepon */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">No. Telepon</label>
+                <input type="tel" name="noTelepon" value={editFormData.noTelepon || ''} onChange={(e) => setEditFormData({ ...editFormData, noTelepon: e.target.value })} required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" name="email" value={editFormData.email || ''} onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })} required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button type="button" onClick={() => setShowEditDataDiriModal(false)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-semibold transition-colors"
+                  disabled={isSubmitting}>
+                  Batal
+                </button>
+                <button type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  disabled={isSubmitting}>
+                  {isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* --- Akhir Modal Edit Data Diri --- */}
+
+      {/* --- Modal Edit RS Penanggung Jawab --- */}
+      {showEditRSModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm mx-auto shadow-2xl animate-fadeIn">
+            <h3 className="text-2xl font-bold mb-5 text-blue-800 text-center">Ubah RS Penanggung Jawab</h3>
+            <form onSubmit={handleEditRSSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Rumah Sakit Baru</label>
+                <select
+                  value={selectedRSforUpdate}
+                  onChange={(e) => setSelectedRSforUpdate(e.target.value)}
+                  required
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="">-- Pilih Rumah Sakit --</option>
+                  {listAdminRS.map(({ address, nama }) => (
+                    <option key={address} value={address}>
+                      {nama}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button type="button" onClick={() => setShowEditRSModal(false)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg font-semibold transition-colors"
+                  disabled={isSubmitting}>
+                  Batal
+                </button>
+                <button type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  disabled={isSubmitting}>
+                  {isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* --- Akhir Modal Edit RS Penanggung Jawab --- */}
     </div>
   );
 }
