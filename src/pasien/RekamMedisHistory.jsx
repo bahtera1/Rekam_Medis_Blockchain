@@ -1,149 +1,135 @@
 import React, { useEffect, useState } from "react";
-import contract from "../contract";
+import contract from "../contract"; // Pastikan path ini benar
 
 export default function RekamMedisHistory({ rekamMedisId }) {
     const [allRecordsFlat, setAllRecordsFlat] = useState([]); // Semua versi rekam medis, diratakan dan diformat
-    const [updateHistory, setUpdateHistory] = useState({}); // { id: [{dokter, timestamp}, ...] }
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [error, setError] = useState(null);
+    const [doctorNamesCache, setDoctorNamesCache] = useState({}); // Cache untuk nama dokter/aktor
+
+    // Fungsi untuk mendapatkan nama dokter/aktor dari alamat
+    const getActorName = async (actorAddress) => {
+        if (actorAddress === '0x0000000000000000000000000000000000000000' || !actorAddress) {
+            return "N/A"; // Alamat nol atau kosong
+        }
+        if (doctorNamesCache[actorAddress]) {
+            return doctorNamesCache[actorAddress]; // Ambil dari cache
+        }
+        try {
+            // Coba cek apakah itu dokter
+            const isDoc = await contract.methods.isDokter(actorAddress).call();
+            if (isDoc) {
+                const dokterInfo = await contract.methods.getDokter(actorAddress).call();
+                const namaDokter = dokterInfo[0]; // Nama dokter di indeks 0
+                setDoctorNamesCache(prev => ({ ...prev, [actorAddress]: namaDokter }));
+                return namaDokter;
+            }
+
+            // Coba cek apakah itu pasien
+            const isPas = await contract.methods.isPasien(actorAddress).call();
+            if (isPas) {
+                const pasienData = await contract.methods.getPasienData(actorAddress).call();
+                const namaPasien = pasienData[0]; // Nama pasien di indeks 0
+                setDoctorNamesCache(prev => ({ ...prev, [actorAddress]: namaPasien }));
+                return namaPasien;
+            }
+
+            // Jika bukan dokter atau pasien, tampilkan alamat terpotong
+            return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+        } catch (err) {
+            console.warn(`Gagal mendapatkan nama untuk aktor ${actorAddress}:`, err);
+            return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+        }
+    };
 
     useEffect(() => {
         async function fetchHistory() {
             setLoading(true);
             setError(null);
             setAllRecordsFlat([]); // Bersihkan data sebelumnya
-            setUpdateHistory({});
 
-            if (!rekamMedisId || (Array.isArray(rekamMedisId) && rekamMedisId.length === 0)) {
+            let idsToFetch = Array.isArray(rekamMedisId) && rekamMedisId.length > 0 ? rekamMedisId : [];
+            if (!Array.isArray(rekamMedisId) && rekamMedisId !== null && rekamMedisId !== undefined) {
+                idsToFetch = [rekamMedisId];
+            }
+
+            if (idsToFetch.length === 0) {
                 setLoading(false);
                 return;
             }
 
             try {
-                let idsToFetch = Array.isArray(rekamMedisId) ? rekamMedisId : [rekamMedisId];
                 let tempAllRecords = [];
-                let tempUpdateHistories = {};
 
                 for (const id of idsToFetch) {
                     const idStr = id.toString();
 
-                    // 1. Ambil versi historis dari rekam medis
-                    let versionsRaw = [];
-                    try {
-                        versionsRaw = await contract.methods.getRekamMedisVersions(idStr).call();
-                        // console.log(`Raw versions for ID ${idStr}:`, versionsRaw); // Debugging
-                    } catch (e) {
-                        console.warn(`Could not fetch versions for RM ID ${idStr}:`, e);
-                    }
+                    // Ambil versi paling MUTAKHIR dari rekam medis (yang ada di mapping `rekamMedis`)
+                    const currentRM = await contract.methods.getRekamMedis(idStr).call();
 
-                    // 2. Ambil data rekam medis terbaru (current state)
-                    let latestDataFromContract = null;
-                    try {
-                        // Urutan return dari getRekamMedis: uint id, address pasien, string diagnosa, string foto, string catatan, bool valid
-                        const result = await contract.methods.getRekamMedis(idStr).call();
-                        latestDataFromContract = {
-                            id: result[0].toString(),
-                            pasien: result[1],
-                            diagnosa: result[2],
-                            foto: result[3],
-                            catatan: result[4],
-                            valid: result[5],
+                    // Panggil fungsi baru getFullRekamMedisHistory
+                    // Ini seharusnya mengembalikan array FullRMHistoryEntry[]
+                    const fullHistoryRaw = await contract.methods.getFullRekamMedisHistory(id).call();
+
+                    // Proses dan konversi BigInt, sekaligus dapatkan nama aktor
+                    let chronologicalVersionsPromises = fullHistoryRaw.map(async (entry) => {
+                        const actorName = await getActorName(entry.aktor); // Dapatkan nama aktor
+                        return {
+                            id_rm: entry.id_rm.toString(),
+                            pasien: entry.pasien,
+                            diagnosa: entry.diagnosa,
+                            foto: entry.foto,
+                            catatan: entry.catatan,
+                            valid: entry.valid,
+                            pembuat: actorName, // Gunakan nama aktor
+                            timestamp: Number(entry.timestamp), // Pastikan konversi
+                            jenisPerubahan: entry.jenisPerubahan,
                         };
-                        // console.log(`Latest data for ID ${idStr}:`, latestDataFromContract); // Debugging
-                    } catch (e) {
-                        console.warn(`Could not fetch latest data for RM ID ${idStr}:`, e);
+                    });
+                    let chronologicalVersions = await Promise.all(chronologicalVersionsPromises);
+
+                    // Tambahkan versi *current* yang paling baru jika belum termasuk
+                    const isLatestVersionIncluded = chronologicalVersions.some(
+                        v => v.id_rm === currentRM[0].toString() &&
+                            v.diagnosa === currentRM[2] &&
+                            v.catatan === currentRM[4]
+                    );
+
+                    if (!isLatestVersionIncluded) {
+                        const latestActorName = await getActorName(currentRM[6]); // currentRM[6] adalah pembuatAwal
+                        chronologicalVersions.push({
+                            id_rm: currentRM[0].toString(),
+                            pasien: currentRM[1],
+                            diagnosa: currentRM[2],
+                            foto: currentRM[3],
+                            catatan: currentRM[4],
+                            valid: currentRM[5],
+                            pembuat: latestActorName,
+                            timestamp: Number(currentRM[7]), // currentRM[7] adalah timestampAwal
+                            jenisPerubahan: 'Latest'
+                        });
                     }
 
-                    // 3. Gabungkan versi historis dan versi terbaru, pastikan unik dan urut
-                    let combinedVersions = [];
-                    // Tambahkan versi historis yang sudah ada
-                    versionsRaw.forEach((v, idx) => {
-                        combinedVersions.push({
-                            id: v.id.toString(),
-                            pasien: v.pasien,
-                            diagnosa: v.diagnosa,
-                            foto: v.foto,
-                            catatan: v.catatan,
-                            valid: v.valid,
-                            versiKe: idx + 1, // Versi historis
-                        });
+                    // Urutkan berdasarkan timestamp untuk mendapatkan urutan kronologis yang benar
+                    chronologicalVersions.sort((a, b) => a.timestamp - b.timestamp);
+
+                    // Berikan nomor versi (1, 2, 3, ...) setelah diurutkan per ID rekam medis
+                    chronologicalVersions.forEach((version, index) => {
+                        version.versiKe = index + 1;
                     });
 
-                    // Tambahkan versi terbaru jika ada dan belum termasuk di historis
-                    if (latestDataFromContract) {
-                        // Cek apakah versi terbaru sudah ada di versionsRaw (jika update terbaru tidak selalu menambah versi)
-                        const isLatestAlreadyInHistory = combinedVersions.some(
-                            v => v.diagnosa === latestDataFromContract.diagnosa &&
-                                v.foto === latestDataFromContract.foto &&
-                                v.catatan === latestDataFromContract.catatan &&
-                                v.valid === latestDataFromContract.valid &&
-                                v.id === latestDataFromContract.id // Penting: pastikan ID juga sama
-                        );
-
-                        if (!isLatestAlreadyInHistory) {
-                            combinedVersions.push({
-                                ...latestDataFromContract,
-                                versiKe: combinedVersions.length + 1, // Versi terbaru
-                            });
-                        }
-                    }
-
-                    // Urutkan versi secara descending (versi paling baru di atas)
-                    combinedVersions.sort((a, b) => b.versiKe - a.versiKe);
-
-                    // Tambahkan metadata untuk rowspan di tabel
-                    combinedVersions = combinedVersions.map((v, idx) => ({
-                        ...v,
-                        isFirstRowForId: idx === 0,
-                        rowSpanCount: combinedVersions.length,
-                    }));
-                    tempAllRecords = tempAllRecords.concat(combinedVersions);
-
-                    // 4. Ambil riwayat update (dokter dan timestamp)
-                    try {
-                        const [dokters, timestamps] = await contract.methods.getRekamMedisUpdateHistory(idStr).call();
-                        tempUpdateHistories[idStr] = dokters.map((dokter, i) => ({
-                            dokter,
-                            timestamp: parseInt(timestamps[i], 10) || 0,
-                        }));
-                    } catch (e) {
-                        console.warn(`Could not fetch update history for RM ID ${idStr}:`, e);
-                        tempUpdateHistories[idStr] = [];
-                    }
+                    tempAllRecords = tempAllRecords.concat(chronologicalVersions);
                 }
 
-                // Urutkan semua rekam medis dari ID yang berbeda berdasarkan ID (tertinggi di atas)
-                // dan kemudian berdasarkan versi (tertinggi di atas)
-                tempAllRecords.sort((a, b) => {
-                    const idDiff = parseInt(b.id) - parseInt(a.id);
+                // Final sorting untuk tampilan tabel: ID Rekam Medis terbaru dulu, lalu Nomor Versi terbaru dulu
+                let finalSortedRecords = tempAllRecords.sort((a, b) => {
+                    const idDiff = parseInt(b.id_rm) - parseInt(a.id_rm);
                     if (idDiff !== 0) return idDiff;
-                    return b.versiKe - a.versiKe;
+                    return a.versiKe - b.versiKe; // Urutkan versi secara ascending untuk ID RM yang sama
                 });
 
-                // Perbaiki `isFirstRowForId` dan `rowSpanCount` setelah sorting global
-                const finalGroupedRecords = {};
-                tempAllRecords.forEach(record => {
-                    if (!finalGroupedRecords[record.id]) {
-                        finalGroupedRecords[record.id] = [];
-                    }
-                    finalGroupedRecords[record.id].push(record);
-                });
-
-                let finalFlatRecords = [];
-                Object.keys(finalGroupedRecords).sort((a, b) => parseInt(b) - parseInt(a)).forEach(id => {
-                    const group = finalGroupedRecords[id].sort((a, b) => b.versiKe - a.versiKe); // Sort each group
-                    group.forEach((record, idx) => {
-                        finalFlatRecords.push({
-                            ...record,
-                            isFirstRowForId: idx === 0,
-                            rowSpanCount: group.length,
-                        });
-                    });
-                });
-
-                setAllRecordsFlat(finalFlatRecords);
-                setUpdateHistory(tempUpdateHistories);
+                setAllRecordsFlat(finalSortedRecords);
 
             } catch (err) {
                 setError("Gagal memuat riwayat rekam medis.");
@@ -154,17 +140,22 @@ export default function RekamMedisHistory({ rekamMedisId }) {
         }
 
         fetchHistory();
-    }, [rekamMedisId]); // Dependency array: re-fetch jika rekamMedisId berubah
+    }, [rekamMedisId, contract, doctorNamesCache]); // Dependency array: re-fetch jika rekamMedisId atau contract/doctorNamesCache berubah
 
     const filtered = allRecordsFlat.filter(
         (item) =>
             item.diagnosa.toLowerCase().includes(search.toLowerCase()) ||
-            item.catatan.toLowerCase().includes(search.toLowerCase())
+            item.catatan.toLowerCase().includes(search.toLowerCase()) ||
+            item.pembuat.toLowerCase().includes(search.toLowerCase()) || // Cari berdasarkan nama aktor
+            formatTimestamp(item.timestamp).toLowerCase().includes(search.toLowerCase()) // Cari berdasarkan waktu
     );
 
     const formatTimestamp = (ts) => {
-        if (!ts) return "-";
-        const date = new Date(ts * 1000);
+        if (typeof ts === 'bigint') {
+            ts = Number(ts);
+        }
+        if (!ts || ts === 0 || isNaN(ts)) return "-";
+        const date = new Date(ts * 1000); // Kali 1000 karena timestamp dari Solidity biasanya dalam detik
         return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
     };
 
@@ -175,7 +166,7 @@ export default function RekamMedisHistory({ rekamMedisId }) {
                 <input
                     type="text"
                     className="border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 w-full sm:w-80 shadow-sm"
-                    placeholder="Cari diagnosa atau catatan..."
+                    placeholder="Cari diagnosa, catatan, pembuat, atau waktu..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
@@ -189,11 +180,12 @@ export default function RekamMedisHistory({ rekamMedisId }) {
                         <tr>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider border-r border-blue-500">No.</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider border-r border-blue-500">ID RM</th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider border-r border-blue-500">Versi</th>
+                            {/* Kolom "Versi" dihapus */}
                             <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-r border-blue-500">Diagnosa</th>
                             <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-r border-blue-500">Catatan</th>
                             <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-r border-blue-500">Foto</th>
-                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider">Riwayat Update</th>
+                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider">Dibuat/Diupdate Oleh</th>
+                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider">Waktu</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
@@ -211,36 +203,14 @@ export default function RekamMedisHistory({ rekamMedisId }) {
                             </tr>
                         ) : (
                             filtered.map((item, idx) => {
-                                const updates = updateHistory[item.id] || [];
-                                // Sesuaikan update info dengan versi yang ditampilkan
-                                const currentUpdateInfo = updates.length > 0 && item.versiKe > 0 && (item.versiKe - 1) < updates.length
-                                    ? updates[item.versiKe - 1]
-                                    : null;
-
                                 return (
-                                    <tr key={`${item.id}-${item.versiKe}`} className="hover:bg-blue-50 transition-colors">
-                                        {item.isFirstRowForId && (
-                                            <td rowSpan={item.rowSpanCount} className="text-center px-4 py-3 align-top border-r text-gray-700">
-                                                {/* Ini akan menampilkan nomor urut untuk ID RM (bukan versi) */}
-                                                {/* Perlu logika tambahan untuk mendapatkan nomor urut unik per ID RM */}
-                                                {filtered.filter(f => f.isFirstRowForId && parseInt(f.id) >= parseInt(item.id)).length}
-                                            </td>
-                                        )}
-                                        {item.isFirstRowForId && (
-                                            <td rowSpan={item.rowSpanCount} className="px-4 py-3 align-top border-r font-mono text-gray-800 text-sm break-all">
-                                                {item.id}
-                                            </td>
-                                        )}
-                                        <td className="px-4 py-3 text-center border-r text-gray-700">
-                                            {item.versiKe}
-                                        </td>
-                                        <td className="px-4 py-3 border-r break-words text-gray-800 max-w-xs">
-                                            {item.diagnosa}
-                                        </td>
-                                        <td className="px-4 py-3 border-r break-words text-gray-600 max-w-xs">
-                                            {item.catatan}
-                                        </td>
-                                        <td className="px-4 py-3 text-center border-r">
+                                    <tr key={`${item.id_rm}-${item.versiKe}`} className="hover:bg-blue-50 transition-colors">
+                                        <td className="px-4 py-3 text-center text-gray-700">{idx + 1}</td> {/* Nomor urut baris */}
+                                        <td className="px-4 py-3 text-center font-mono text-gray-800 text-sm break-all">{item.id_rm}</td>
+                                        {/* Sel data "Versi" dihapus */}
+                                        <td className="px-4 py-3 break-words text-gray-800 max-w-xs">{item.diagnosa}</td>
+                                        <td className="px-4 py-3 break-words text-gray-600 max-w-xs">{item.catatan}</td>
+                                        <td className="px-4 py-3 text-center">
                                             {item.foto ? (
                                                 <a href={item.foto} target="_blank" rel="noopener noreferrer"
                                                     className="text-blue-600 hover:underline text-sm font-medium">
@@ -250,25 +220,12 @@ export default function RekamMedisHistory({ rekamMedisId }) {
                                                 <span className="italic text-gray-500 text-sm">-</span>
                                             )}
                                         </td>
-                                        {item.isFirstRowForId && (
-                                            <td rowSpan={item.rowSpanCount} className="px-4 py-3 text-sm max-w-xs break-words align-top">
-                                                {updates.length > 0 ? (
-                                                    <ul className="list-disc list-inside space-y-1">
-                                                        {updates.map((upd, i) => (
-                                                            <li key={i} className="text-gray-700">
-                                                                <span className="font-semibold">Oleh:</span>{" "}
-                                                                <code className="bg-gray-100 px-1 rounded text-xs break-all">{upd.dokter.substring(0, 6)}...{upd.dokter.substring(upd.dokter.length - 4)}</code>{" "}
-                                                                <span className="text-gray-500 text-xs italic">
-                                                                    ({formatTimestamp(upd.timestamp)})
-                                                                </span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                ) : (
-                                                    <span className="italic text-gray-500 text-sm">Tidak ada info update</span>
-                                                )}
-                                            </td>
-                                        )}
+                                        <td className="px-4 py-3 text-sm text-gray-700" title={item.pembuat}>
+                                            {item.pembuat}
+                                        </td>
+                                        <td className="px-4 py-3 text-xs text-gray-500 italic">
+                                            {formatTimestamp(item.timestamp)}
+                                        </td>
                                     </tr>
                                 );
                             })
