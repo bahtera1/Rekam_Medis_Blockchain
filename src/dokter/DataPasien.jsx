@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import contract from "../contract"; // Pastikan path ini benar
 import { uploadToPinata } from "../PinataUpload"; // Pastikan path ini benar
 
-// Komponen Ikon (tetap sama seperti sebelumnya)
+// --- Komponen Ikon (Didefinisikan secara internal) ---
 const IconSearch = () => (
   <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -18,12 +18,12 @@ const IconChevronRight = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
   </svg>
 );
+// SEMUA IKON YANG DIGUNAKAN OLEH DetailItem HARUS ADA DI SINI ATAU DIIMPOR
 const IconUser = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>;
 const IconCalendar = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"></path></svg>;
 const IconMail = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path fillRule="evenodd" d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" clipRule="evenodd"></path></svg>;
 const IconPhone = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path></svg>;
 const IconLocation = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path></svg>;
-const IconEditPencil = () => <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>;
 const IconGender = () => (
   <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20">
     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12zm-2-7a1 1 0 100-2H6a1 1 0 100 2h2zm4 0a1 1 0 100-2h-2a1 1 0 100 2h2zm-2 4a1 1 0 100-2H8a1 1 0 100 2h2z" clipRule="evenodd" />
@@ -34,7 +34,9 @@ const IconBloodType = () => (
     <path fillRule="evenodd" d="M10 18a.93.93 0 01-.682-.282L4.43 12.83A6.003 6.003 0 014 8.5C4 5.467 7.16 3 10 3s6 2.467 6 5.5c0 1.34-.435 2.603-1.232 3.616l-.001.001-4.887 4.886A.93.93 0 0110 18zm0-13.5a4.5 4.5 0 00-4.5 4.5c0 .998.33 1.923.928 2.668L10 15.336l3.572-3.668A3.513 3.513 0 0014.5 8.5a4.5 4.5 0 00-4.5-4.5z" clipRule="evenodd" />
   </svg>
 );
+const IconEditPencil = () => <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>;
 
+// DetailItem tetap sama, dengan asumsi ikon diteruskan sebagai JSX element
 const DetailItem = ({ icon, label, value }) => (
   <div className="flex items-start py-3">
     {icon && <div className="mr-3 mt-1 text-blue-600 flex-shrink-0 w-5 h-5">{icon}</div>}
@@ -45,15 +47,15 @@ const DetailItem = ({ icon, label, value }) => (
   </div>
 );
 
+// --- Komponen Utama DataPasien ---
 export default function DataPasien({ account, assignedPatients }) {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [pasienData, setPasienData] = useState(null);
   const [rekamMedisHistory, setRekamMedisHistory] = useState([]);
-  const [updateHistories, setUpdateHistories] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [editingRM, setEditingRM] = useState(null);
   const [formData, setFormData] = useState({
-    diagnosa: "", foto: "", catatan: "", // catatan akan diisi teks, foto akan diisi URL
+    diagnosa: "", foto: "", catatan: "",
   });
   const [fotoFile, setFotoFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -61,37 +63,51 @@ export default function DataPasien({ account, assignedPatients }) {
   const [search, setSearch] = useState("");
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
+  const [doctorNamesCache, setDoctorNamesCache] = useState({}); // Cache untuk nama dokter
 
+  // Effect untuk mengisi patientInfos dari prop assignedPatients
   useEffect(() => {
-    async function fetchInfos() {
-      setLoadingData(true);
-      const infos = await Promise.all(assignedPatients.map(async (addr) => {
-        try {
-          const p = await contract.methods.getPasienData(addr).call();
-          // Asumsi: getPasienData mengembalikan [nama, golonganDarah, tanggalLahir, gender, alamat, noTelepon, email, rumahSakitPenanggungJawab]
-          return { address: addr, nama: p[0] || "Nama Tidak Tersedia" };
-        } catch (err) {
-          console.error(`Gagal memuat nama untuk pasien ${addr}:`, err);
-          return { address: addr, nama: "Gagal Memuat Nama" };
-        }
-      }));
-      setPatientInfos(infos);
-      setLoadingData(false);
+    setLoadingData(true);
+    if (assignedPatients && assignedPatients.length > 0) {
+      setPatientInfos(assignedPatients); 
+    } else {
+      setPatientInfos([]);
     }
-    if (assignedPatients && assignedPatients.length > 0) fetchInfos();
-    else setPatientInfos([]);
-  }, [assignedPatients]);
+    setLoadingData(false);
+  }, [assignedPatients]); 
 
+  // Fungsi untuk mendapatkan nama dokter dari alamat
+  const getDoctorName = async (doctorAddress) => {
+    if (doctorAddress === '0x0000000000000000000000000000000000000000' || !doctorAddress) {
+        return "N/A"; // Alamat nol atau kosong
+    }
+    if (doctorNamesCache[doctorAddress]) {
+        return doctorNamesCache[doctorAddress]; // Ambil dari cache
+    }
+    try {
+        // Asumsi getDokter mengembalikan: nama (index 0), spesialisasi, ...
+        const dokterInfo = await contract.methods.getDokter(doctorAddress).call();
+        const namaDokter = dokterInfo[0];
+        setDoctorNamesCache(prev => ({ ...prev, [doctorAddress]: namaDokter })); // Simpan ke cache
+        return namaDokter;
+    } catch (error) {
+        // Jika gagal mendapatkan nama dokter (misal bukan dokter terdaftar), tampilkan alamat terpotong
+        console.warn(`Gagal mendapatkan nama untuk dokter ${doctorAddress}:`, error);
+        return `${doctorAddress.substring(0, 6)}...${doctorAddress.substring(doctorAddress.length - 4)}`;
+    }
+  };
+
+  // Effect untuk memuat detail pasien dan riwayat rekam medis
   useEffect(() => {
     const fetchDataPasien = async () => {
       if (!selectedPatient) {
         setPasienData(null);
         setRekamMedisHistory([]);
-        setUpdateHistories({});
-        return;
+        return; 
       }
       setLoadingHistory(true);
       try {
+        // Ambil data detail pasien
         const p = await contract.methods.getPasienData(selectedPatient).call();
         setPasienData({
           nama: p[0],
@@ -101,132 +117,162 @@ export default function DataPasien({ account, assignedPatients }) {
           alamat: p[4],
           noTelepon: p[5],
           email: p[6],
-          rumahSakitPenanggungJawab: p[7] // Jangan lupa field terakhir jika ada
+          rumahSakitPenanggungJawab: p[7]
         });
 
-        const ids = await contract.methods.getRekamMedisIdsByPasien(selectedPatient).call();
-        let allVersions = [];
-        let allUpdates = {};
+        // Ambil ID rekam medis untuk pasien ini
+        const rmIds = await contract.methods.getRekamMedisIdsByPasien(selectedPatient).call();
+        let allRecordsForDisplay = [];
 
-        for (const id of ids) {
-          const idStr = id.toString();
-          const latestResult = await contract.methods.getRekamMedis(idStr).call();
+        // Iterasi setiap ID rekam medis
+        for (const id of rmIds) {
+          // Ambil full history dari Smart Contract
+          // Menggunakan `getFullRekamMedisHistory` yang baru.
+          // Smart Contract harus mengembalikan array FullRMHistoryEntry[]
+          const fullHistoryRawPromises = await contract.methods.getFullRekamMedisHistory(id).call();
 
-          // PERBAIKAN PENTING DI SINI: Sesuaikan indeks agar sesuai dengan return Solidity
-          // Solidity returns: uint id, address pasien, string diagnosa, string foto, string catatan, bool valid
-          const latest = {
-            id_rm: latestResult[0].toString(), // id
-            pasien: latestResult[1],          // pasien
-            diagnosa: latestResult[2],        // diagnosa
-            foto: latestResult[3],            // foto
-            catatan: latestResult[4],         // catatan
-            valid: latestResult[5]            // valid
-          };
+          // Konversi BigInt dan siapkan untuk tampilan, sekaligus ambil nama aktor
+          let chronologicalVersionsPromises = fullHistoryRawPromises.map(async (entry) => {
+              const actorName = await getDoctorName(entry.aktor); // Dapatkan nama aktor
+              return {
+                  id_rm: entry.id_rm.toString(),
+                  pasien: entry.pasien,
+                  diagnosa: entry.diagnosa,
+                  foto: entry.foto,
+                  catatan: entry.catatan,
+                  valid: entry.valid,
+                  pembuat: actorName, // Gunakan nama aktor
+                  timestamp: Number(entry.timestamp), // Pastikan konversi
+                  jenisPerubahan: entry.jenisPerubahan,
+                  // versiKe akan diisi setelah pengurutan global
+              };
+          });
+          let chronologicalVersions = await Promise.all(chronologicalVersionsPromises);
 
-          const versionsRawResults = await contract.methods.getRekamMedisVersions(idStr).call();
-          const versionsRaw = versionsRawResults.map(v => ({
-            // Ini asumsi v adalah objek dengan properti yang sesuai dari struct RekamMedisData
-            id_rm: v.id.toString(),
-            pasien: v.pasien,
-            diagnosa: v.diagnosa,
-            foto: v.foto,
-            catatan: v.catatan,
-            valid: v.valid
-          }));
 
-          const formattedVersions = versionsRaw.map((v, idx) => ({
-            ...v,
-            versiKe: idx + 1,
-          }));
-
-          // Filter out the 'latest' version if it's already present in formattedVersions
-          // This avoids duplicate entries if the latest version is also stored in versionsRawResults
-          const uniqueFormattedVersions = formattedVersions.filter(fv =>
-            !(fv.id_rm === latest.id_rm && fv.diagnosa === latest.diagnosa && fv.catatan === latest.catatan) // Anda mungkin perlu penentu unik yang lebih baik
+          // Dapatkan versi rekam medis yang paling mutakhir (current state) secara terpisah
+          // dari `getRekamMedis` karena `getFullRekamMedisHistory` dari Smart Contract yang kita definisikan mungkin
+          // hanya mengembalikan historis snapshot.
+          // currentRM[0]=id, currentRM[1]=pasien, currentRM[2]=diagnosa, currentRM[3]=foto,
+          // currentRM[4]=catatan, currentRM[5]=valid, currentRM[6]=pembuatAwal, currentRM[7]=timestampAwal
+          const currentRMData = await contract.methods.getRekamMedis(id).call();
+          
+          // Cek apakah versi `currentRMData` ini sudah termasuk dalam `chronologicalVersions`
+          // Gunakan identifikasi yang kuat (ID + diagnosis + catatan)
+          const isLatestVersionIncluded = chronologicalVersions.some(
+              v => v.id_rm === currentRMData[0].toString() && 
+                   v.diagnosa === currentRMData[2] && 
+                   v.catatan === currentRMData[4]
           );
 
-          // Add the 'latest' version at the end, ensuring it's the highest version
-          const allRecordVersions = [...uniqueFormattedVersions, { ...latest, versiKe: uniqueFormattedVersions.length + 1 }];
-          allVersions = allVersions.concat(allRecordVersions);
-
-          try {
-            const [dokters, timestamps] = await contract.methods.getRekamMedisUpdateHistory(idStr).call();
-            allUpdates[idStr] = dokters.map((dokter, i) => ({
-              dokter, timestamp: parseInt(timestamps[i].toString(), 10),
-            }));
-          } catch (err) {
-            console.warn(`Gagal memuat riwayat update untuk RM ID ${idStr}:`, err);
-            allUpdates[idStr] = [];
+          if (!isLatestVersionIncluded) {
+              const latestActorName = await getDoctorName(currentRMData[6]); // Nama pembuatAwal
+              chronologicalVersions.push({
+                  id_rm: currentRMData[0].toString(),
+                  pasien: currentRMData[1],
+                  diagnosa: currentRMData[2],
+                  foto: currentRMData[3],
+                  catatan: currentRMData[4],
+                  valid: currentRMData[5],
+                  pembuat: latestActorName, 
+                  timestamp: Number(currentRMData[7]), 
+                  jenisPerubahan: 'Latest' 
+              });
           }
+
+          // Urutkan berdasarkan timestamp untuk mendapatkan urutan kronologis yang benar
+          chronologicalVersions.sort((a, b) => a.timestamp - b.timestamp);
+
+          // Hapus bagian `version.versiKe = index + 1;` dari sini karena kita menghapus kolom "Versi"
+          // dan nomor urut bisa disajikan oleh `index + 1` di rendering tabel.
+          // chronologicalVersions.forEach((version, index) => {
+          //     version.versiKe = index + 1;
+          // });
+
+          allRecordsForDisplay = allRecordsForDisplay.concat(chronologicalVersions);
         }
-        // Sorting unik berdasarkan id_rm dan versiKe
-        const uniqueRecords = {};
-        allVersions.forEach(rm => {
-          const key = `${rm.id_rm}-${rm.versiKe}`;
-          // Simpan versi yang lebih tinggi jika ada duplikasi ID-versi
-          if (!uniqueRecords[key] || uniqueRecords[key].versiKe < rm.versiKe) {
-            uniqueRecords[key] = rm;
-          }
+
+        // Final sorting untuk tampilan tabel: ID Rekam Medis terbaru dulu, lalu Nomor Urut (berdasarkan timestamp)
+        let finalSortedRecords = allRecordsForDisplay.sort((a, b) => {
+            if (parseInt(a.id_rm) !== parseInt(b.id_rm)) {
+                return parseInt(b.id_rm) - parseInt(a.id_rm); // Urutkan berdasarkan ID Rekam Medis (descending)
+            }
+            // Jika ID RM sama, urutkan berdasarkan timestamp (ascending) untuk urutan kronologis
+            return a.timestamp - b.timestamp; 
+        });
+        
+        // Berikan nomor urut (NO.) untuk tabel setelah final sorting
+        finalSortedRecords.forEach((record, idx) => {
+            record.noUrut = idx + 1; // Ini akan menjadi kolom NO. di tabel
         });
 
-        let finalSortedRecords = Object.values(uniqueRecords).sort((a, b) => {
-          // Urutkan berdasarkan ID rekam medis (descending) lalu versi (descending)
-          if (parseInt(a.id_rm) !== parseInt(b.id_rm)) {
-            return parseInt(b.id_rm) - parseInt(a.id_rm);
-          }
-          return b.versiKe - a.versiKe;
+        // Dan jika Anda tetap ingin versiKe untuk debug internal atau fungsi lain,
+        // bisa diberikan nomor versi per rekam medis ID, setelah sorting global.
+        // Contoh: Kelompokkan berdasarkan id_rm, lalu beri versiKe di dalam kelompok.
+        const groupedRecords = finalSortedRecords.reduce((acc, record) => {
+            if (!acc[record.id_rm]) {
+                acc[record.id_rm] = [];
+            }
+            acc[record.id_rm].push(record);
+            return acc;
+        }, {});
+
+        Object.keys(groupedRecords).forEach(rmId => {
+            groupedRecords[rmId].sort((a, b) => a.timestamp - b.timestamp); // Urutkan lagi per ID RM
+            groupedRecords[rmId].forEach((record, index) => {
+                record.versiKe = index + 1; // Beri nomor versi lokal per RM ID
+            });
         });
 
-        setRekamMedisHistory(finalSortedRecords);
-        setUpdateHistories(allUpdates);
+        // Flatten lagi untuk set state
+        setRekamMedisHistory(Object.values(groupedRecords).flat().sort((a, b) => {
+            if (parseInt(a.id_rm) !== parseInt(b.id_rm)) {
+                return parseInt(b.id_rm) - parseInt(a.id_rm);
+            }
+            return a.versiKe - b.versiKe; // Urutkan lagi untuk memastikan tampilan akhir
+        }));
+
       } catch (error) {
         console.error("Gagal memuat data pasien atau rekam medis:", error);
-        alert("Gagal memuat detail pasien.");
+        alert(`Gagal memuat detail pasien: ${error.message || 'Terjadi kesalahan tidak dikenal'}`);
       } finally {
         setLoadingHistory(false);
       }
     };
     if (selectedPatient) fetchDataPasien();
-  }, [selectedPatient]);
+  }, [selectedPatient, contract, doctorNamesCache]); // Tambahkan doctorNamesCache ke dependency array.
 
   const getLatestRMForPatient = () => {
     if (!rekamMedisHistory || rekamMedisHistory.length === 0) return null;
-    const uniqueRmIds = [...new Set(rekamMedisHistory.map(rm => rm.id_rm.toString()))];
-    if (uniqueRmIds.length === 0) return null;
 
-    // Filter rekamMedisHistory to only include records for the currently selected patient
     const relevantRecords = rekamMedisHistory.filter(rm => rm.pasien === selectedPatient);
-
     if (relevantRecords.length === 0) return null;
 
-    // Find the highest id_rm among the relevant records
     const latestRmId = relevantRecords.reduce((maxId, currentRecord) => {
       return parseInt(currentRecord.id_rm) > parseInt(maxId) ? currentRecord.id_rm : maxId;
-    }, relevantRecords[0].id_rm); // Initialize with the first record's id
+    }, relevantRecords[0].id_rm);
 
-    // Get all versions for this latestRmId
     const versionsOfLatestRmId = relevantRecords.filter(rm => rm.id_rm.toString() === latestRmId);
-
     if (versionsOfLatestRmId.length === 0) return null;
 
-    // Return the specific version with the highest `versiKe` for that `latestRmId`
+    // Untuk modal, kita ingin versi yang paling terakhir (versiKe tertinggi) dari ID RM terbaru
     return versionsOfLatestRmId.reduce((latest, current) => (current.versiKe > latest.versiKe ? current : latest), versionsOfLatestRmId[0]);
   };
 
   const handleOpenModal = () => {
     const latestRMEntry = getLatestRMForPatient();
-    if (!latestRMEntry) { // If no RM history exists for the selected patient
+    if (!latestRMEntry) {
       setEditingRM(null);
       setFormData({ diagnosa: "", foto: "", catatan: "" });
     } else {
       setEditingRM(latestRMEntry.id_rm);
-      setFormData({ // Mengisi form modal dengan data rekam medis terbaru
+      setFormData({
         diagnosa: latestRMEntry.diagnosa,
         foto: latestRMEntry.foto,
         catatan: latestRMEntry.catatan,
       });
     }
-    setFotoFile(null); // Reset file input
+    setFotoFile(null); 
     setShowModal(true);
   };
 
@@ -235,8 +281,7 @@ export default function DataPasien({ account, assignedPatients }) {
       setUploading(true);
       try {
         const url = await uploadToPinata(fotoFile);
-        // setFormData((f) => ({ ...f, foto: url })); // Ini akan di-set setelah upload berhasil di handleSubmit
-        return url; // Mengembalikan URL langsung
+        return url;
       } catch (e) {
         alert("Upload foto ke IPFS gagal.");
         throw e;
@@ -244,7 +289,7 @@ export default function DataPasien({ account, assignedPatients }) {
         setUploading(false);
       }
     }
-    return formData.foto; // Kembalikan URL foto yang sudah ada jika tidak ada file baru
+    return formData.foto; 
   };
 
   const handleSubmit = async (e) => {
@@ -253,14 +298,13 @@ export default function DataPasien({ account, assignedPatients }) {
       alert("Pasien belum dipilih. Silakan pilih pasien terlebih dahulu.");
       return;
     }
-    setUploading(true); // Mulai status uploading
+    setUploading(true); 
     try {
-      let finalFotoUrl = formData.foto; // Default: gunakan URL foto yang sudah ada di state
-      if (fotoFile) { // Jika ada file baru yang dipilih, lakukan upload
-        finalFotoUrl = await uploadToPinata(fotoFile); // Upload dan dapatkan URL baru
+      let finalFotoUrl = formData.foto;
+      if (fotoFile) {
+        finalFotoUrl = await uploadToPinata(fotoFile);
       }
-      // Perbarui formData dengan URL foto final sebelum mengirim ke kontrak
-      setFormData((f) => ({ ...f, foto: finalFotoUrl }));
+      setFormData((f) => ({ ...f, foto: finalFotoUrl })); 
 
       if (editingRM) {
         await contract.methods
@@ -274,18 +318,16 @@ export default function DataPasien({ account, assignedPatients }) {
         alert("Rekam medis baru berhasil ditambahkan.");
       }
       setShowModal(false);
-      setFotoFile(null); // Reset input file setelah submit
+      setFotoFile(null);
 
-      // Refresh data pasien setelah submit berhasil
       const currentSelected = selectedPatient;
-      setSelectedPatient(null); // Set to null to trigger re-fetch
-      setTimeout(() => setSelectedPatient(currentSelected), 100); // Set back to selectedPatient to trigger useEffect
+      setSelectedPatient(null);
+      setTimeout(() => setSelectedPatient(currentSelected), 100);
     } catch (err) {
       console.error("Gagal menyimpan rekam medis:", err);
-      // Lebih spesifik dalam pesan error jika memungkinkan
       alert(`Gagal menyimpan rekam medis: ${err.message || 'Terjadi kesalahan tidak dikenal'}`);
     } finally {
-      setUploading(false); // Akhiri status uploading
+      setUploading(false);
     }
   };
 
@@ -298,8 +340,17 @@ export default function DataPasien({ account, assignedPatients }) {
     : patientInfos;
 
   const formatTimestamp = (ts) => {
-    if (!ts || ts === 0) return "-";
-    const date = new Date(ts * 1000);
+    if (typeof ts === 'bigint') {
+        ts = Number(ts);
+    }
+    if (!ts || ts === 0) return "-"; 
+
+    if (isNaN(ts)) {
+        console.error("Invalid timestamp received:", ts);
+        return "-";
+    }
+
+    const date = new Date(ts * 1000); 
     return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
   };
 
@@ -406,29 +457,26 @@ export default function DataPasien({ account, assignedPatients }) {
                   <thead className="bg-blue-600 text-white">
                     <tr>
                       <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">No.</th>
-                      <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">Versi</th>
+                      {/* Kolom "Versi" dihapus */}
                       <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Diagnosa</th>
                       <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">Foto</th>
-                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Catatan</th> {/* Ini akan menampilkan string catatan */}
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Catatan</th>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Dibuat/Diupdate Oleh</th>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Waktu</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {rekamMedisHistory.map((rm, index) => {
-                      let currentUpdateInfo = null;
-                      const rmUpdates = updateHistories[rm.id_rm.toString()] || [];
-                      // Check if there's an update entry for this specific version (versiKe)
-                      if (rm.versiKe > 0 && (rm.versiKe - 1) < rmUpdates.length) {
-                        currentUpdateInfo = rmUpdates[rm.versiKe - 1];
-                      }
+                      const actorDisplay = rm.pembuat; // Sudah nama dokter atau alamat terpotong
+                      const timestampDisplay = rm.timestamp ? formatTimestamp(rm.timestamp) : '-';
+
                       return (
                         <tr key={`${rm.id_rm}-${rm.versiKe}`} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">{index + 1}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">{rm.versiKe}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">{rm.noUrut || (index + 1)}</td> {/* Menggunakan noUrut jika ada, fallback ke index + 1 */}
+                          {/* Sel data "Versi" dihapus */}
                           <td className="px-6 py-4 text-sm text-gray-800 min-w-[200px] break-words">{rm.diagnosa}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                            {rm.foto ? ( // rm.foto adalah URL IPFS
+                            {rm.foto ? (
                               <a href={rm.foto} target="_blank" rel="noopener noreferrer"
                                 className="text-blue-600 hover:text-blue-800 underline font-medium">
                                 Lihat Foto
@@ -437,13 +485,12 @@ export default function DataPasien({ account, assignedPatients }) {
                               <span className="italic text-gray-400">N/A</span>
                             )}
                           </td>
-                          {/* rm.catatan ditampilkan sebagai teks biasa. Jika isinya URL, itu karena data di blockchain */}
                           <td className="px-6 py-4 text-sm text-gray-600 min-w-[250px] break-words">{rm.catatan}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono break-all" title={currentUpdateInfo ? currentUpdateInfo.dokter : ''}>
-                            {currentUpdateInfo ? `${currentUpdateInfo.dokter.substring(0, 6)}...${currentUpdateInfo.dokter.substring(currentUpdateInfo.dokter.length - 4)}` : <span className="italic text-gray-400">- (Data Awal)</span>}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" title={rm.pembuat || ''}> {/* Hapus font-mono break-all jika sudah nama */}
+                            {actorDisplay}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 italic">
-                            {currentUpdateInfo ? formatTimestamp(currentUpdateInfo.timestamp) : '-'}
+                            {timestampDisplay}
                           </td>
                         </tr>
                       );
