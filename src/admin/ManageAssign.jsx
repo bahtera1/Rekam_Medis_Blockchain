@@ -8,7 +8,7 @@ export default function ManageAssign({
     pasienAddress,
     setPasienAddress,
     assignPasien,
-    unassignPasien, // <-- Prop ini harus diteruskan dari AdminPage
+    unassignPasien,
     loading,
     assignedPairs,
 }) {

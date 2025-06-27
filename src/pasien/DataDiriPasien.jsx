@@ -21,9 +21,6 @@ const IconDoctor = () => <span className="mr-2.5 text-blue-600 inline">👨‍�
 
 // MODIFIKASI: Komponen DetailItem untuk memastikan keselarasan
 const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
-  // Menggunakan flexbox untuk mengatur label dan value dalam satu baris
-  // Memberikan lebar tetap pada label menggunakan 'w-44' atau 'w-36' agar titik dua sejajar.
-  // Sesuaikan lebar ini (w-XX) jika ada label yang lebih panjang atau lebih pendek
   <p className={`flex items-start ${colSpan === 2 ? 'md:col-span-2' : ''}`}>
     <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center">
       {icon} {label}:

@@ -1,8 +1,5 @@
 import React, { useState } from "react";
 
-// --- SVG Icons ---
-// Using inline SVGs for simplicity. Consider a library for more complex projects.
-
 const HomeIcon = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a.75.75 0 011.06 0l8.955 8.955M2.25 12l8.954 8.955a.75.75 0 001.06 0l8.955-8.955M2.25 12h19.5M12 2.25v19.5" />

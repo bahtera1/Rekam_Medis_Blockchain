@@ -88,10 +88,10 @@ export default function AdminSideBar({ activePage, setActivePage, onLogout, nama
 
                 {/* Logo/Title Section */}
                 <div className={`mb-10 flex items-center ${isOpen ? "justify-start" : "justify-center"} w-full mt-2`}>
-                     {/* Placeholder for a logo image if you have one */}
+                    {/* Placeholder for a logo image if you have one */}
                     {isOpen ? (
                         <div className="text-center w-full">
-                             <span className="block font-extrabold text-2xl tracking-tight text-white drop-shadow-lg">
+                            <span className="block font-extrabold text-2xl tracking-tight text-white drop-shadow-lg">
                                 Admin Panel
                             </span>
                             {namaRumahSakit && (
@@ -138,9 +138,9 @@ export default function AdminSideBar({ activePage, setActivePage, onLogout, nama
                                     {item.label}
                                 </span>
                             )}
-                             {/* Active indicator for collapsed state */}
+                            {/* Active indicator for collapsed state */}
                             {!isOpen && activePage === item.key && (
-                                 <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-sky-400 rounded-r-full" />
+                                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-sky-400 rounded-r-full" />
                             )}
                         </button>
                     ))}
