@@ -43,7 +43,7 @@ function App() {
 
   const handleLogout = () => {
     setAccount("");
-    setRole("");
+    setRole(""); // <--- PERBAIKAN PENTING DI SINI: Reset role juga
   };
 
   const getRedirectPath = (role) => {
@@ -68,7 +68,7 @@ function App() {
         {!account ? (
           <div
             className="login-page flex h-screen items-center justify-center bg-cover bg-center"
-            style={{ backgroundImage: `url(${BackgroundImage})` }} // Tetap menggunakan style prop untuk background utama
+            style={{ backgroundImage: `url(${BackgroundImage})` }}
           >
             <div className="card-wrapper flex w-[800px] max-w-[95%] rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 hover:shadow-3xl border border-gray-100">
               {/* Left Section: Branding/Title */}

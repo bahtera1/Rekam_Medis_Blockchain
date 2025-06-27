@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DokterSideBar from "./DokterSideBar";
 import DokterDashboard from "./DokterDashboard";
 import DataPasien from "./DataPasien";
-import contract from "../contract"; // Pastikan path ini benar
+import contract from "../contract";
 
 export default function DokterPage({ account, onLogout }) {
     const [assignedPatients, setAssignedPatients] = useState([]);
@@ -12,7 +12,7 @@ export default function DokterPage({ account, onLogout }) {
     const [fetchError, setFetchError] = useState(null);
 
     useEffect(() => {
-        let isMounted = true; // Flag untuk mencegah pembaruan state pada komponen yang sudah tidak ter-mount
+        let isMounted = true;
         async function fetchData() {
             if (!account || !contract) {
                 if (isMounted) {
@@ -25,7 +25,7 @@ export default function DokterPage({ account, onLogout }) {
             console.log("DokterPage: Memulai fetch data untuk akun:", account);
             if (isMounted) {
                 setIsLoading(true);
-                setFetchError(null); // Reset error sebelum fetch baru
+                setFetchError(null);
             }
 
             try {
@@ -33,7 +33,6 @@ export default function DokterPage({ account, onLogout }) {
                 const dokterAdminRSAddress = dokterData[5];
 
                 if (dokterData && typeof dokterData[3] !== 'undefined' && dokterAdminRSAddress !== '0x0000000000000000000000000000000000000000') {
-
                     const rawAssignedPasienAddresses = dokterData[4] || [];
 
                     const patientsWithDetails = await Promise.all(
@@ -96,15 +95,18 @@ export default function DokterPage({ account, onLogout }) {
         fetchData();
 
         return () => {
-            isMounted = false; // Cleanup: Set flag to false when component unmounts
+            isMounted = false;
         };
-    }, [account]); // 'contract' dihapus dari dependency array
+    }, [account]);
 
     const handleSelect = (tab) => {
+        // Hapus window.confirm() di sini.
+        // Konfirmasi logout sekarang sepenuhnya ditangani oleh DokterSideBar melalui custom modal.
         if (tab === "logout") {
-            if (window.confirm("Apakah Anda yakin ingin logout?")) {
-                onLogout();
-            }
+            // Biarkan DokterSideBar yang memicu modal konfirmasi, dan modal itu sendiri yang akan memanggil onLogout
+            // Tidak perlu ada konfirmasi di sini lagi.
+            // onLogout(); // ini akan dipanggil dari dalam DokterSideBar setelah konfirmasi kustom
+            return; // Hentikan eksekusi lebih lanjut
         } else if (tab === "update") {
             if (!dokterProfile) {
                 alert("Data profil dokter belum termuat atau tidak valid.");
@@ -152,7 +154,7 @@ export default function DokterPage({ account, onLogout }) {
         );
     }
 
-    if (!dokterProfile) { // Kasus jika tidak ada fetchError tapi dokterProfile tetap null (misal: akun tidak terdaftar)
+    if (!dokterProfile) {
         return (
             <div className="flex flex-col justify-center items-center min-h-screen bg-slate-100 p-6 text-center">
                 <svg className="w-16 h-16 text-yellow-500 mb-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -177,27 +179,27 @@ export default function DokterPage({ account, onLogout }) {
                 activeTab={view}
                 isActive={dokterProfile?.aktif}
                 dokterNama={dokterProfile?.nama || "Dokter"}
+                onLogout={onLogout} // Pastikan onLogout diteruskan ke DokterSideBar
             />
             <main className="flex-1 px-4 sm:px-8 py-8 sm:py-10 transition-all duration-300 overflow-y-auto">
                 {view === "dashboard" && dokterProfile && (
                     <DokterDashboard
-                        assignedPatients={assignedPatients} // Mengirim pasien yang sudah difilter
+                        assignedPatients={assignedPatients}
                         dokterProfile={dokterProfile}
                     />
                 )}
                 {view === "update" && dokterProfile?.aktif && (
                     <section className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 animate-fadeIn">
-                        <DataPasien account={account} assignedPatients={assignedPatients} /> {/* Mengirim pasien yang sudah difilter */}
+                        <DataPasien account={account} assignedPatients={assignedPatients} />
                     </section>
                 )}
-                {/* Bagian ini tidak lagi diperlukan karena sudah ditangani oleh kondisi !dokterProfile di atas */}
-                {/* {view === "update" && !dokterProfile?.aktif && (
+                {view === "update" && !dokterProfile?.aktif && (
                     <div className="flex flex-col items-center justify-center h-full p-6 bg-white rounded-2xl shadow-xl">
                         <svg className="w-16 h-16 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                         <h3 className="text-xl font-semibold text-red-700 mb-2">Akses Ditolak</h3>
                         <p className="text-gray-600 text-center">Akun dokter Anda saat ini tidak aktif. Anda tidak dapat mengakses halaman ini.</p>
                     </div>
-                )} */}
+                )}
             </main>
         </div>
     );
