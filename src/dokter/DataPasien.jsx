@@ -120,56 +120,56 @@ export default function DataPasien({ account, assignedPatients }) {
     }
   }, [doctorNamesCache]);
 
-  // Effect untuk memuat detail pasien dan riwayat rekam medis
-  useEffect(() => {
-    const fetchDataPasien = async () => {
-      if (!selectedPatient) {
-        setPasienData(null);
-        setRekamMedisHistory([]); // Reset history jika tidak ada pasien terpilih
-        return;
-      }
-      setLoadingHistory(true); // Mulai loading untuk riwayat
-      try {
-        const p = await contract.methods.getPasienData(selectedPatient).call();
-        setPasienData({
-          nama: p[0], golonganDarah: p[1], tanggalLahir: p[2], gender: p[3],
-          alamat: p[4], noTelepon: p[5], email: p[6],
-          rumahSakitPenanggungJawab: p[7]
+  // Fungsi untuk memuat detail pasien dan riwayat rekam medis (dibungkus useCallback)
+  const fetchDataPasien = useCallback(async () => { // <--- Tambahkan useCallback di sini
+    if (!selectedPatient) {
+      setPasienData(null);
+      setRekamMedisHistory([]);
+      return;
+    }
+    setLoadingHistory(true);
+    try {
+      const p = await contract.methods.getPasienData(selectedPatient).call();
+      setPasienData({
+        nama: p[0], golonganDarah: p[1], tanggalLahir: p[2], gender: p[3],
+        alamat: p[4], noTelepon: p[5], email: p[6],
+        rumahSakitPenanggungJawab: p[7]
+      });
+
+      const rmIds = await contract.methods.getRekamMedisIdsByPasien(selectedPatient).call();
+      let allRecords = [];
+
+      for (const id of rmIds) {
+        const rmData = await contract.methods.getRekamMedis(id).call();
+        const actorName = await getActorName(rmData[6]);
+
+        allRecords.push({
+          id_rm: rmData[0].toString(),
+          pasien: rmData[1],
+          diagnosa: rmData[2],
+          foto: rmData[3],
+          valid: rmData[5],
+          catatan: rmData[4],
+          pembuat: actorName,
+          timestamp: Number(rmData[7]),
+          tipeRekamMedis: rmData[8]
         });
-
-        // Ambil ID rekam medis
-        const rmIds = await contract.methods.getRekamMedisIdsByPasien(selectedPatient).call();
-        let allRecords = [];
-
-        // Fetch detail untuk setiap rekam medis (termasuk nama pembuat)
-        for (const id of rmIds) {
-          const rmData = await contract.methods.getRekamMedis(id).call();
-          const actorName = await getActorName(rmData[6]);
-
-          allRecords.push({
-            id_rm: rmData[0].toString(),
-            pasien: rmData[1],
-            diagnosa: rmData[2],
-            foto: rmData[3],
-            valid: rmData[5],
-            catatan: rmData[4],
-            pembuat: actorName,
-            timestamp: Number(rmData[7]),
-            tipeRekamMedis: rmData[8]
-          });
-        }
-
-        setRekamMedisHistory(allRecords); // Set data riwayat rekam medis
-
-      } catch (error) {
-        console.error("Gagal memuat data pasien atau rekam medis:", error);
-        alert(`Gagal memuat detail pasien: ${error.message || 'Terjadi kesalahan tidak dikenal'}`);
-      } finally {
-        setLoadingHistory(false); // Selesai loading untuk riwayat
       }
-    };
+
+      setRekamMedisHistory(allRecords);
+
+    } catch (error) {
+      console.error("Gagal memuat data pasien atau rekam medis:", error);
+      alert(`Gagal memuat detail pasien: ${error.message || 'Terjadi kesalahan tidak dikenal'}`);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [selectedPatient, getActorName]); // <--- Dependensi untuk useCallback
+
+  // Effect memanggil fetchDataPasien
+  useEffect(() => {
     if (selectedPatient) fetchDataPasien();
-  }, [selectedPatient, getActorName]);
+  }, [selectedPatient, fetchDataPasien]); // <--- Dependensi diubah
 
   const handleOpenModal = () => {
     setFormData({ diagnosa: "", foto: "", catatan: "", tipeRekamMedis: "" });
@@ -205,11 +205,9 @@ export default function DataPasien({ account, assignedPatients }) {
       setShowModal(false);
       setFotoFile(null);
 
-      // Refresh data rekam medis setelah penambahan
-      const currentSelected = selectedPatient;
-      setSelectedPatient(null);
-      // Memuat ulang data pasien dan riwayatnya
-      setSelectedPatient(currentSelected);
+      // PENTING: Panggil fetchDataPasien setelah rekam medis baru ditambahkan
+      await fetchDataPasien(); // <--- Panggil fungsi ini untuk merefresh data
+      setCurrentPage(1); // Reset paginasi ke halaman pertama
     } catch (err) {
       console.error("Gagal menyimpan rekam medis:", err);
       alert(`Gagal menyimpan rekam medis: ${err.message || 'Terjadi kesalahan tidak dikenal'}`);
