@@ -1,24 +1,29 @@
 import React, { useState, useEffect } from "react";
 
-// Komponen untuk ikon (menggunakan karakter Unicode atau SVG inline sederhana)
+// Komponen untuk ikon (menggunakan karakter Unicode)
 const IconUser = () => <span className="mr-2.5 text-blue-600 inline">👤</span>;
-const IconCalendar = () => <span className="mr-2.5 text-blue-600 inline">🎂</span>;
+const IconCalendar = () => <span className="mr-2.5 text-blue-600 inline">📅</span>;
 const IconMail = () => <span className="mr-2.5 text-blue-600 inline">📧</span>;
 const IconPhone = () => <span className="mr-2.5 text-blue-600 inline">📞</span>;
 const IconLocation = () => <span className="mr-2.5 text-blue-600 inline">🏠</span>;
 const IconGender = () => <span className="mr-2.5 text-blue-600 inline">🚻</span>;
 const IconBloodType = () => <span className="mr-2.5 text-red-600 inline">🩸</span>;
 const IconHospital = () => <span className="mr-2.5 text-blue-600 inline">🏥</span>;
-const IconEdit = () => <span className="mr-2.5">✏️</span>; // Edit icon for button
+const IconEdit = () => <span className="mr-2.5">✏️</span>;
 const IconId = () => <span className="mr-2.5 text-blue-600 inline">🆔</span>;
 const IconDiagnosa = () => <span className="mr-2.5 text-blue-600 inline">📝</span>;
 const IconCatatan = () => <span className="mr-2.5 text-blue-600 inline">🗒️</span>;
 const IconFoto = () => <span className="mr-2.5 text-blue-600 inline">📸</span>;
-const IconValid = () => <span className="mr-2.5 text-green-600 inline">✅</span>;
-const IconInvalid = () => <span className="mr-2.5 text-red-600 inline">❌</span>;
+const IconMedicalType = () => <span className="mr-2.5 text-blue-600 inline">🩺</span>; // Tipe Rekam Medis
+const IconTime = () => <span className="mr-2.5 text-blue-600 inline">⏱️</span>; // Ikon untuk timestamp
+const IconDoctor = () => <span className="mr-2.5 text-blue-600 inline">👨‍⚕️</span>; // Ikon untuk pembuat RM
 
 
+// MODIFIKASI: Komponen DetailItem untuk memastikan keselarasan
 const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
+  // Menggunakan flexbox untuk mengatur label dan value dalam satu baris
+  // Memberikan lebar tetap pada label menggunakan 'w-44' atau 'w-36' agar titik dua sejajar.
+  // Sesuaikan lebar ini (w-XX) jika ada label yang lebih panjang atau lebih pendek
   <p className={`flex items-start ${colSpan === 2 ? 'md:col-span-2' : ''}`}>
     <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center">
       {icon} {label}:
@@ -28,6 +33,17 @@ const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
     </span>
   </p>
 );
+
+// Fungsi formatTimestamp
+const formatTimestamp = (ts) => {
+  if (typeof ts === 'bigint') {
+    ts = Number(ts);
+  }
+  if (!ts || ts === 0 || isNaN(ts)) return "-";
+  const date = new Date(ts * 1000);
+  return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+};
+
 
 export default function DataDiriPasien({
   isRegistered,
@@ -57,10 +73,10 @@ export default function DataDiriPasien({
         alamat: dataDiri.alamat || '',
         noTelepon: dataDiri.noTelepon || '',
         email: dataDiri.email || '',
-      }); // Isi form edit dengan dataDiri saat ini
+      });
       setSelectedRSforUpdate(dataDiri.rumahSakitPenanggungJawab || "");
     }
-  }, [dataDiri]); // Dependensi dataDiri agar form edit terupdate jika dataDiri berubah
+  }, [dataDiri]);
 
   const handleEditDataDiriSubmit = async (e) => {
     e.preventDefault();
@@ -377,12 +393,27 @@ export default function DataDiriPasien({
             📜 Rekam Medis Terbaru
           </h3>
           {rekamMedisTerbaru ? (
-            <div className="space-y-4 text-gray-700 text-lg">
+            // Mengubah ini menjadi DetailItem, dan mengatur colSpan
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-gray-700 text-lg">
               <DetailItem icon={<IconId />} label="ID" value={rekamMedisTerbaru.id} />
-              <DetailItem icon={<IconDiagnosa />} label="Diagnosa" value={rekamMedisTerbaru.diagnosa} />
-              <DetailItem icon={<IconCatatan />} label="Catatan" value={rekamMedisTerbaru.catatan} />
-              <p className="flex items-start">
-                <span className="font-semibold text-blue-700 w-36 flex-shrink-0 flex items-center">
+              <DetailItem icon={<IconMedicalType />} label="Tipe RM" value={rekamMedisTerbaru.tipeRekamMedis} />
+              <DetailItem
+                icon={<IconTime />}
+                label="Waktu Pembuatan"
+                value={formatTimestamp(rekamMedisTerbaru.timestampPembuatan)}
+              />
+              <DetailItem
+                icon={<IconDoctor />}
+                label="Dibuat Oleh"
+                value={rekamMedisTerbaru.pembuatNama}
+              />
+              {/* Diagnosa dan Catatan mungkin panjang, biarkan di kolom terpisah atau atur colSpan */}
+              <DetailItem icon={<IconDiagnosa />} label="Diagnosa" value={rekamMedisTerbaru.diagnosa} colSpan={2} /> {/* Atur colSpan */}
+              <DetailItem icon={<IconCatatan />} label="Catatan" value={rekamMedisTerbaru.catatan} colSpan={2} /> {/* Atur colSpan */}
+
+              {/* Foto (Status Valid telah dihapus) */}
+              <p className="flex items-start md:col-span-2">
+                <span className="font-semibold text-blue-700 w-44 flex-shrink-0 flex items-center"> {/* w-44 agar sejajar */}
                   <IconFoto /> Foto:
                 </span>{" "}
                 {rekamMedisTerbaru.foto ? (
@@ -400,20 +431,6 @@ export default function DataDiriPasien({
                   </span>
                 )}
               </p>
-              <p className="flex items-start">
-                <span className="font-semibold text-blue-700 w-36 flex-shrink-0 flex items-center">
-                  <IconValid /> Status Valid:
-                </span>{" "}
-                {rekamMedisTerbaru.valid ? (
-                  <span className="text-green-600 font-bold flex items-center flex-grow">
-                    Valid
-                  </span>
-                ) : (
-                  <span className="text-red-600 font-bold flex items-center flex-grow">
-                    <IconInvalid /> Tidak Valid
-                  </span>
-                )}
-              </p>
             </div>
           ) : (
             <p className="italic text-gray-500 text-center text-lg">
@@ -427,6 +444,10 @@ export default function DataDiriPasien({
       {showEditDataDiriModal && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-lg mx-auto shadow-2xl animate-fadeIn">
+            <button
+              className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-red-600 transition-colors focus:outline-none"
+              onClick={() => setShowEditDataDiriModal(false)}
+            > &times; </button>
             <h3 className="text-2xl font-bold mb-5 text-blue-800 text-center">Edit Data Diri</h3>
             <form onSubmit={handleEditDataDiriSubmit} className="space-y-4">
               {/* Nama Lengkap */}
@@ -499,6 +520,10 @@ export default function DataDiriPasien({
       {showEditRSModal && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-sm mx-auto shadow-2xl animate-fadeIn">
+            <button
+              className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-red-600 transition-colors focus:outline-none"
+              onClick={() => setShowEditRSModal(false)}
+            > &times; </button>
             <h3 className="text-2xl font-bold mb-5 text-blue-800 text-center">Ubah RS Penanggung Jawab</h3>
             <form onSubmit={handleEditRSSubmit} className="space-y-4">
               <div>

@@ -11,22 +11,49 @@ export default function PasienPage({ onLogout }) {
 
   const [dataDiri, setDataDiri] = useState(null);
   const [form, setForm] = useState({
-    nama: "",
-    golonganDarah: "",
-    tanggalLahir: "",
-    gender: "",
-    alamat: "",
-    noTelepon: "",
-    email: "",
-    adminRS: "", // adminRS dikembalikan ke state form
+    nama: "", golonganDarah: "", tanggalLahir: "", gender: "",
+    alamat: "", noTelepon: "", email: "", adminRS: "",
   });
 
   const [listAdminRS, setListAdminRS] = useState([]);
-
-  const [historyRekamMedis, setHistoryRekamMedis] = useState([]);
+  const [historyRekamMedisIds, setHistoryRekamMedisIds] = useState([]);
   const [rekamMedisTerbaru, setRekamMedisTerbaru] = useState(null);
   const [activeTab, setActiveTab] = useState("dataDiri");
+
   const [isRegistered, setIsRegistered] = useState(false);
+  const [doctorNamesCache, setDoctorNamesCache] = useState({});
+
+  // Fungsi untuk mendapatkan nama dokter/aktor dari alamat
+  const getActorName = useCallback(async (actorAddress) => {
+    if (actorAddress === '0x0000000000000000000000000000000000000000' || !actorAddress) {
+      return "N/A";
+    }
+    if (doctorNamesCache[actorAddress]) { // Baca dari cache
+      return doctorNamesCache[actorAddress];
+    }
+    try {
+      const isDoc = await contract.methods.isDokter(actorAddress).call();
+      if (isDoc) {
+        const dokterInfo = await contract.methods.getDokter(actorAddress).call();
+        const namaDokter = dokterInfo[0];
+        setDoctorNamesCache(prev => ({ ...prev, [actorAddress]: namaDokter })); // Update cache
+        return namaDokter;
+      }
+
+      const isPas = await contract.methods.isPasien(actorAddress).call();
+      if (isPas) {
+        const pasienData = await contract.methods.getPasienData(actorAddress).call();
+        const namaPasien = pasienData[0];
+        setDoctorNamesCache(prev => ({ ...prev, [actorAddress]: namaPasien })); // Update cache
+        return namaPasien;
+      }
+
+      return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+    } catch (err) {
+      console.warn(`Gagal mendapatkan nama untuk aktor ${actorAddress}:`, err);
+      return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+    }
+  }, [doctorNamesCache]); // contract DIHAPUS, doctorNamesCache DITAMBAHKAN
 
   const fetchData = useCallback(async () => {
     try {
@@ -38,6 +65,7 @@ export default function PasienPage({ onLogout }) {
       const aktif = accounts[0];
       setAccount(aktif);
 
+      // Ambil daftar Admin RS
       const totalAdmin = await contract.methods.totalAdmin().call();
       const admins = [];
       for (let i = 0; i < totalAdmin; i++) {
@@ -49,21 +77,17 @@ export default function PasienPage({ onLogout }) {
       }
       setListAdminRS(admins);
 
+      // Ambil data diri pasien
       const pasienData = await contract.methods.getPasienData(aktif).call();
 
-      if (!pasienData[0]) { // Cek berdasarkan nama, jika nama kosong berarti belum terdaftar
+      if (!pasienData[0]) {
         setIsRegistered(false);
         setDataDiri(null);
         setForm((f) => ({
           ...f,
-          nama: "",
-          golonganDarah: "",
-          tanggalLahir: "",
-          gender: "",
-          alamat: "",
-          noTelepon: "",
-          email: "",
-          adminRS: admins.length > 0 ? admins[0].address : "", // Admin RS default dikembalikan
+          nama: "", golonganDarah: "", tanggalLahir: "", gender: "",
+          alamat: "", noTelepon: "", email: "",
+          adminRS: admins.length > 0 ? admins[0].address : "",
         }));
       } else {
         setIsRegistered(true);
@@ -85,34 +109,33 @@ export default function PasienPage({ onLogout }) {
           alamat: pasienData[4],
           noTelepon: pasienData[5],
           email: pasienData[6],
-          adminRS: pasienData[7], // adminRS dari data pasien yang sudah ada
+          adminRS: pasienData[7],
         });
 
+        // Ambil riwayat rekam medis pasien (sekarang hanya IDs)
         const ids = await contract.methods.getRekamMedisIdsByPasien(aktif).call();
-        if (ids.length > 0) {
-          const allRecords = await Promise.all(
-            ids.map(async (id) => {
-              const rekam = await contract.methods.getRekamMedis(id).call();
-              return {
-                id: rekam[0].toString(),
-                pasien: rekam[1],
-                diagnosa: rekam[2],
-                foto: rekam[3],
-                catatan: rekam[4],
-                valid: rekam[5],
-              };
-            })
-          );
+        setHistoryRekamMedisIds(ids);
 
-          const sortedRecords = allRecords.sort((a, b) => {
-            return parseInt(b.id) - parseInt(a.id);
+        if (ids.length > 0) {
+          const latestRmId = ids.reduce((maxId, currentId) => (parseInt(currentId) > parseInt(maxId) ? currentId : maxId), ids[0]);
+
+          const rekam = await contract.methods.getRekamMedis(latestRmId).call();
+          const pembuatNama = await getActorName(rekam[6]);
+
+          setRekamMedisTerbaru({
+            id: rekam[0].toString(),
+            pasien: rekam[1],
+            diagnosa: rekam[2],
+            foto: rekam[3],
+            catatan: rekam[4],
+            valid: rekam[5],
+            pembuat: rekam[6],
+            pembuatNama: pembuatNama,
+            timestampPembuatan: rekam[7],
+            tipeRekamMedis: rekam[8],
           });
 
-          setHistoryRekamMedis(sortedRecords);
-          setRekamMedisTerbaru(sortedRecords.length > 0 ? sortedRecords[0] : null);
-
         } else {
-          setHistoryRekamMedis([]);
           setRekamMedisTerbaru(null);
         }
       }
@@ -121,7 +144,7 @@ export default function PasienPage({ onLogout }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getActorName]); // getActorName sebagai dependency
 
   useEffect(() => {
     fetchData();
@@ -129,25 +152,13 @@ export default function PasienPage({ onLogout }) {
 
   const submitDataDiri = async () => {
     const {
-      nama,
-      golonganDarah,
-      tanggalLahir,
-      gender,
-      alamat,
-      noTelepon,
-      email,
-      adminRS, // adminRS dikembalikan ke destructuring
+      nama, golonganDarah, tanggalLahir, gender,
+      alamat, noTelepon, email, adminRS,
     } = form;
 
     if (
-      !nama ||
-      !golonganDarah ||
-      !tanggalLahir ||
-      !gender ||
-      !alamat ||
-      !noTelepon ||
-      !email ||
-      !adminRS // adminRS dikembalikan ke validasi
+      !nama || !golonganDarah || !tanggalLahir || !gender ||
+      !alamat || !noTelepon || !email || !adminRS
     ) {
       alert("Mohon isi semua data diri dan pilih rumah sakit dengan lengkap.");
       return;
@@ -157,26 +168,19 @@ export default function PasienPage({ onLogout }) {
       const [from] = await web3.eth.getAccounts();
       await contract.methods
         .selfRegisterPasien(
-          nama,
-          golonganDarah,
-          tanggalLahir,
-          gender,
-          alamat,
-          noTelepon,
-          email,
-          adminRS // adminRS dikembalikan ke pemanggilan smart contract
+          nama, golonganDarah, tanggalLahir, gender,
+          alamat, noTelepon, email, adminRS
         )
         .send({ from });
       alert("Registrasi data diri berhasil.");
 
-      await fetchData(); // Refresh data
+      await fetchData();
     } catch (err) {
       console.error("Gagal simpan data diri:", err);
       alert(`Gagal simpan data diri: ${err.message}`);
     }
   };
 
-  // --- FUNGSI BARU: Update Data Diri Pasien ---
   const updatePasienData = async (updatedFormData) => {
     try {
       const [from] = await web3.eth.getAccounts();
@@ -190,27 +194,24 @@ export default function PasienPage({ onLogout }) {
         updatedFormData.email
       ).send({ from });
       alert("Data diri berhasil diperbarui.");
-      await fetchData(); // Refresh data setelah update
+      await fetchData();
     } catch (err) {
       console.error("Gagal memperbarui data diri pasien:", err);
       alert(`Gagal memperbarui data diri: ${err.message}`);
     }
   };
-  // -----------------------------------------
 
-  // --- FUNGSI BARU: Update Rumah Sakit Penanggung Jawab Pasien ---
   const updatePasienRumahSakit = async (newAdminRSAddress) => {
     try {
       const [from] = await web3.eth.getAccounts();
       await contract.methods.updatePasienRumahSakit(newAdminRSAddress).send({ from });
       alert("Rumah Sakit Penanggung Jawab berhasil diperbarui.");
-      await fetchData(); // Refresh data setelah update
+      await fetchData();
     } catch (err) {
       console.error("Gagal memperbarui RS penanggung jawab:", err);
       alert(`Gagal memperbarui RS penanggung jawab: ${err.message}`);
     }
   };
-  // -----------------------------------------------------------
 
   const handleLogout = () => {
     if (onLogout) onLogout();
@@ -248,13 +249,13 @@ export default function PasienPage({ onLogout }) {
             <h2 className="text-2xl font-bold mb-4 text-blue-700 text-center">
               Riwayat Rekam Medis
             </h2>
-            {historyRekamMedis.length === 0 ? (
+            {historyRekamMedisIds.length === 0 ? (
               <p className="italic text-gray-500 text-center">
                 Tidak ada riwayat rekam medis.
               </p>
             ) : (
               <RekamMedisHistory
-                rekamMedisId={historyRekamMedis.map(rm => rm.id)}
+                rekamMedisIds={historyRekamMedisIds}
               />
             )}
           </div>

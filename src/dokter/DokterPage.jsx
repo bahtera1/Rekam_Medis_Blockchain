@@ -4,9 +4,6 @@ import DokterDashboard from "./DokterDashboard";
 import DataPasien from "./DataPasien";
 import contract from "../contract"; // Pastikan path ini benar
 
-// Ikon internal (tidak perlu import file terpisah)
-const IconUser = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>;
-
 export default function DokterPage({ account, onLogout }) {
     const [assignedPatients, setAssignedPatients] = useState([]);
     const [dokterProfile, setDokterProfile] = useState(null);
@@ -32,12 +29,12 @@ export default function DokterPage({ account, onLogout }) {
                 const dokterData = await contract.methods.getDokter(account).call();
 
                 // Dapatkan alamat Admin RS dokter dari dokterData[5]
-                const dokterAdminRSAddress = dokterData[5]; 
+                const dokterAdminRSAddress = dokterData[5];
 
                 // Periksa apakah data yang diterima valid
                 // Memastikan dokterData ada, aktif, dan memiliki alamat adminRS yang valid
                 if (dokterData && typeof dokterData[3] !== 'undefined' && dokterAdminRSAddress !== '0x0000000000000000000000000000000000000000') {
-                    
+
                     const rawAssignedPasienAddresses = dokterData[4] || []; // daftar alamat pasien yang di-assign
 
                     // Fetch detail lengkap untuk setiap pasien yang ditugaskan (termasuk RS Penanggung Jawab)
@@ -129,7 +126,7 @@ export default function DokterPage({ account, onLogout }) {
         );
     }
 
-    if (fetchError && !dokterProfile) { 
+    if (fetchError && !dokterProfile) {
         return (
             <div className="flex flex-col justify-center items-center min-h-screen bg-slate-100 p-6 text-center">
                 <svg className="w-16 h-16 text-red-500 mb-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
