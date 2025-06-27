@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import contract from "../contract";
 import { uploadToPinata } from "../PinataUpload";
 
-// --- Komponen Ikon (Didefinisikan secara internal) ---
+// --- Komponen Ikon (Hanya yang digunakan di file ini) ---
+// Ikon-ikon ini digunakan di bagian pemilihan pasien dan form tambah RM
 const IconSearch = () => (
   <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -18,6 +19,9 @@ const IconChevronRight = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
   </svg>
 );
+const IconEditPencil = () => <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>;
+
+// Ikon-ikon untuk detail pasien
 const IconUser = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>;
 const IconCalendar = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"></path></svg>;
 const IconMail = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path fillRule="evenodd" d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" clipRule="evenodd"></path></svg>;
@@ -33,8 +37,8 @@ const IconBloodType = () => (
     <path fillRule="evenodd" d="M10 18a.93.93 0 01-.682-.282L4.43 12.83A6.003 6.003 0 014 8.5C4 5.467 7.16 3 10 3s6 2.467 6 5.5c0 1.34-.435 2.603-1.232 3.616l-.001.001-4.887 4.886A.93.93 0 0110 18zm0-13.5a4.5 4.5 0 00-4.5 4.5c0 .998.33 1.923.928 2.668L10 15.336l3.572-3.668A3.513 3.513 0 0014.5 8.5a4.5 4.5 0 00-4.5-4.5z" clipRule="evenodd" />
   </svg>
 );
-const IconEditPencil = () => <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>;
 
+// DetailItem adalah komponen umum, bisa dipindahkan ke folder components jika banyak digunakan
 const DetailItem = ({ icon, label, value }) => (
   <div className="flex items-start py-3">
     {icon && <div className="mr-3 mt-1 text-blue-600 flex-shrink-0 w-5 h-5">{icon}</div>}
@@ -49,7 +53,7 @@ const DetailItem = ({ icon, label, value }) => (
 export default function DataPasien({ account, assignedPatients }) {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [pasienData, setPasienData] = useState(null);
-  const [rekamMedisHistory, setRekamMedisHistory] = useState([]);
+  const [rekamMedisHistory, setRekamMedisHistory] = useState([]); // Ini adalah data riwayat
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     diagnosa: "", foto: "", catatan: "", tipeRekamMedis: ""
@@ -57,23 +61,23 @@ export default function DataPasien({ account, assignedPatients }) {
   const [fotoFile, setFotoFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [patientInfos, setPatientInfos] = useState([]);
-  const [search, setSearch] = useState(""); // Search for patient list
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [loadingData, setLoadingData] = useState(false);
+  const [search, setSearch] = useState(""); // Search for patient list (for patient list selection)
+  const [loadingHistory, setLoadingHistory] = useState(false); // Untuk riwayat rekam medis
+  const [loadingData, setLoadingData] = useState(false); // Untuk daftar pasien
   const [doctorNamesCache, setDoctorNamesCache] = useState({});
 
-  // --- State untuk Search & Sort Riwayat Rekam Medis ---
+  // --- State untuk Search & Sort Riwayat Rekam Medis (diimplementasi di sini) ---
   const [historySearchTerm, setHistorySearchTerm] = useState('');
-  const [sortByDate, setSortByDate] = useState('desc'); // 'desc' for Terbaru, 'asc' for Terlama
+  const [sortByDate, setSortByDate] = useState('desc'); // 'desc' (terbaru) atau 'asc' (terlama)
 
-  // --- State untuk Pagination ---
+  // --- State untuk Pagination Riwayat Rekam Medis ---
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Maksimal 10 item per halaman
+  const [itemsPerPage] = useState(10); // Maksimal 10 item per halaman
 
-  // Effect untuk mereset halaman pagination ketika filter atau search history berubah
+  // Effect untuk mereset halaman pagination riwayat ketika filter atau search history berubah
   useEffect(() => {
     setCurrentPage(1);
-  }, [historySearchTerm, sortByDate]); // Hanya tergantung pada search dan sort
+  }, [historySearchTerm, sortByDate]);
 
   // Effect untuk mengisi patientInfos dari prop assignedPatients
   useEffect(() => {
@@ -114,17 +118,17 @@ export default function DataPasien({ account, assignedPatients }) {
       console.warn(`Gagal mendapatkan nama untuk aktor ${actorAddress}:`, err);
       return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
     }
-  }, [doctorNamesCache]); // contract dihapus, doctorNamesCache ditambahkan
+  }, [doctorNamesCache]);
 
   // Effect untuk memuat detail pasien dan riwayat rekam medis
   useEffect(() => {
     const fetchDataPasien = async () => {
       if (!selectedPatient) {
         setPasienData(null);
-        setRekamMedisHistory([]);
+        setRekamMedisHistory([]); // Reset history jika tidak ada pasien terpilih
         return;
       }
-      setLoadingHistory(true);
+      setLoadingHistory(true); // Mulai loading untuk riwayat
       try {
         const p = await contract.methods.getPasienData(selectedPatient).call();
         setPasienData({
@@ -133,9 +137,11 @@ export default function DataPasien({ account, assignedPatients }) {
           rumahSakitPenanggungJawab: p[7]
         });
 
+        // Ambil ID rekam medis
         const rmIds = await contract.methods.getRekamMedisIdsByPasien(selectedPatient).call();
         let allRecords = [];
 
+        // Fetch detail untuk setiap rekam medis (termasuk nama pembuat)
         for (const id of rmIds) {
           const rmData = await contract.methods.getRekamMedis(id).call();
           const actorName = await getActorName(rmData[6]);
@@ -145,7 +151,7 @@ export default function DataPasien({ account, assignedPatients }) {
             pasien: rmData[1],
             diagnosa: rmData[2],
             foto: rmData[3],
-            valid: rmData[5], // Meskipun tidak ditampilkan, properti ini masih ada di data
+            valid: rmData[5],
             catatan: rmData[4],
             pembuat: actorName,
             timestamp: Number(rmData[7]),
@@ -153,44 +159,23 @@ export default function DataPasien({ account, assignedPatients }) {
           });
         }
 
-        setRekamMedisHistory(allRecords);
+        setRekamMedisHistory(allRecords); // Set data riwayat rekam medis
 
       } catch (error) {
         console.error("Gagal memuat data pasien atau rekam medis:", error);
         alert(`Gagal memuat detail pasien: ${error.message || 'Terjadi kesalahan tidak dikenal'}`);
       } finally {
-        setLoadingHistory(false);
+        setLoadingHistory(false); // Selesai loading untuk riwayat
       }
     };
     if (selectedPatient) fetchDataPasien();
-  }, [selectedPatient, getActorName]); // contract dihapus
-
-  // const getLatestRMForPatient = () => { // Variabel ini tidak digunakan, bisa dihapus
-  //   if (!rekamMedisHistory || rekamMedisHistory.length === 0) return null;
-  //   return rekamMedisHistory[0];
-  // };
+  }, [selectedPatient, getActorName]);
 
   const handleOpenModal = () => {
     setFormData({ diagnosa: "", foto: "", catatan: "", tipeRekamMedis: "" });
     setFotoFile(null);
     setShowModal(true);
   };
-
-  // const handleFotoUpload = async () => { // Fungsi ini tidak digunakan secara langsung di luar handleSubmit
-  //   if (fotoFile) {
-  //     setUploading(true);
-  //     try {
-  //       const url = await uploadToPinata(fotoFile);
-  //       return url;
-  //     } catch (e) {
-  //       alert("Upload file ke IPFS gagal.");
-  //       throw e;
-  //     } finally {
-  //       setUploading(false);
-  //     }
-  //   }
-  //   return formData.foto;
-  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -223,7 +208,8 @@ export default function DataPasien({ account, assignedPatients }) {
       // Refresh data rekam medis setelah penambahan
       const currentSelected = selectedPatient;
       setSelectedPatient(null);
-      setTimeout(() => setSelectedPatient(currentSelected), 100);
+      // Memuat ulang data pasien dan riwayatnya
+      setSelectedPatient(currentSelected);
     } catch (err) {
       console.error("Gagal menyimpan rekam medis:", err);
       alert(`Gagal menyimpan rekam medis: ${err.message || 'Terjadi kesalahan tidak dikenal'}`);
@@ -255,7 +241,7 @@ export default function DataPasien({ account, assignedPatients }) {
     return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
   };
 
-  // --- Logika Filter & Pagination Riwayat Rekam Medis ---
+  // --- Logika Filter & Pagination Riwayat Rekam Medis (diimplementasi di sini) ---
   const getFilteredAndSortedHistory = useMemo(() => {
     let currentFiltered = rekamMedisHistory;
 
@@ -283,13 +269,82 @@ export default function DataPasien({ account, assignedPatients }) {
 
     // Berikan nomor urut setelah filtering & sorting
     return currentFiltered.map((item, idx) => ({ ...item, noUrut: idx + 1 }));
-  }, [rekamMedisHistory, historySearchTerm, sortByDate]); // Dependensi untuk useMemo
+  }, [rekamMedisHistory, historySearchTerm, sortByDate]);
 
   // Logika Pagination
   const totalPages = Math.ceil(getFilteredAndSortedHistory.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = getFilteredAndSortedHistory.slice(indexOfFirstItem, indexOfLastItem);
+
+
+  const renderPaginationButtons = () => {
+    const pages = [];
+    if (totalPages <= 1) return null;
+
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+
+    if (currentPage <= 3) {
+      endPage = Math.min(totalPages, 5);
+      startPage = 1;
+    } else if (currentPage + 2 >= totalPages) {
+      startPage = Math.max(1, totalPages - 4);
+      endPage = totalPages;
+    }
+
+    if (startPage > 1) {
+      pages.push(
+        <button
+          key={1}
+          onClick={() => paginate(1)}
+          className="px-4 py-2 mx-1 rounded-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        pages.push(<span key="dots-start" className="px-2 py-2 text-gray-500">...</span>);
+      }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => paginate(i)}
+          className={`px-4 py-2 mx-1 rounded-lg font-medium transition-colors ${currentPage === i
+            ? "bg-blue-600 text-white shadow-md"
+            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push(<span key="dots-end" className="px-2 py-2 text-gray-500">...</span>);
+      }
+      pages.push(
+        <button
+          key={totalPages}
+          onClick={() => paginate(totalPages)}
+          className="px-4 py-2 mx-1 rounded-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    return pages;
+  };
+
+  const paginate = (pageNumber) => {
+    if (pageNumber < 1 || pageNumber > totalPages) return;
+    setCurrentPage(pageNumber);
+  };
 
 
   return (
@@ -386,7 +441,7 @@ export default function DataPasien({ account, assignedPatients }) {
               </button>
             </div>
 
-            {/* --- Filter dan Search untuk Riwayat Rekam Medis --- */}
+            {/* --- Filter dan Search untuk Riwayat Rekam Medis (diimplementasi di sini) --- */}
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="relative flex-1">
                 <span className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -394,26 +449,25 @@ export default function DataPasien({ account, assignedPatients }) {
                 </span>
                 <input
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-colors"
-                  placeholder="Cari di riwayat RM..."
+                  placeholder="Cari diagnosa, catatan, pembuat, tipe, atau waktu..." // Placeholder lebih spesifik
                   value={historySearchTerm}
                   onChange={(e) => setHistorySearchTerm(e.target.value)}
                 />
               </div>
-              {/* Dropdown untuk sortir Tanggal */}
               <select
                 className="w-full sm:w-auto border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-colors"
                 value={sortByDate}
                 onChange={(e) => setSortByDate(e.target.value)}
               >
-                <option value="desc">Urutkan Tanggal (Terbaru)</option>
-                <option value="asc">Urutkan Tanggal (Terlama)</option>
+                <option value="desc">Terbaru Dulu</option>
+                <option value="asc">Terlama Dulu</option>
               </select>
             </div>
             {/* --- Akhir Filter dan Search --- */}
 
             {loadingHistory ? (
               <p className="italic text-gray-600 text-center py-10 text-lg">Memuat riwayat rekam medis...</p>
-            ) : getFilteredAndSortedHistory.length === 0 ? (
+            ) : getFilteredAndSortedHistory.length === 0 ? ( // Menggunakan getFilteredAndSortedHistory
               <p className="italic text-gray-600 text-center py-10 text-lg">
                 {historySearchTerm ? "Tidak ada rekam medis yang cocok dengan pencarian." : "Belum ada data rekam medis untuk pasien ini."}
               </p>
@@ -432,7 +486,7 @@ export default function DataPasien({ account, assignedPatients }) {
                       <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Waktu Pembuatan</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-100">
                     {currentItems.map((rm) => { // Menggunakan currentItems untuk pagination
                       const actorDisplay = rm.pembuat;
                       const timestampDisplay = rm.timestamp ? formatTimestamp(rm.timestamp) : '-';
@@ -469,22 +523,20 @@ export default function DataPasien({ account, assignedPatients }) {
             )}
 
             {/* --- Pagination Controls --- */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-6">
+            {totalPages > 0 && ( // Tampilkan paginasi hanya jika ada item (totalPages > 0)
+              <div className="flex justify-center items-center mt-6">
                 <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => paginate(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+                  className="px-4 py-2 mx-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   Sebelum
                 </button>
-                <span className="text-gray-700 font-medium">
-                  Halaman {currentPage} dari {totalPages}
-                </span>
+                {renderPaginationButtons()}
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  onClick={() => paginate(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+                  className="px-4 py-2 mx-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   Sesudah
                 </button>

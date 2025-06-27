@@ -55,11 +55,11 @@ export default function DokterDashboard({ assignedPatients, dokterProfile }) {
             <div className="mt-6">
                 <h3 className="text-xl font-semibold text-gray-800 mb-4">Ringkasan Pasien</h3>
                 <div className="bg-gray-50 p-6 rounded-xl shadow border border-gray-200 text-center sm:text-left">
-                    <p className="text-gray-600 text-lg">
+                    <p className="text-gray-600 text-lg mb-2"> {/* Ditambah mb-2 */}
                         Total Pasien yang Anda Tangani:
                     </p>
                     {/* Ukuran angka pasien diperkecil dari text-5xl menjadi text-4xl */}
-                    <p className="text-2xl font-extrabold text-blue-600 mt-1">
+                    <p className="text-4xl font-extrabold text-blue-600 mt-1 mb-2"> {/* Ditambah mb-2 */}
                         {assignedPatients.length}
                     </p>
                     {/* Keterangan ditambahkan di bawah angka */}
