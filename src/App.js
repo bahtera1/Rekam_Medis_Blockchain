@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react"; // Tambahkan useCallback
+import React, { useState, useEffect, useCallback } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import web3 from "./web3";
 import contract from "./contract";
@@ -12,11 +12,11 @@ import BackgroundImage from './background.jpg';
 function App() {
   const [account, setAccount] = useState("");
   const [role, setRole] = useState("");
-  const [accountChangedMessage, setAccountChangedMessage] = useState(null);
-  const navigate = useNavigate();
+  const [accountChangedMessage, setAccountChangedMessage] = useState(null); // State untuk pesan notifikasi
+  const navigate = useNavigate(); // Hook untuk navigasi programatik
 
   // Fungsi untuk proses logout (dibungkus useCallback)
-  const handleLogout = useCallback(async () => { // <--- Tambahkan 'async' dan 'useCallback'
+  const handleLogout = useCallback(async () => {
     // Coba putuskan koneksi MetaMask (ini akan memunculkan konfirmasi di MetaMask)
     if (window.ethereum && window.ethereum.isMetaMask) {
       try {
@@ -24,9 +24,9 @@ function App() {
           method: 'wallet_revokePermissions',
           params: [{ eth_accounts: {} }], // Mencabut izin untuk eth_accounts
         });
-        console.log("Permissions revoked from MetaMask.");
+        console.log("Izin dicabut dari MetaMask."); // Teks di konsol
       } catch (err) {
-        console.warn("Failed to revoke MetaMask permissions, or user cancelled:", err);
+        console.warn("Gagal mencabut izin MetaMask, atau pengguna membatalkan:", err); // Teks di konsol
       }
     }
 
@@ -38,7 +38,7 @@ function App() {
     // Arahkan ke halaman login dan paksa reload
     navigate('/');
     window.location.reload();
-  }, [navigate]); // navigate sebagai dependency useCallback
+  }, [navigate]);
 
   // Efek untuk memuat akun saat aplikasi dimuat pertama kali dan mengatur event listeners
   useEffect(() => {
@@ -48,15 +48,33 @@ function App() {
         const accounts = await web3.eth.getAccounts();
         if (accounts.length > 0) {
           const active = accounts[0];
-          setAccount(active);
           const userRole = await contract.methods.getUserRole(active).call();
+
+          // PENANGANAN BARU: Jika AdminRS non-aktif saat load awal
+          if (userRole === "InactiveAdminRS") {
+            setAccount(""); // Jangan set akun jika tidak aktif
+            setRole("");    // Jangan set role
+            setAccountChangedMessage("Akun Admin RS Anda saat ini tidak aktif. Silakan hubungi Super Admin untuk aktivasi."); // Teks disesuaikan
+            navigate('/'); // Langsung ke halaman login
+            return; // Hentikan eksekusi lebih lanjut
+          }
+          // PENANGANAN BARU: Jika Dokter non-aktif saat load awal
+          if (userRole === "InactiveDokter") {
+            setAccount("");
+            setRole("");
+            setAccountChangedMessage("Akun Dokter Anda saat ini tidak aktif. Silakan hubungi Admin Rumah Sakit Anda."); // Teks disesuaikan
+            navigate('/');
+            return;
+          }
+
+          setAccount(active); // Set akun hanya jika aktif
           setRole(userRole === "Unknown" ? "Pasien" : userRole);
         } else {
           setAccount("");
           setRole("");
         }
       } catch (error) {
-        console.error("No account found or error connecting on load:", error);
+        console.error("Tidak ada akun yang ditemukan atau error saat terhubung:", error); // Teks di konsol
         setAccount("");
         setRole("");
       }
@@ -68,14 +86,34 @@ function App() {
     if (window.ethereum) {
       const handleAccountsChanged = async (accounts) => {
         if (accounts.length === 0) {
-          // Akun terputus dari MetaMask
-          handleLogout(); // Panggil logout penuh
-          setAccountChangedMessage("MetaMask account disconnected. Please log in again.");
+          handleLogout(); // Akun terputus
+          setAccountChangedMessage("Akun MetaMask terputus. Silakan login kembali."); // Teks disesuaikan
         } else {
-          // Akun diganti: paksa aplikasi kembali ke halaman login
+          // Akun diganti: Ambil role untuk akun baru
+          const newActiveAccount = accounts[0];
+          const newRoleFromContract = await contract.methods.getUserRole(newActiveAccount).call();
+
+          // PENANGANAN BARU: Jika AdminRS non-aktif setelah ganti akun
+          if (newRoleFromContract === "InactiveAdminRS") {
+            setAccount("");
+            setRole("");
+            setAccountChangedMessage("Akun Admin RS Anda saat ini tidak aktif. Silakan hubungi Super Admin untuk aktivasi."); // Teks disesuaikan
+            navigate('/');
+            return;
+          }
+          // PENANGANAN BARU: Jika Dokter non-aktif setelah ganti akun
+          if (newRoleFromContract === "InactiveDokter") {
+            setAccount("");
+            setRole("");
+            setAccountChangedMessage("Akun Dokter Anda saat ini tidak aktif. Silakan hubungi Admin Rumah Sakit Anda untuk aktivasi."); // Teks disesuaikan
+            navigate('/');
+            return;
+          }
+
+          // Untuk role lain atau akun aktif, paksa logout dan minta login ulang
           setAccount("");
           setRole("");
-          setAccountChangedMessage(`MetaMask account changed to ${accounts[0].substring(0, 6)}...${accounts[0].substring(accounts[0].length - 4)}. Please click 'LOGIN WITH METAMASK' again.`);
+          setAccountChangedMessage(`Akun MetaMask berganti ke ${newActiveAccount.substring(0, 6)}...${newActiveAccount.substring(newActiveAccount.length - 4)}. Silakan klik 'LOGIN DENGAN METAMASK' kembali.`); // Teks disesuaikan
           navigate('/');
         }
       };
@@ -83,16 +121,13 @@ function App() {
 
       // Event listener untuk tombol back/forward browser (popstate)
       const handlePopState = () => {
-        // PENTING: Hanya panggil logout jika pengguna sedang login.
-        // Jika tidak ada akun (sudah logout atau di halaman login), jangan panggil.
-        if (account) { // Cek state `account` yang terbaru
-          console.log("Browser back/forward button pressed while logged in. Triggering logout.");
+        if (account) {
+          console.log("Tombol navigasi browser (back/forward) ditekan saat login. Memicu logout."); // Teks di konsol
           handleLogout();
         }
       };
       window.addEventListener('popstate', handlePopState);
 
-      // Cleanup: Hapus event listeners saat komponen di-unmount
       return () => {
         if (window.ethereum && window.ethereum.removeListener) {
           window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
@@ -100,35 +135,50 @@ function App() {
         window.removeEventListener('popstate', handlePopState);
       };
     }
-  }, [handleLogout, navigate, account]); // handleLogout dan account sebagai dependency
+  }, [handleLogout, navigate, account]);
 
+  // Fungsi untuk proses login dengan MetaMask (dipicu oleh tombol)
   const loginWithMetaMask = async () => {
     if (!window.ethereum) {
-      alert("MetaMask tidak terdeteksi. Silakan pasang MetaMask dan coba lagi.");
+      alert("MetaMask tidak terdeteksi. Silakan pasang MetaMask dan coba lagi."); // Teks disesuaikan
       return;
     }
 
-    setAccountChangedMessage(null);
+    setAccountChangedMessage(null); // Hapus pesan jika user mencoba login
 
     try {
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
       const active = accounts[0];
-      setAccount(active);
 
       let userRole = await contract.methods.getUserRole(active).call();
-      if (userRole === "Unknown") {
-        userRole = "Pasien";
-      }
-      setRole(userRole);
 
+      // PENANGANAN BARU: Jika AdminRS non-aktif saat klik login
+      if (userRole === "InactiveAdminRS") {
+        setAccount("");
+        setRole("");
+        setAccountChangedMessage("Akun Admin RS Anda saat ini tidak aktif. Silakan hubungi Super Admin untuk aktivasi."); // Teks disesuaikan
+        return;
+      }
+      // PENANGANAN BARU: Jika Dokter non-aktif saat klik login
+      if (userRole === "InactiveDokter") {
+        setAccount("");
+        setRole("");
+        setAccountChangedMessage("Akun Dokter Anda saat ini tidak aktif. Silakan hubungi Admin Rumah Sakit Anda untuk aktivasi."); // Teks disesuaikan
+        return;
+      }
+
+      setAccount(active); // Set akun hanya jika aktif
+      setRole(userRole === "Unknown" ? "Pasien" : userRole);
+
+      // Pengalihan ke halaman role hanya terjadi di sini, setelah validasi
       navigate(getRedirectPath(userRole));
 
     } catch (err) {
-      console.error("Error connecting wallet:", err);
+      console.error("Terjadi kesalahan saat menghubungkan wallet:", err); // Teks disesuaikan
       if (err.code === 4001) {
-        alert("Koneksi MetaMask ditolak. Silakan setujui koneksi untuk melanjutkan.");
+        alert("Koneksi MetaMask ditolak. Silakan setujui koneksi untuk melanjutkan."); // Teks disesuaikan
       } else {
-        alert("Gagal login menggunakan MetaMask. Coba lagi atau periksa konsol untuk detail.");
+        alert("Gagal login menggunakan MetaMask. Coba lagi atau periksa konsol untuk detail."); // Teks disesuaikan
       }
       setAccount("");
       setRole("");
@@ -140,7 +190,6 @@ function App() {
       case "SuperAdmin":
         return "/superadmin";
       case "AdminRS":
-      case "Admin":
         return "/admin";
       case "Dokter":
         return "/dokter";
@@ -153,7 +202,7 @@ function App() {
 
   return (
     <div className="min-h-screen w-full font-sans">
-      {!account ? (
+      {!account ? ( // Jika belum ada akun terhubung, tampilkan halaman login
         <div
           className="login-page flex h-screen items-center justify-center bg-cover bg-center"
           style={{ backgroundImage: `url(${BackgroundImage})` }}
@@ -171,7 +220,7 @@ function App() {
             {/* Right Section: Login Button */}
             <div className="card-right flex-1 bg-white p-10 flex flex-col justify-center items-center">
               <h3 className="text-2xl font-bold text-gray-800 mb-6">Masuk ke Dashboard</h3>
-              {accountChangedMessage && (
+              {accountChangedMessage && ( // Tampilkan pesan notifikasi jika ada
                 <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded" role="alert">
                   <p className="font-bold">Perhatian!</p>
                   <p>{accountChangedMessage}</p>
@@ -182,7 +231,7 @@ function App() {
                 onClick={loginWithMetaMask}
               >
                 <div className="flex items-center space-x-2">
-                  <span>LOGIN WITH</span>
+                  <span>LOGIN DENGAN</span> {/* Teks disesuaikan */}
                   <span className="w-20 h-20 bg-[url('./logo-metamask.png')] bg-contain bg-no-repeat bg-center"></span>
                 </div>
               </button>
@@ -193,40 +242,46 @@ function App() {
           </div>
         </div>
       ) : (
+        // Jika sudah ada akun terhubung, tampilkan rute sesuai role
         <div className="main-page w-full min-h-screen block">
           <Routes>
+            {/* Redirect utama: Mengarahkan ke path role yang sesuai */}
             <Route path="/" element={<Navigate to={getRedirectPath(role)} replace />} />
 
+            {/* Rute untuk SuperAdmin */}
             <Route
               path="/superadmin"
               element={
                 role === "SuperAdmin" ? (
                   <SuperAdminPage account={account} onLogout={handleLogout} />
                 ) : (
-                  <Navigate to="/" replace />
+                  <Navigate to="/" replace /> // Jika tidak sesuai role, redirect ke login
                 )
               }
             />
+            {/* Rute untuk Admin RS */}
             <Route
               path="/admin"
               element={
-                role === "AdminRS" || role === "Admin" ? (
+                role === "AdminRS" ? ( // Hanya AdminRS aktif yang bisa masuk sini
                   <AdminPage account={account} onLogout={handleLogout} />
                 ) : (
                   <Navigate to="/" replace />
                 )
               }
             />
+            {/* Rute untuk Dokter */}
             <Route
               path="/dokter"
               element={
-                role === "Dokter" ? (
+                role === "Dokter" ? ( // Hanya Dokter aktif yang bisa masuk sini
                   <DoctorPage account={account} onLogout={handleLogout} />
                 ) : (
                   <Navigate to="/" replace />
                 )
               }
             />
+            {/* Rute untuk Pasien */}
             <Route
               path="/pasien"
               element={
@@ -237,6 +292,7 @@ function App() {
                 )
               }
             />
+            {/* Fallback: Jika URL tidak cocok dengan rute di atas, kembali ke halaman login */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

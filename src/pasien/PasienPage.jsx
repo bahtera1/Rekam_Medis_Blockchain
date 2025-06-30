@@ -9,10 +9,16 @@ export default function PasienPage({ onLogout }) {
   const [account, setAccount] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const [dataDiri, setDataDiri] = useState(null);
+  const [dataDiri, setDataDiri] = useState(null); // dataDiri will now include the ID
   const [form, setForm] = useState({
-    nama: "", golonganDarah: "", tanggalLahir: "", gender: "",
-    alamat: "", noTelepon: "", email: "", adminRS: "",
+    nama: "",
+    golonganDarah: "",
+    tanggalLahir: "",
+    gender: "",
+    alamat: "",
+    noTelepon: "",
+    email: "",
+    adminRS: "", // Ini yang perlu dipastikan terisi
   });
 
   const [listAdminRS, setListAdminRS] = useState([]);
@@ -43,7 +49,8 @@ export default function PasienPage({ onLogout }) {
       const isPas = await contract.methods.isPasien(actorAddress).call();
       if (isPas) {
         const pasienData = await contract.methods.getPasienData(actorAddress).call();
-        const namaPasien = pasienData[0];
+        // getPasienData mengembalikan: nama (0), ID (1), golonganDarah (2), ...
+        const namaPasien = pasienData[0]; // Nama Pasien ada di indeks 0
         setDoctorNamesCache(prev => ({ ...prev, [actorAddress]: namaPasien })); // Update cache
         return namaPasien;
       }
@@ -53,7 +60,7 @@ export default function PasienPage({ onLogout }) {
       console.warn(`Gagal mendapatkan nama untuk aktor ${actorAddress}:`, err);
       return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
     }
-  }, [doctorNamesCache]); // contract DIHAPUS, doctorNamesCache DITAMBAHKAN
+  }, [doctorNamesCache]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -78,38 +85,47 @@ export default function PasienPage({ onLogout }) {
       setListAdminRS(admins);
 
       // Ambil data diri pasien
-      const pasienData = await contract.methods.getPasienData(aktif).call();
+      // getPasienData mengembalikan: nama (0), ID (1), golonganDarah (2), tanggalLahir (3), gender (4),
+      // alamat (5), noTelepon (6), email (7), rumahSakitPenanggungJawab (8)
+      const pasienDataFromContract = await contract.methods.getPasienData(aktif).call();
 
-      if (!pasienData[0]) {
+
+      if (!pasienDataFromContract[0]) { // Check if 'nama' is empty (meaning patient is not registered)
         setIsRegistered(false);
         setDataDiri(null);
         setForm((f) => ({
           ...f,
-          nama: "", golonganDarah: "", tanggalLahir: "", gender: "",
-          alamat: "", noTelepon: "", email: "",
-          adminRS: admins.length > 0 ? admins[0].address : "",
+          nama: "",
+          golonganDarah: "",
+          tanggalLahir: "",
+          gender: "",
+          alamat: "",
+          noTelepon: "",
+          email: "",
+          adminRS: admins.length > 0 ? admins[0].address : "", // Set default RS if available
         }));
       } else {
         setIsRegistered(true);
         setDataDiri({
-          nama: pasienData[0],
-          golonganDarah: pasienData[1],
-          tanggalLahir: pasienData[2],
-          gender: pasienData[3],
-          alamat: pasienData[4],
-          noTelepon: pasienData[5],
-          email: pasienData[6],
-          rumahSakitPenanggungJawab: pasienData[7],
+          nama: pasienDataFromContract[0],
+          ID: pasienDataFromContract[1],
+          golonganDarah: pasienDataFromContract[2],
+          tanggalLahir: pasienDataFromContract[3],
+          gender: pasienDataFromContract[4],
+          alamat: pasienDataFromContract[5],
+          noTelepon: pasienDataFromContract[6],
+          email: pasienDataFromContract[7],
+          rumahSakitPenanggungJawab: pasienDataFromContract[8],
         });
-        setForm({
-          nama: pasienData[0],
-          golonganDarah: pasienData[1],
-          tanggalLahir: pasienData[2],
-          gender: pasienData[3],
-          alamat: pasienData[4],
-          noTelepon: pasienData[5],
-          email: pasienData[6],
-          adminRS: pasienData[7],
+        setForm({ // Keep form values consistent for editing
+          nama: pasienDataFromContract[0],
+          golonganDarah: pasienDataFromContract[2],
+          tanggalLahir: pasienDataFromContract[3],
+          gender: pasienDataFromContract[4],
+          alamat: pasienDataFromContract[5],
+          noTelepon: pasienDataFromContract[6],
+          email: pasienDataFromContract[7],
+          adminRS: pasienDataFromContract[8],
         });
 
         // Ambil riwayat rekam medis pasien (sekarang hanya IDs)
@@ -117,7 +133,9 @@ export default function PasienPage({ onLogout }) {
         setHistoryRekamMedisIds(ids);
 
         if (ids.length > 0) {
-          const latestRmId = ids.reduce((maxId, currentId) => (parseInt(currentId) > parseInt(maxId) ? currentId : maxId), ids[0]);
+          // Sort IDs numerically (important for consistency, as they are strings from contract)
+          const sortedIds = [...ids].sort((a, b) => parseInt(b) - parseInt(a));
+          const latestRmId = sortedIds[0];
 
           const rekam = await contract.methods.getRekamMedis(latestRmId).call();
           const pembuatNama = await getActorName(rekam[6]);
@@ -128,7 +146,7 @@ export default function PasienPage({ onLogout }) {
             diagnosa: rekam[2],
             foto: rekam[3],
             catatan: rekam[4],
-            valid: rekam[5],
+            // Removed 'valid' as per smart contract change
             pembuat: rekam[6],
             pembuatNama: pembuatNama,
             timestampPembuatan: rekam[7],
@@ -141,10 +159,11 @@ export default function PasienPage({ onLogout }) {
       }
     } catch (err) {
       console.error("Gagal ambil data pasien:", err);
+      // More robust error message for the user if needed, or set an error state
     } finally {
       setLoading(false);
     }
-  }, [getActorName]); // getActorName sebagai dependency
+  }, [getActorName]);
 
   useEffect(() => {
     fetchData();
@@ -152,32 +171,70 @@ export default function PasienPage({ onLogout }) {
 
   const submitDataDiri = async () => {
     const {
-      nama, golonganDarah, tanggalLahir, gender,
-      alamat, noTelepon, email, adminRS,
+      nama,
+      golonganDarah,
+      tanggalLahir,
+      gender,
+      alamat,
+      noTelepon,
+      email,
+      adminRS,
     } = form;
 
     if (
       !nama || !golonganDarah || !tanggalLahir || !gender ||
-      !alamat || !noTelepon || !email || !adminRS
+      !alamat || !noTelepon || !email || !adminRS // Pastikan adminRS terisi
     ) {
       alert("Mohon isi semua data diri dan pilih rumah sakit dengan lengkap.");
       return;
     }
 
+    // --- Logic to generate patient ID (P-001, P-002, etc.) ---
+    let newPatientId = "";
+    try {
+      // Fetch the total number of patients to generate the next ID
+      // This assumes your smart contract has a way to get the total count,
+      // or you might need to iterate through daftarPasien.
+      // For simplicity, let's assume `daftarPasien` from contract can give count.
+      // If `daftarPasien` contains all patients, length + 1 would be the next.
+      const allPatients = await contract.methods.getDaftarPasien().call();
+      const nextIdNumber = allPatients.length + 1;
+      newPatientId = `P-${String(nextIdNumber).padStart(3, '0')}`;
+      console.log("Generated new patient ID:", newPatientId);
+
+    } catch (err) {
+      console.error("Failed to generate patient ID:", err);
+      alert("Gagal membuat ID pasien otomatis. Silakan coba lagi.");
+      return;
+    }
+    // --- End of ID generation logic ---
+
+
     try {
       const [from] = await web3.eth.getAccounts();
+      // MODIFIED: Pass the generated newPatientId as the second parameter
       await contract.methods
         .selfRegisterPasien(
-          nama, golonganDarah, tanggalLahir, gender,
-          alamat, noTelepon, email, adminRS
+          nama,
+          newPatientId, // <-- Pass the generated ID here
+          golonganDarah,
+          tanggalLahir,
+          gender,
+          alamat,
+          noTelepon,
+          email,
+          adminRS
         )
         .send({ from });
-      alert("Registrasi data diri berhasil.");
-
-      await fetchData();
+      alert(`Registrasi data diri berhasil. ID Pasien Anda: ${newPatientId}`); // User feedback with generated ID
+      await fetchData(); // Re-fetch to get the newly generated ID and update state
     } catch (err) {
       console.error("Gagal simpan data diri:", err);
-      alert(`Gagal simpan data diri: ${err.message}`);
+      // More specific error parsing to show actual revert reason from Solidity
+      const errorMessage = err.message.includes("revert")
+        ? err.message.substring(err.message.indexOf("revert") + "revert".length).trim()
+        : "Terjadi kesalahan tidak dikenal saat menyimpan data diri.";
+      alert(`Gagal simpan data diri: ${errorMessage}`);
     }
   };
 
@@ -236,7 +293,7 @@ export default function PasienPage({ onLogout }) {
             isRegistered={isRegistered}
             dataDiri={dataDiri}
             rekamMedisTerbaru={rekamMedisTerbaru}
-            submitDataDiri={submitDataDiri}
+            submitDataDiri={submitDataDiri} // This will now call selfRegisterPasien with generated ID
             form={form}
             setForm={setForm}
             listAdminRS={listAdminRS}

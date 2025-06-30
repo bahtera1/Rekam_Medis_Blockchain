@@ -10,7 +10,7 @@ const IconGender = () => <span className="mr-2.5 text-blue-600 inline">🚻</spa
 const IconBloodType = () => <span className="mr-2.5 text-red-600 inline">🩸</span>;
 const IconHospital = () => <span className="mr-2.5 text-blue-600 inline">🏥</span>;
 const IconEdit = () => <span className="mr-2.5">✏️</span>;
-const IconId = () => <span className="mr-2.5 text-blue-600 inline">🆔</span>;
+const IconId = () => <span className="mr-2.5 text-blue-600 inline">🆔</span>; // Icon for Patient ID
 const IconDiagnosa = () => <span className="mr-2.5 text-blue-600 inline">📝</span>;
 const IconCatatan = () => <span className="mr-2.5 text-blue-600 inline">🗒️</span>;
 const IconFoto = () => <span className="mr-2.5 text-blue-600 inline">📸</span>;
@@ -44,9 +44,9 @@ const formatTimestamp = (ts) => {
 
 export default function DataDiriPasien({
   isRegistered,
-  dataDiri,
+  dataDiri, // Now dataDiri will contain the ID
   rekamMedisTerbaru,
-  submitDataDiri,
+  submitDataDiri, // This function should now call the smart contract's selfRegisterPasien without ID
   form,
   setForm,
   listAdminRS = [],
@@ -310,6 +310,7 @@ export default function DataDiriPasien({
                 </label>
                 <select
                   id="adminRS"
+                  name="adminRS"
                   className="w-full border border-blue-200 rounded-xl px-5 py-3 focus:ring-3 focus:ring-blue-400 bg-blue-50 text-gray-800 placeholder-gray-400 focus:outline-none transition-all duration-300 text-base"
                   value={form.adminRS}
                   onChange={(e) => setForm((f) => ({ ...f, adminRS: e.target.value }))}
@@ -328,8 +329,9 @@ export default function DataDiriPasien({
               <button
                 className="mt-8 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-bold w-full shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-opacity-75 text-lg"
                 type="submit"
+                disabled={isSubmitting} // Disable button saat submitting
               >
-                Simpan Data Diri
+                {isSubmitting ? "Menyimpan Data..." : "Simpan Data Diri"}
               </button>
             </form>
           </div>
@@ -364,6 +366,7 @@ export default function DataDiriPasien({
           {/* --- Akhir Tombol Edit --- */}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-gray-700 text-lg">
+            <DetailItem icon={<IconId />} label="ID Pasien" value={dataDiri.ID} /> {/* Displaying Patient ID */}
             <DetailItem icon={<IconUser />} label="Nama Lengkap" value={dataDiri.nama} />
             <DetailItem icon={<IconBloodType />} label="Golongan Darah" value={dataDiri.golonganDarah} />
             <DetailItem icon={<IconCalendar />} label="Tanggal Lahir" value={dataDiri.tanggalLahir} />
@@ -392,7 +395,7 @@ export default function DataDiriPasien({
           {rekamMedisTerbaru ? (
             // Mengubah ini menjadi DetailItem, dan mengatur colSpan
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-gray-700 text-lg">
-              <DetailItem icon={<IconId />} label="ID" value={rekamMedisTerbaru.id} />
+              <DetailItem icon={<IconId />} label="ID Rekam Medis" value={rekamMedisTerbaru.id_rm} /> {/* Changed label to ID Rekam Medis */}
               <DetailItem icon={<IconMedicalType />} label="Tipe RM" value={rekamMedisTerbaru.tipeRekamMedis} />
               <DetailItem
                 icon={<IconTime />}

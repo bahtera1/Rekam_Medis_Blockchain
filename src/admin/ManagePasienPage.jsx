@@ -45,26 +45,26 @@ const Spinner = () => (
 
 export default function ManagePasienPage({
   loading,
-  listPasien, // [{ address, nama }, …]
+  listPasien, // [{ address, nama, ID }, …]
 }) {
   const [q, setQ] = useState("");
-  console.log("Prop listPasien yang diterima:", listPasien); // <--- TAMBAHKAN INI
-  console.log("Prop loading yang diterima:", loading); // <--- Tambahkan ini juga untuk konteks
   // Pastikan listPasien adalah array sebelum melakukan filter untuk menghindari error runtime
   const safeListPasien = Array.isArray(listPasien) ? listPasien : [];
 
   const filtered = safeListPasien.filter(p => {
     // Pastikan p (objek pasien) dan propertinya ada sebelum diakses
     const nameLower = p?.nama?.toLowerCase() || "";
+    const idLower = p?.ID?.toLowerCase() || ""; // Ambil ID pasien
     // Pastikan p.address ada dan merupakan string sebelum toLowerCase
     const addressLower = (typeof p?.address === 'string' ? p.address.toLowerCase() : "");
     const queryLower = q.toLowerCase();
-    return nameLower.includes(queryLower) || addressLower.includes(queryLower);
+    // Tambahkan pencarian berdasarkan ID
+    return nameLower.includes(queryLower) || addressLower.includes(queryLower) || idLower.includes(queryLower);
   });
 
   return (
     // Kontainer utama halaman - max-w-7xl dihilangkan untuk memperbesar card
-    <div className="bg-slate-50 p-6 sm:p-8 rounded-xl sm:rounded-2xl shadow-xl w-full mx-auto my-8"> {/* max-w-7xl dihilangkan dari sini */}
+    <div className="bg-slate-50 p-6 sm:p-8 rounded-xl sm:rounded-2xl shadow-xl w-full mx-auto my-8">
       {/* Judul Halaman */}
       <h3 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-slate-700">
         Daftar Pasien Terdaftar
@@ -77,12 +77,12 @@ export default function ManagePasienPage({
         </span>
         <input
           type="search" // Menggunakan type="search" untuk input pencarian
-          placeholder="Cari berdasarkan nama atau alamat wallet..."
+          placeholder="Cari berdasarkan nama, ID, atau alamat wallet..." // Tambah placeholder ID
           value={q}
           onChange={e => setQ(e.target.value)}
           disabled={loading} // Nonaktifkan input saat loading
-          className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 shadow-sm 
-                     bg-white text-slate-800 placeholder:text-slate-400 
+          className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 shadow-sm
+                     bg-white text-slate-800 placeholder:text-slate-400
                      focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none
                      transition duration-150 ease-in-out text-sm sm:text-base"
         />
@@ -95,13 +95,15 @@ export default function ManagePasienPage({
           <table className="w-full min-w-[900px] text-sm">
             <colgroup>
               <col style={{ width: '60px' }} /> {/* Kolom Nomor */}
-              <col style={{ width: '30%' }} />  {/* Kolom Nama */}
+              <col style={{ width: '15%' }} /> {/* Kolom ID Pasien */}
+              <col style={{ width: '25%' }} /> {/* Kolom Nama */}
               <col style={{ minWidth: '400px' }} /> {/* Kolom Alamat Wallet */}
             </colgroup>
             {/* Header Tabel */}
             <thead className="bg-blue-600 text-white">
               <tr>
                 <th className="py-3.5 px-4 font-semibold text-center">No.</th>
+                <th className="py-3.5 px-4 font-semibold text-left">ID Pasien</th> {/* Tambah kolom ID Pasien */}
                 <th className="py-3.5 px-4 font-semibold text-left">Nama</th>
                 <th className="py-3.5 px-4 font-semibold text-left">Alamat Wallet</th>
               </tr>
@@ -111,7 +113,7 @@ export default function ManagePasienPage({
               {loading ? (
                 // State Loading
                 <tr>
-                  <td colSpan={3} className="py-10 px-4 text-center text-slate-500">
+                  <td colSpan={4} className="py-10 px-4 text-center text-slate-500"> {/* colspan jadi 4 */}
                     <div className="flex justify-center items-center space-x-2">
                       <Spinner />
                       <span>Memuat data pasien...</span>
@@ -121,7 +123,7 @@ export default function ManagePasienPage({
               ) : filtered.length === 0 ? (
                 // State Tidak Ada Data (baik karena filter atau memang kosong)
                 <tr>
-                  <td colSpan={3} className="py-8 px-4 text-center text-slate-500">
+                  <td colSpan={4} className="py-8 px-4 text-center text-slate-500"> {/* colspan jadi 4 */}
                     {q ? "Tidak ada pasien yang cocok dengan pencarian Anda." : "Belum ada pasien terdaftar."}
                   </td>
                 </tr>
@@ -133,6 +135,7 @@ export default function ManagePasienPage({
                     className="hover:bg-blue-50 transition-colors duration-150 ease-in-out"
                   >
                     <td className="py-3.5 px-4 text-center text-slate-600">{i + 1}</td>
+                    <td className="py-3.5 px-4 text-left text-slate-800 font-medium">{p?.ID || "-"}</td> {/* Tampilkan ID Pasien */}
                     <td className="py-3.5 px-4 text-left text-slate-800 font-medium">{p?.nama || "-"}</td>
                     <td className="py-3.5 px-4 text-left text-slate-600 font-mono text-xs break-all">
                       {p?.address || "Alamat tidak tersedia"}

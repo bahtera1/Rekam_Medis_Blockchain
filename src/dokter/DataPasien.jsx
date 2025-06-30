@@ -23,7 +23,7 @@ const IconEditPencil = () => <svg className="w-5 h-5 mr-2" fill="none" stroke="c
 
 // Ikon-ikon untuk detail pasien
 const IconUser = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>;
-const IconCalendar = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"></path></svg>;
+const IconCalendar = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 002-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"></path></svg>;
 const IconMail = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path><path fillRule="evenodd" d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" clipRule="evenodd"></path></svg>;
 const IconPhone = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path></svg>;
 const IconLocation = () => <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path></svg>;
@@ -38,6 +38,14 @@ const IconBloodType = () => (
   </svg>
 );
 
+// Icon baru untuk ID pasien
+const IconIDPasien = () => (
+    <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zM5 9a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 4a1 1 0 000 2h6a1 1 0 000-2H6z" clipRule="evenodd" />
+    </svg>
+);
+
+
 // DetailItem adalah komponen umum, bisa dipindahkan ke folder components jika banyak digunakan
 const DetailItem = ({ icon, label, value }) => (
   <div className="flex items-start py-3">
@@ -49,79 +57,86 @@ const DetailItem = ({ icon, label, value }) => (
   </div>
 );
 
+// Fungsi pembantu untuk memotong teks
+const truncateText = (text, maxLength) => {
+    if (!text) return { display: '-', truncated: false };
+    if (text.length <= maxLength) return { display: text, truncated: false };
+    return { display: text.substring(0, maxLength) + '...', truncated: true };
+};
+
+
 // --- Komponen Utama DataPasien ---
 export default function DataPasien({ account, assignedPatients }) {
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [pasienData, setPasienData] = useState(null);
-  const [rekamMedisHistory, setRekamMedisHistory] = useState([]); // Ini adalah data riwayat
-  const [showModal, setShowModal] = useState(false);
+  const [pasienData, setPasienData] = useState(null); // PasienData sekarang mengandung ID
+  const [rekamMedisHistory, setRekamMedisHistory] = useState([]);
+  const [showModal, setShowModal] = useState(false); // Modal untuk menambah rekam medis
+  const [showNoteModal, setShowNoteModal] = useState(false); // Modal baru untuk melihat catatan lengkap
+  const [fullNoteContent, setFullNoteContent] = useState(""); // Konten catatan lengkap untuk modal
   const [formData, setFormData] = useState({
     diagnosa: "", foto: "", catatan: "", tipeRekamMedis: ""
   });
   const [fotoFile, setFotoFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(false); // State untuk proses upload file ke Pinata
+  const [submittingForm, setSubmittingForm] = useState(false); // State untuk proses submit form ke blockchain
   const [patientInfos, setPatientInfos] = useState([]);
   const [search, setSearch] = useState(""); // Search for patient list (for patient list selection)
   const [loadingHistory, setLoadingHistory] = useState(false); // Untuk riwayat rekam medis
   const [loadingData, setLoadingData] = useState(false); // Untuk daftar pasien
   const [doctorNamesCache, setDoctorNamesCache] = useState({});
 
-  // --- State untuk Search & Sort Riwayat Rekam Medis (diimplementasi di sini) ---
   const [historySearchTerm, setHistorySearchTerm] = useState('');
-  const [sortByDate, setSortByDate] = useState('desc'); // 'desc' (terbaru) atau 'asc' (terlama)
+  const [sortByDate, setSortByDate] = useState('desc');
 
-  // --- State untuk Pagination Riwayat Rekam Medis ---
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // Maksimal 10 item per halaman
-
-  // Effect untuk mereset halaman pagination riwayat ketika filter atau search history berubah
   useEffect(() => {
     setCurrentPage(1);
   }, [historySearchTerm, sortByDate]);
 
-  // Effect untuk mengisi patientInfos dari prop assignedPatients
   useEffect(() => {
     setLoadingData(true);
     if (assignedPatients && assignedPatients.length > 0) {
-      setPatientInfos(assignedPatients);
+      setPatientInfos(assignedPatients); // assignedPatients sekarang sudah membawa ID
     } else {
       setPatientInfos([]);
     }
     setLoadingData(false);
   }, [assignedPatients]);
 
-  // Fungsi untuk mendapatkan nama dokter/aktor dari alamat (digunakan untuk kolom 'Dibuat/Diupdate Oleh')
   const getActorName = useCallback(async (actorAddress) => {
-    if (actorAddress === '0x0000000000000000000000000000000000000000' || !actorAddress) {
+    // Pastikan actorAddress adalah string. Jika bukan, konversi ke string atau tangani.
+    const addressAsString = typeof actorAddress === 'string' ? actorAddress : String(actorAddress);
+
+    if (addressAsString === '0x0000000000000000000000000000000000000000' || !addressAsString) {
       return "N/A";
     }
-    if (doctorNamesCache[actorAddress]) {
-      return doctorNamesCache[actorAddress];
+    if (doctorNamesCache[addressAsString]) { // Gunakan addressAsString untuk cache
+      return doctorNamesCache[addressAsString];
     }
     try {
-      const isDoc = await contract.methods.isDokter(actorAddress).call();
+      const isDoc = await contract.methods.isDokter(addressAsString).call(); // Gunakan addressAsString
       if (isDoc) {
-        const dokterInfo = await contract.methods.getDokter(actorAddress).call();
+        const dokterInfo = await contract.methods.getDokter(addressAsString).call(); // Gunakan addressAsString
         const namaDokter = dokterInfo[0];
-        setDoctorNamesCache(prev => ({ ...prev, [actorAddress]: namaDokter }));
+        setDoctorNamesCache(prev => ({ ...prev, [addressAsString]: namaDokter })); // Update cache
         return namaDokter;
       }
-      const isPas = await contract.methods.isPasien(actorAddress).call();
+      const isPas = await contract.methods.isPasien(addressAsString).call(); // Gunakan addressAsString
       if (isPas) {
-        const pasienData = await contract.methods.getPasienData(actorAddress).call();
+        const pasienData = await contract.methods.getPasienData(addressAsString).call(); // Gunakan addressAsString
         const namaPasien = pasienData[0];
-        setDoctorNamesCache(prev => ({ ...prev, [actorAddress]: namaPasien }));
+        setDoctorNamesCache(prev => ({ ...prev, [addressAsString]: namaPasien })); // Update cache
         return namaPasien;
       }
-      return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+      // Jika bukan dokter atau pasien, tampilkan versi singkat alamat string
+      return `${addressAsString.substring(0, 6)}...${addressAsString.substring(addressAsString.length - 4)}`;
     } catch (err) {
-      console.warn(`Gagal mendapatkan nama untuk aktor ${actorAddress}:`, err);
-      return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+      console.warn(`Gagal mendapatkan nama untuk aktor ${addressAsString}:`, err);
+      return `${addressAsString.substring(0, 6)}...${addressAsString.substring(addressAsString.length - 4)}`;
     }
   }, [doctorNamesCache]);
 
   // Fungsi untuk memuat detail pasien dan riwayat rekam medis (dibungkus useCallback)
-  const fetchDataPasien = useCallback(async () => { // <--- Tambahkan useCallback di sini
+  const fetchDataPasien = useCallback(async () => {
     if (!selectedPatient) {
       setPasienData(null);
       setRekamMedisHistory([]);
@@ -129,11 +144,19 @@ export default function DataPasien({ account, assignedPatients }) {
     }
     setLoadingHistory(true);
     try {
+      // getPasienData mengembalikan: nama (0), ID (1), golonganDarah (2), tanggalLahir (3), gender (4),
+      // alamat (5), noTelepon (6), email (7), rumahSakitPenanggungJawab (8)
       const p = await contract.methods.getPasienData(selectedPatient).call();
       setPasienData({
-        nama: p[0], golonganDarah: p[1], tanggalLahir: p[2], gender: p[3],
-        alamat: p[4], noTelepon: p[5], email: p[6],
-        rumahSakitPenanggungJawab: p[7]
+        nama: p[0],
+        ID: p[1], // <--- Ambil ID Pasien di sini
+        golonganDarah: p[2],
+        tanggalLahir: p[3],
+        gender: p[4],
+        alamat: p[5],
+        noTelepon: p[6],
+        email: p[7],
+        rumahSakitPenanggungJawab: p[8]
       });
 
       const rmIds = await contract.methods.getRekamMedisIdsByPasien(selectedPatient).call();
@@ -141,18 +164,27 @@ export default function DataPasien({ account, assignedPatients }) {
 
       for (const id of rmIds) {
         const rmData = await contract.methods.getRekamMedis(id).call();
-        const actorName = await getActorName(rmData[6]);
+        // RekamMedisData struct:
+        // uint id;                 // Index 0
+        // address pasien;          // Index 1
+        // string diagnosa;         // Index 2
+        // string foto;             // Index 3
+        // string catatan;          // Index 4
+        // address pembuat;         // Index 5 (Ini bergeser dari 6)
+        // uint256 timestampPembuatan; // Index 6 (Ini bergeser dari 7)
+        // string tipeRekamMedis;   // Index 7 (Ini bergeser dari 8)
+
+        const actorName = await getActorName(rmData[5]); // Updated index: pembuat is now at index 5
 
         allRecords.push({
           id_rm: rmData[0].toString(),
           pasien: rmData[1],
           diagnosa: rmData[2],
           foto: rmData[3],
-          valid: rmData[5],
           catatan: rmData[4],
-          pembuat: actorName,
-          timestamp: Number(rmData[7]),
-          tipeRekamMedis: rmData[8]
+          pembuat: actorName, // Use the resolved actorName
+          timestamp: Number(rmData[6]), // Updated index: timestamp is now at index 6
+          tipeRekamMedis: rmData[7] // Updated index: tipeRekamMedis is now at index 7
         });
       }
 
@@ -174,7 +206,15 @@ export default function DataPasien({ account, assignedPatients }) {
   const handleOpenModal = () => {
     setFormData({ diagnosa: "", foto: "", catatan: "", tipeRekamMedis: "" });
     setFotoFile(null);
+    setUploading(false); // Pastikan state uploading direset saat modal dibuka
+    setSubmittingForm(false); // Pastikan state submittingForm direset saat modal dibuka
     setShowModal(true);
+  };
+
+  // Fungsi untuk membuka modal catatan lengkap
+  const handleOpenNoteModal = (noteContent) => {
+    setFullNoteContent(noteContent);
+    setShowNoteModal(true);
   };
 
   const handleSubmit = async (e) => {
@@ -183,19 +223,23 @@ export default function DataPasien({ account, assignedPatients }) {
       alert("Pasien belum dipilih. Silakan pilih pasien terlebih dahulu.");
       return;
     }
-    setUploading(true);
+
+    setSubmittingForm(true); // Mulai proses submit form
+    let finalFotoUrl = formData.foto; // Default to existing foto URL if any
+
     try {
-      let finalFotoUrl = formData.foto;
-      if (fotoFile) {
+      if (fotoFile) { // Only upload if a new file is selected
+        setUploading(true); // Mulai proses upload file ke Pinata
         finalFotoUrl = await uploadToPinata(fotoFile);
       }
-      setFormData((f) => ({ ...f, foto: finalFotoUrl }));
+      // No need to set formData state here, as it's used directly in the contract call.
+      // The state will be cleared after successful submission.
 
       await contract.methods
         .tambahRekamMedis(
           selectedPatient,
           formData.diagnosa,
-          finalFotoUrl,
+          finalFotoUrl, // Use the potentially new URL
           formData.catatan,
           formData.tipeRekamMedis
         )
@@ -203,7 +247,8 @@ export default function DataPasien({ account, assignedPatients }) {
       alert("Rekam medis baru berhasil ditambahkan.");
 
       setShowModal(false);
-      setFotoFile(null);
+      setFotoFile(null); // Clear file input
+      setFormData({ diagnosa: "", foto: "", catatan: "", tipeRekamMedis: "" }); // Clear form data
 
       // PENTING: Panggil fetchDataPasien setelah rekam medis baru ditambahkan
       await fetchDataPasien(); // <--- Panggil fungsi ini untuk merefresh data
@@ -212,16 +257,18 @@ export default function DataPasien({ account, assignedPatients }) {
       console.error("Gagal menyimpan rekam medis:", err);
       alert(`Gagal menyimpan rekam medis: ${err.message || 'Terjadi kesalahan tidak dikenal'}`);
     } finally {
-      setUploading(false);
+      setUploading(false); // Pastikan ini direset di finally
+      setSubmittingForm(false); // Pastikan ini direset di finally
     }
   };
 
   const filteredPatients = search
     ? patientInfos.filter(
-      (p) =>
-        (p.nama && p.nama.toLowerCase().includes(search.toLowerCase())) ||
-        (p.address && p.address.toLowerCase().includes(search.toLowerCase()))
-    )
+        (p) =>
+          (p.nama && p.nama.toLowerCase().includes(search.toLowerCase())) ||
+          (p.ID && p.ID.toLowerCase().includes(search.toLowerCase())) || // Tambahkan pencarian berdasarkan ID
+          (p.address && p.address.toLowerCase().includes(search.toLowerCase()))
+      )
     : patientInfos;
 
   const formatTimestamp = (ts) => {
@@ -247,10 +294,10 @@ export default function DataPasien({ account, assignedPatients }) {
     if (historySearchTerm) {
       const lowerCaseSearch = historySearchTerm.toLowerCase();
       currentFiltered = currentFiltered.filter(item =>
-        item.id_rm.toString().toLowerCase().includes(lowerCaseSearch) ||
+        // item.id_rm.toString().toLowerCase().includes(lowerCaseSearch) || // Menghapus filter ID RM
         (item.tipeRekamMedis && item.tipeRekamMedis.toLowerCase().includes(lowerCaseSearch)) ||
         (item.diagnosa && item.diagnosa.toLowerCase().includes(lowerCaseSearch)) ||
-        (item.catatan && item.catatan.toLowerCase().includes(lowerCaseSearch)) ||
+        (item.catatan && item.catatan.toLowerCase().includes(lowerCaseSearch)) || // Filter catatan
         (item.pembuat && item.pembuat.toLowerCase().includes(lowerCaseSearch)) ||
         formatTimestamp(item.timestamp).toLowerCase().includes(lowerCaseSearch)
       );
@@ -270,6 +317,8 @@ export default function DataPasien({ account, assignedPatients }) {
   }, [rekamMedisHistory, historySearchTerm, sortByDate]);
 
   // Logika Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5); // Jumlah item per halaman
   const totalPages = Math.ceil(getFilteredAndSortedHistory.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -280,16 +329,20 @@ export default function DataPasien({ account, assignedPatients }) {
     const pages = [];
     if (totalPages <= 1) return null;
 
+    // Logika untuk menampilkan maksimal 5 tombol paginasi
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(totalPages, currentPage + 2);
 
-    if (currentPage <= 3) {
-      endPage = Math.min(totalPages, 5);
-      startPage = 1;
-    } else if (currentPage + 2 >= totalPages) {
-      startPage = Math.max(1, totalPages - 4);
-      endPage = totalPages;
+    // Sesuaikan startPage dan endPage agar selalu ada 5 tombol jika totalPages memungkinkan
+    // Prioritaskan 5 tombol di sekitar halaman aktif
+    if (endPage - startPage + 1 < 5) {
+        if (startPage === 1) { // Jika di awal, perluas ke kanan
+            endPage = Math.min(totalPages, 5);
+        } else if (endPage === totalPages) { // Jika di akhir, perluas ke kiri
+            startPage = Math.max(1, totalPages - 4);
+        }
     }
+
 
     if (startPage > 1) {
       pages.push(
@@ -301,7 +354,7 @@ export default function DataPasien({ account, assignedPatients }) {
           1
         </button>
       );
-      if (startPage > 2) {
+      if (startPage > 2) { // Jika ada gap lebih dari 1 halaman dari halaman 1
         pages.push(<span key="dots-start" className="px-2 py-2 text-gray-500">...</span>);
       }
     }
@@ -322,7 +375,7 @@ export default function DataPasien({ account, assignedPatients }) {
     }
 
     if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
+      if (endPage < totalPages - 1) { // Jika ada gap lebih dari 1 halaman ke halaman terakhir
         pages.push(<span key="dots-end" className="px-2 py-2 text-gray-500">...</span>);
       }
       pages.push(
@@ -357,7 +410,7 @@ export default function DataPasien({ account, assignedPatients }) {
               </span>
               <input
                 className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-colors"
-                placeholder="Cari pasien (nama / alamat wallet)..."
+                placeholder="Cari pasien (nama / ID / alamat wallet)..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -376,6 +429,7 @@ export default function DataPasien({ account, assignedPatients }) {
                   <thead className="bg-blue-600 text-white">
                     <tr>
                       <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">No.</th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">ID Pasien</th>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Nama Pasien</th>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Alamat Wallet</th>
                       <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">Aksi</th>
@@ -385,6 +439,7 @@ export default function DataPasien({ account, assignedPatients }) {
                     {filteredPatients.map((p, idx) => (
                       <tr key={p.address} className="hover:bg-blue-50 transition-colors duration-150">
                         <td className="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-700">{idx + 1}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{p.ID || "-"}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{p.nama}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono break-all">{p.address}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
@@ -418,6 +473,7 @@ export default function DataPasien({ account, assignedPatients }) {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-2">
                 <DetailItem icon={<IconUser />} label="Nama Lengkap" value={pasienData.nama} />
+                <DetailItem icon={<IconIDPasien />} label="ID Pasien" value={pasienData.ID} />
                 <DetailItem icon={<IconCalendar />} label="Tanggal Lahir" value={pasienData.tanggalLahir} />
                 <DetailItem icon={<IconGender />} label="Jenis Kelamin" value={pasienData.gender} />
                 <DetailItem icon={<IconBloodType />} label="Golongan Darah" value={pasienData.golonganDarah} />
@@ -447,7 +503,7 @@ export default function DataPasien({ account, assignedPatients }) {
                 </span>
                 <input
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-colors"
-                  placeholder="Cari diagnosa, catatan, pembuat, tipe, atau waktu..." // Placeholder lebih spesifik
+                  placeholder="Cari diagnosa, catatan, pembuat, tipe, atau waktu..."
                   value={historySearchTerm}
                   onChange={(e) => setHistorySearchTerm(e.target.value)}
                 />
@@ -465,7 +521,7 @@ export default function DataPasien({ account, assignedPatients }) {
 
             {loadingHistory ? (
               <p className="italic text-gray-600 text-center py-10 text-lg">Memuat riwayat rekam medis...</p>
-            ) : getFilteredAndSortedHistory.length === 0 ? ( // Menggunakan getFilteredAndSortedHistory
+            ) : getFilteredAndSortedHistory.length === 0 ? (
               <p className="italic text-gray-600 text-center py-10 text-lg">
                 {historySearchTerm ? "Tidak ada rekam medis yang cocok dengan pencarian." : "Belum ada data rekam medis untuk pasien ini."}
               </p>
@@ -475,7 +531,7 @@ export default function DataPasien({ account, assignedPatients }) {
                   <thead className="bg-blue-600 text-white">
                     <tr>
                       <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">No.</th>
-                      <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">ID RM</th>
+                      {/* Kolom ID RM dihapus sesuai permintaan */}
                       <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Tipe RM</th>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Diagnosa</th>
                       <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">File/Foto RM</th>
@@ -485,14 +541,15 @@ export default function DataPasien({ account, assignedPatients }) {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
-                    {currentItems.map((rm) => { // Menggunakan currentItems untuk pagination
+                    {currentItems.map((rm) => {
                       const actorDisplay = rm.pembuat;
                       const timestampDisplay = rm.timestamp ? formatTimestamp(rm.timestamp) : '-';
+                      const truncatedNote = truncateText(rm.catatan, 50); // Panggil fungsi truncateText
 
                       return (
                         <tr key={`${rm.id_rm}-${rm.timestamp}`} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">{rm.noUrut}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">{rm.id_rm}</td>
+                          {/* Data ID RM dihapus sesuai permintaan */}
                           <td className="px-6 py-4 text-sm text-gray-800 min-w-[120px] break-words">{rm.tipeRekamMedis || '-'}</td>
                           <td className="px-6 py-4 text-sm text-gray-800 min-w-[200px] break-words">{rm.diagnosa}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
@@ -505,7 +562,18 @@ export default function DataPasien({ account, assignedPatients }) {
                               <span className="italic text-gray-400">N/A</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-600 min-w-[250px] break-words">{rm.catatan}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600 min-w-[250px] overflow-hidden whitespace-normal" // Changed to normal to allow wrapping in modal
+                              title={rm.catatan}> {/* Catatan lengkap tetap muncul saat hover */}
+                            {truncatedNote.display} {/* Tampilkan teks yang sudah dipotong */}
+                            {truncatedNote.truncated && (
+                                <button
+                                    onClick={() => handleOpenNoteModal(rm.catatan)}
+                                    className="text-blue-600 hover:text-blue-800 text-xs ml-1 font-semibold underline focus:outline-none"
+                                >
+                                    selengkapnya
+                                </button>
+                            )}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" title={rm.pembuat || ''}>
                             {actorDisplay}
                           </td>
@@ -521,7 +589,7 @@ export default function DataPasien({ account, assignedPatients }) {
             )}
 
             {/* --- Pagination Controls --- */}
-            {totalPages > 0 && ( // Tampilkan paginasi hanya jika ada item (totalPages > 0)
+            {totalPages > 0 && (
               <div className="flex justify-center items-center mt-6">
                 <button
                   onClick={() => paginate(currentPage - 1)}
@@ -545,6 +613,7 @@ export default function DataPasien({ account, assignedPatients }) {
         </div>
       )}
 
+      {/* Modal untuk Menambah Rekam Medis Baru */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center p-4 z-[100]">
           <div className="bg-white rounded-xl p-6 sm:p-8 shadow-2xl w-full max-w-lg relative animate-fadeInUp transform transition-all duration-300">
@@ -584,6 +653,7 @@ export default function DataPasien({ account, assignedPatients }) {
                   onChange={(e) => {
                     setFotoFile(e.target.files[0]);
                   }}
+                  disabled={submittingForm} // Ini agar input file tidak bisa diubah saat form sedang disubmit
                   className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-300 rounded-lg p-2.5 shadow-sm transition-colors" />
                 <div className="text-xs text-gray-500 mt-1.5">
                   Unggah foto/hasil scan (misal: hasil lab, resep, citra radiografi, surat rujukan, catatan medis tulisan tangan, atau dokumen medis lainnya).
@@ -612,11 +682,37 @@ export default function DataPasien({ account, assignedPatients }) {
                 </button>
                 <button type="submit"
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold transition shadow-sm disabled:opacity-70 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  disabled={uploading}>
-                  {uploading ? "Menambah..." : "Tambah Rekam Medis"}
+                  disabled={uploading || submittingForm}> {/* Disabled jika sedang upload atau submit form */}
+                  {uploading ? "Mengupload..." : (submittingForm ? "Menambah..." : "Tambah Rekam Medis")}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Baru untuk Menampilkan Catatan Lengkap */}
+      {showNoteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center p-4 z-[101]"> {/* z-index lebih tinggi dari modal lainnya */}
+          <div className="bg-white rounded-xl p-6 sm:p-8 shadow-2xl w-full max-w-xl relative animate-fadeInUp transform transition-all duration-300">
+            <button
+              className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-red-600 transition-colors focus:outline-none"
+              onClick={() => setShowNoteModal(false)}
+            > &times; </button>
+            <h3 className="text-xl sm:text-2xl font-bold mb-4 text-blue-700 border-b pb-3">
+              Catatan Lengkap
+            </h3>
+            <div className="text-base text-gray-800 leading-relaxed max-h-96 overflow-y-auto"> {/* Max height dan scroll */}
+              {fullNoteContent}
+            </div>
+            <div className="mt-6 text-right">
+              <button
+                onClick={() => setShowNoteModal(false)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold transition shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

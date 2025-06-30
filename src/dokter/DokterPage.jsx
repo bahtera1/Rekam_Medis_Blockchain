@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import DokterSideBar from "./DokterSideBar";
 import DokterDashboard from "./DokterDashboard";
 import DataPasien from "./DataPasien";
-import contract from "../contract";
+import contract from "../contract"; // Pastikan path ini benar
 
 export default function DokterPage({ account, onLogout }) {
     const [assignedPatients, setAssignedPatients] = useState([]);
@@ -33,20 +33,25 @@ export default function DokterPage({ account, onLogout }) {
                 const dokterAdminRSAddress = dokterData[5];
 
                 if (dokterData && typeof dokterData[3] !== 'undefined' && dokterAdminRSAddress !== '0x0000000000000000000000000000000000000000') {
+
                     const rawAssignedPasienAddresses = dokterData[4] || [];
 
                     const patientsWithDetails = await Promise.all(
                         rawAssignedPasienAddresses.map(async (pasienAddress) => {
                             try {
+                                // getPasienData returns: nama (0), ID (1), golonganDarah (2), tanggalLahir (3), gender (4),
+                                // alamat (5), noTelepon (6), email (7), rumahSakitPenanggungJawab (8)
                                 const p = await contract.methods.getPasienData(pasienAddress).call();
                                 return {
                                     address: pasienAddress,
-                                    nama: p[0] || "Nama Tidak Tersedia",
-                                    rumahSakitPenanggungJawab: p[7],
+                                    nama: p[0] || "Nama Tidak Tersedia", // Ambil nama pasien
+                                    ID: p[1], // <--- PASTI ID pasien ada di indeks 1
+                                    rumahSakitPenanggungJawab: p[8], // Ambil alamat AdminRS penanggung jawab pasien
                                 };
                             } catch (patientFetchError) {
                                 console.error(`ERROR: Gagal memuat detail pasien ${pasienAddress}:`, patientFetchError);
-                                return { address: pasienAddress, nama: "Gagal Memuat Nama", rumahSakitPenanggungJawab: "" };
+                                // Berikan nilai fallback untuk ID juga jika gagal
+                                return { address: pasienAddress, nama: "Gagal Memuat Nama", ID: "-", rumahSakitPenanggungJawab: "" };
                             }
                         })
                     );
@@ -54,7 +59,7 @@ export default function DokterPage({ account, onLogout }) {
                     const filteredAssignedPatients = patientsWithDetails.filter(
                         (pasien) =>
                             pasien.rumahSakitPenanggungJawab === dokterAdminRSAddress &&
-                            pasien.nama !== "Gagal Memuat Nama"
+                            pasien.nama !== "Gagal Memuat Nama" // Filter pasien yang gagal dimuat namanya
                     );
 
                     if (isMounted) {
@@ -100,13 +105,10 @@ export default function DokterPage({ account, onLogout }) {
     }, [account]);
 
     const handleSelect = (tab) => {
-        // Hapus window.confirm() di sini.
-        // Konfirmasi logout sekarang sepenuhnya ditangani oleh DokterSideBar melalui custom modal.
         if (tab === "logout") {
-            // Biarkan DokterSideBar yang memicu modal konfirmasi, dan modal itu sendiri yang akan memanggil onLogout
-            // Tidak perlu ada konfirmasi di sini lagi.
-            // onLogout(); // ini akan dipanggil dari dalam DokterSideBar setelah konfirmasi kustom
-            return; // Hentikan eksekusi lebih lanjut
+            if (window.confirm("Apakah Anda yakin ingin logout?")) {
+                onLogout();
+            }
         } else if (tab === "update") {
             if (!dokterProfile) {
                 alert("Data profil dokter belum termuat atau tidak valid.");
@@ -179,18 +181,18 @@ export default function DokterPage({ account, onLogout }) {
                 activeTab={view}
                 isActive={dokterProfile?.aktif}
                 dokterNama={dokterProfile?.nama || "Dokter"}
-                onLogout={onLogout} // Pastikan onLogout diteruskan ke DokterSideBar
+                onLogout={onLogout}
             />
             <main className="flex-1 px-4 sm:px-8 py-8 sm:py-10 transition-all duration-300 overflow-y-auto">
                 {view === "dashboard" && dokterProfile && (
                     <DokterDashboard
-                        assignedPatients={assignedPatients}
+                        assignedPatients={assignedPatients} // Mengirim pasien yang sudah difilter
                         dokterProfile={dokterProfile}
                     />
                 )}
                 {view === "update" && dokterProfile?.aktif && (
                     <section className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 animate-fadeIn">
-                        <DataPasien account={account} assignedPatients={assignedPatients} />
+                        <DataPasien account={account} assignedPatients={assignedPatients} /> {/* Mengirim pasien yang sudah difilter */}
                     </section>
                 )}
                 {view === "update" && !dokterProfile?.aktif && (

@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 
+// Ikon
 const HomeIcon = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a.75.75 0 011.06 0l8.955 8.955M2.25 12l8.954 8.955a.75.75 0 001.06 0l8.955-8.955M2.25 12h19.5M12 2.25v19.5" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a.75.75 0 011.06 0l8.955 8.955M2.25 12l8.954 8.955a.75.75 0 001.06 0l8.955-8.955M2.25 12h19.5M12 2.25V6m0 15.75V18m0-12H3.75m16.5 0H12m0 0V2.25m0 3.75v12" />
     </svg>
 );
 
@@ -19,20 +19,19 @@ const ArrowLeftOnRectangleIcon = ({ className = "w-6 h-6" }) => (
     </svg>
 );
 
-// Simple Hospital Icon for collapsed logo
 const HospitalIcon = ({ className = "w-5 h-5" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18h16.5a1.5 1.5 0 011.5 1.5v16.5a1.5 1.5 0 01-1.5 1.5H3.75a1.5 1.5 0 01-1.5-1.5V4.5a1.5 1.5 0 011.5-1.5zm12 6H9.75v3.75H6v3h3.75V18h3.75v-3.75H18v-3h-3.75V9z" />
     </svg>
 );
 
-
-export default function DokterSideBar({ onSelect, activeTab, onLogout }) { // Added onLogout prop
+// Komponen Sidebar
+export default function DokterSideBar({ onSelect, activeTab, onLogout }) {
     const [isOpen, setIsOpen] = useState(true);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     const menuItems = [
-        { key: "dashboard", label: "Dashboard", icon: <HomeIcon /> },
+        { key: "dashboard", label: "Beranda", icon: <HomeIcon /> },
         { key: "update", label: "Data Pasien", icon: <DocumentTextIcon /> },
     ];
 
@@ -45,11 +44,9 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) { // Ad
     };
 
     const confirmLogout = () => {
-        if (onLogout) { // Check if onLogout is provided
+        if (onLogout) {
             onLogout();
         } else {
-            // Fallback or error if onLogout is not passed (e.g., from original code)
-            // For now, we'll assume onSelect('logout') was the intended behavior if onLogout is missing
             onSelect('logout');
         }
         setShowConfirmModal(false);
@@ -59,21 +56,17 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) { // Ad
         setShowConfirmModal(false);
     };
 
-
     return (
         <>
-            <aside
-                className={`
-                    flex flex-col bg-gradient-to-b from-slate-800 via-slate-900 to-black text-slate-200
-                    shadow-2xl shadow-sky-900/30 
-                    ${isOpen ? "px-6" : "px-3 items-center"} 
-                    py-8 rounded-r-3xl border-r border-slate-700 font-poppins relative
-                    transition-all duration-300 ease-in-out
-                    ${isOpen ? "w-64" : "w-20"} 
-                    min-h-screen group
-                `}
-            >
-                {/* Toggle Button */}
+            <aside className={`
+                flex flex-col bg-gradient-to-b from-slate-800 via-slate-900 to-black text-slate-200
+                shadow-2xl shadow-sky-900/30 
+                ${isOpen ? "px-6" : "px-3 items-center"} 
+                py-8 rounded-r-3xl border-r border-slate-700 font-poppins relative
+                transition-all duration-300 ease-in-out
+                ${isOpen ? "w-64" : "w-20"} 
+                min-h-screen group
+            `}>
                 <button
                     className={`
                         absolute top-7 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white 
@@ -84,7 +77,7 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) { // Ad
                     onClick={() => setIsOpen(!isOpen)}
                     aria-label={isOpen ? "Tutup sidebar" : "Buka sidebar"}
                 >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                         {isOpen ? (
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                         ) : (
@@ -93,14 +86,12 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) { // Ad
                     </svg>
                 </button>
 
-                {/* Logo/Title Section */}
                 <div className={`mb-10 flex items-center ${isOpen ? "justify-start" : "justify-center"} w-full mt-2`}>
                     {isOpen ? (
                         <div className="text-center w-full">
                             <span className="block font-extrabold text-2xl tracking-tight text-white drop-shadow-lg">
                                 Menu Dokter
                             </span>
-                            {/* You can add Dokter's name or other info here if available */}
                         </div>
                     ) : (
                         <div className="p-2 bg-sky-600 rounded-lg">
@@ -109,7 +100,6 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) { // Ad
                     )}
                 </div>
 
-                {/* Navigation Buttons */}
                 <nav className="flex-grow flex flex-col gap-y-3 w-full">
                     {menuItems.map((item) => (
                         <button
@@ -140,7 +130,6 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) { // Ad
                     ))}
                 </nav>
 
-                {/* Logout Button */}
                 <div className="mt-auto w-full">
                     <button
                         className={`
@@ -150,21 +139,18 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) { // Ad
                             text-red-400 hover:bg-red-700/20 hover:text-red-300
                         `}
                         onClick={handleLogoutClick}
-                        title={isOpen ? "" : "Logout"}
+                        title={isOpen ? "" : "Keluar"}
                     >
                         <ArrowLeftOnRectangleIcon className={`w-5 h-5 ${isOpen ? "mr-3" : "mr-0"}`} />
-                        {isOpen && (
-                            <span>Logout</span>
-                        )}
+                        {isOpen && <span>Keluar</span>}
                     </button>
                 </div>
             </aside>
 
-            {/* Custom Confirmation Modal */}
             {showConfirmModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-700">
-                        <h3 className="text-xl font-semibold text-white mb-6 text-center">Konfirmasi Logout</h3>
+                        <h3 className="text-xl font-semibold text-white mb-6 text-center">Konfirmasi Keluar</h3>
                         <p className="text-slate-300 mb-8 text-center">
                             Apakah Anda yakin ingin keluar dari sesi ini?
                         </p>
@@ -179,7 +165,7 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) { // Ad
                                 onClick={confirmLogout}
                                 className="w-full sm:w-auto px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors duration-150 order-1 sm:order-2"
                             >
-                                Ya, Logout
+                                Ya, Keluar
                             </button>
                         </div>
                     </div>

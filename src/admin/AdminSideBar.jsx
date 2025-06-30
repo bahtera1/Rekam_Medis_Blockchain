@@ -48,7 +48,7 @@ export default function AdminSideBar({ activePage, setActivePage, onLogout, nama
     const menuItems = [
         { key: "manageDokter", label: "Manajemen Dokter", icon: <UserGroupIcon /> },
         { key: "managePasien", label: "Pasien Terdaftar", icon: <ClipboardDocumentListIcon /> },
-        { key: "manageAssign", label: "Assign Pasien", icon: <UserPlusIcon /> }, // Shorter label for consistency
+        { key: "manageAssign", label: "Penugasan Dokter", icon: <UserPlusIcon /> }, // Shorter label for consistency
     ];
 
     return (
