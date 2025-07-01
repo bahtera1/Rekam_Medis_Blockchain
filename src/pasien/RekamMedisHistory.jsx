@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import contract from "../contract";
 
 export default function RekamMedisHistory({ rekamMedisIds }) {
@@ -6,48 +6,58 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [error, setError] = useState(null);
-    const [doctorNamesCache, setDoctorNamesCache] = useState({});
+    const [actorNamesCache, setActorNamesCache] = useState({}); // Mengubah nama cache untuk mencerminkan bisa dokter/pasien/admin
 
     // --- State untuk Paginasi dan Pengurutan ---
     const [currentPage, setCurrentPage] = useState(1);
     const [recordsPerPage] = useState(10); // Maksimal 10 item per halaman
     const [sortOrder, setSortOrder] = useState("desc"); // 'desc' (terbaru) atau 'asc' (terlama)
 
-    // Fungsi untuk mendapatkan nama dokter/aktor dari alamat
+    // Fungsi untuk mendapatkan nama aktor (pembuat RM) dari alamat
     const getActorName = useCallback(async (actorAddress) => {
-        if (actorAddress === "0x0000000000000000000000000000000000000000" || !actorAddress) {
+        if (!actorAddress || actorAddress === "0x0000000000000000000000000000000000000000") {
             return "N/A";
         }
-        if (doctorNamesCache[actorAddress]) {
-            return doctorNamesCache[actorAddress];
+        if (actorNamesCache[actorAddress]) { // Menggunakan actorNamesCache
+            return actorNamesCache[actorAddress];
         }
         try {
-            const isDoc = await contract.methods.isDokter(actorAddress).call();
-            if (isDoc) {
-                const dokterInfo = await contract.methods.getDokter(actorAddress).call();
-                const namaDokter = dokterInfo[0];
-                setDoctorNamesCache((prev) => ({ ...prev, [actorAddress]: namaDokter }));
-                return namaDokter;
+            const role = await contract.methods.getUserRole(actorAddress).call();
+            let name = "";
+
+            switch (role) {
+                case "Dokter":
+                case "InactiveDokter": // Dokter tetap punya nama walau non-aktif
+                    const dokterInfo = await contract.methods.getDokter(actorAddress).call();
+                    name = dokterInfo[0]; // nama dokter
+                    break;
+                case "Pasien":
+                    const pasienData = await contract.methods.getPasienData(actorAddress).call();
+                    name = pasienData[0]; // nama pasien
+                    break;
+                case "AdminRS":
+                case "InactiveAdminRS": // Admin RS tetap punya nama RS walau non-aktif
+                    const adminInfo = await contract.methods.dataAdmin(actorAddress).call();
+                    name = adminInfo[0]; // namaRumahSakit Admin RS
+                    break;
+                case "SuperAdmin":
+                    name = "Super Admin (Sistem)"; // Nama hardcode untuk super admin
+                    break;
+                default:
+                    name = `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
             }
 
-            const isPas = await contract.methods.isPasien(actorAddress).call();
-            if (isPas) {
-                const pasienData = await contract.methods.getPasienData(actorAddress).call();
-                const namaPasien = pasienData[0];
-                setDoctorNamesCache((prev) => ({ ...prev, [actorAddress]: namaPasien }));
-                return namaPasien;
-            }
-
-            return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+            setActorNamesCache((prev) => ({ ...prev, [actorAddress]: name }));
+            return name;
         } catch (err) {
             console.warn(`Gagal mendapatkan nama untuk aktor ${actorAddress}:`, err);
             return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
         }
-    }, [doctorNamesCache]);
+    }, [actorNamesCache]); // Depend on actorNamesCache for memoization
 
     useEffect(() => {
-        let isMounted = true; // Flag untuk mencegah pembaruan state pada komponen yang sudah tidak ter-mount
-        const MIN_LOADING_TIME = 300; // Minimum waktu loading (ms)
+        let isMounted = true;
+        const MIN_LOADING_TIME = 300;
 
         async function fetchHistory() {
             if (!isMounted) return;
@@ -62,14 +72,17 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                 return;
             }
 
-            const startTime = Date.now(); // Catat waktu mulai fetching
+            const startTime = Date.now();
 
             try {
                 let tempAllRecords = [];
 
                 for (const id of rekamMedisIds) {
                     const rmData = await contract.methods.getRekamMedis(id).call();
-                    const actorName = await getActorName(rmData[6]);
+
+
+                    const pembuatAddress = rmData[5]; // Pembuat adalah di indeks 5
+                    const actorName = await getActorName(pembuatAddress); // Dapatkan nama pembuat
 
                     tempAllRecords.push({
                         id_rm: rmData[0].toString(),
@@ -77,9 +90,10 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                         diagnosa: rmData[2],
                         foto: rmData[3],
                         catatan: rmData[4],
-                        pembuat: actorName,
-                        timestamp: Number(rmData[7]),
-                        tipeRekamMedis: rmData[8],
+                        pembuat: actorName, // Gunakan nama aktor yang sudah didapatkan
+                        timestamp: Number(rmData[6]), // Timestamp di indeks 6
+                        tipeRekamMedis: rmData[7], // Tipe RM di indeks 7
+                        // rumahSakitPembuatRM TIDAK ADA di smart contract lama
                     });
                 }
 
@@ -91,7 +105,6 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                     record.noUrut = idx + 1;
                 });
 
-                // Tunggu hingga MIN_LOADING_TIME terpenuhi
                 const elapsedTime = Date.now() - startTime;
                 const remainingTime = MIN_LOADING_TIME - elapsedTime;
                 if (remainingTime > 0) {
@@ -103,7 +116,7 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                 }
             } catch (err) {
                 if (isMounted) {
-                    setError("Gagal memuat riwayat rekam medis.");
+                    setError("Gagal memuat riwayat rekam medis. Periksa koneksi blockchain atau konsol.");
                     console.error("Kesalahan dalam fetching history:", err);
                 }
             } finally {
@@ -115,11 +128,10 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
 
         fetchHistory();
 
-        // Cleanup function untuk menghentikan pembaruan state jika komponen di-unmount
         return () => {
             isMounted = false;
         };
-    }, [rekamMedisIds, getActorName, sortOrder]);
+    }, [rekamMedisIds, getActorName, sortOrder]); // sortOrder ditambahkan ke dependencies
 
     const formatTimestamp = (ts) => {
         if (typeof ts === "bigint") {
@@ -127,8 +139,19 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
         }
         if (!ts || ts === 0 || isNaN(ts)) return "-";
         const date = new Date(ts * 1000);
-        return date.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
+        // Format tanggal dan waktu ke waktu lokal Jakarta (WIB)
+        return date.toLocaleString("id-ID", {
+            timeZone: "Asia/Jakarta", // Menggunakan zona waktu WIB
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false // Format 24 jam
+        });
     };
+
 
     const filteredAndSortedRecords = useMemo(() => {
         const filtered = allRecordsFlat.filter(
@@ -137,6 +160,7 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                 item.catatan.toLowerCase().includes(search.toLowerCase()) ||
                 item.pembuat.toLowerCase().includes(search.toLowerCase()) ||
                 (item.tipeRekamMedis && item.tipeRekamMedis.toLowerCase().includes(search.toLowerCase())) ||
+                // item.rumahSakitPembuatRM tidak ada di smart contract lama, jadi hapus dari filter
                 formatTimestamp(item.timestamp).toLowerCase().includes(search.toLowerCase())
         );
         return filtered;
@@ -156,14 +180,11 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
 
     const renderPaginationButtons = () => {
         const pages = [];
-        // Menampilkan tombol hanya jika ada lebih dari 1 halaman
         if (totalPages <= 1) return null;
 
-        // Tampilkan tombol untuk 2 halaman di kiri dan 2 di kanan dari currentPage
         let startPage = Math.max(1, currentPage - 2);
         let endPage = Math.min(totalPages, currentPage + 2);
 
-        // Sesuaikan jika di dekat awal atau akhir
         if (currentPage <= 3) {
             endPage = Math.min(totalPages, 5);
             startPage = 1;
@@ -172,7 +193,6 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
             endPage = totalPages;
         }
 
-        // Tambahkan tombol halaman pertama jika tidak termasuk dalam rentang
         if (startPage > 1) {
             pages.push(
                 <button
@@ -203,7 +223,6 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
             );
         }
 
-        // Tambahkan tombol halaman terakhir jika tidak termasuk dalam rentang
         if (endPage < totalPages) {
             if (endPage < totalPages - 1) {
                 pages.push(<span key="dots-end" className="px-2 py-2 text-gray-500">...</span>);
@@ -277,11 +296,15 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                                 Catatan
                             </th>
                             <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-r border-blue-500">
-                                Foto
+                                Foto/File
                             </th>
                             <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider">
                                 Dibuat Oleh
                             </th>
+                            {/* HAPUS KOLOM "RS Pembuat RM" karena tidak ada di smart contract lama */}
+                            {/* <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-r border-blue-500">
+                                RS Pembuat RM
+                            </th> */}
                             <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider">
                                 Waktu Pembuatan
                             </th>
@@ -290,12 +313,14 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                     <tbody className="bg-white divide-y divide-gray-100">
                         {loading ? (
                             <tr>
+                                {/* colSpan disesuaikan menjadi 8 (asumsi tanpa kolom RS Pembuat RM) */}
                                 <td colSpan={8} className="text-center py-8 text-gray-500 text-lg">
                                     Memuat data riwayat...
                                 </td>
                             </tr>
                         ) : filteredAndSortedRecords.length === 0 ? (
                             <tr>
+                                {/* colSpan disesuaikan menjadi 8 */}
                                 <td colSpan={8} className="text-center py-8 text-gray-500 italic text-lg">
                                     Tidak ada riwayat rekam medis ditemukan.
                                 </td>
@@ -324,7 +349,7 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                                                     rel="noopener noreferrer"
                                                     className="text-blue-600 hover:underline text-sm font-medium"
                                                 >
-                                                    Lihat Foto
+                                                    Lihat
                                                 </a>
                                             ) : (
                                                 <span className="italic text-gray-500 text-sm">-</span>

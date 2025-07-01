@@ -28,39 +28,68 @@ export default function PasienPage({ onLogout }) {
 
   const [isRegistered, setIsRegistered] = useState(false);
   const [doctorNamesCache, setDoctorNamesCache] = useState({});
+  const [adminRSNamesCache, setAdminRSNamesCache] = useState({}); // Cache untuk nama AdminRS
 
   // Fungsi untuk mendapatkan nama dokter/aktor dari alamat
   const getActorName = useCallback(async (actorAddress) => {
     if (actorAddress === '0x0000000000000000000000000000000000000000' || !actorAddress) {
       return "N/A";
     }
-    if (doctorNamesCache[actorAddress]) { // Baca dari cache
-      return doctorNamesCache[actorAddress];
+    // Pastikan addressAsString selalu string untuk substring
+    const addressAsString = typeof actorAddress === 'string' ? actorAddress : String(actorAddress);
+
+    if (doctorNamesCache[addressAsString]) { // Baca dari cache
+      return doctorNamesCache[addressAsString];
     }
     try {
-      const isDoc = await contract.methods.isDokter(actorAddress).call();
+      const isDoc = await contract.methods.isDokter(addressAsString).call(); // Gunakan addressAsString
       if (isDoc) {
-        const dokterInfo = await contract.methods.getDokter(actorAddress).call();
+        const dokterInfo = await contract.methods.getDokter(addressAsString).call(); // Gunakan addressAsString
         const namaDokter = dokterInfo[0];
-        setDoctorNamesCache(prev => ({ ...prev, [actorAddress]: namaDokter })); // Update cache
+        setDoctorNamesCache(prev => ({ ...prev, [addressAsString]: namaDokter })); // Update cache
         return namaDokter;
       }
 
-      const isPas = await contract.methods.isPasien(actorAddress).call();
+      const isPas = await contract.methods.isPasien(addressAsString).call(); // Gunakan addressAsString
       if (isPas) {
-        const pasienData = await contract.methods.getPasienData(actorAddress).call();
+        const pasienData = await contract.methods.getPasienData(addressAsString).call(); // Gunakan addressAsString
         // getPasienData mengembalikan: nama (0), ID (1), golonganDarah (2), ...
         const namaPasien = pasienData[0]; // Nama Pasien ada di indeks 0
-        setDoctorNamesCache(prev => ({ ...prev, [actorAddress]: namaPasien })); // Update cache
+        setDoctorNamesCache(prev => ({ ...prev, [addressAsString]: namaPasien })); // Update cache
         return namaPasien;
       }
 
-      return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+      return `${addressAsString.substring(0, 6)}...${addressAsString.substring(addressAsString.length - 4)}`;
     } catch (err) {
-      console.warn(`Gagal mendapatkan nama untuk aktor ${actorAddress}:`, err);
-      return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+      console.warn(`Gagal mendapatkan nama untuk aktor ${addressAsString}:`, err);
+      return `${addressAsString.substring(0, 6)}...${addressAsString.substring(addressAsString.length - 4)}`;
     }
   }, [doctorNamesCache]);
+
+
+  // Fungsi bantu untuk mendapatkan nama RS dari alamat AdminRS
+  const getAdminRSName = useCallback(async (adminRSAddress) => {
+    if (adminRSAddress === '0x0000000000000000000000000000000000000000' || !adminRSAddress) {
+      return "N/A";
+    }
+    const addressAsString = typeof adminRSAddress === 'string' ? adminRSAddress : String(adminRSAddress);
+
+    if (adminRSNamesCache[addressAsString]) {
+      return adminRSNamesCache[addressAsString];
+    }
+    try {
+      const adminData = await contract.methods.dataAdmin(addressAsString).call();
+      if (adminData && adminData.namaRumahSakit) {
+        setAdminRSNamesCache(prev => ({ ...prev, [addressAsString]: adminData.namaRumahSakit }));
+        return adminData.namaRumahSakit;
+      }
+      return "Tidak Ditemukan";
+    } catch (err) {
+      console.warn(`Gagal mendapatkan nama RS untuk alamat ${addressAsString}:`, err);
+      return "Error Fetching RS Name";
+    }
+  }, [adminRSNamesCache]);
+
 
   const fetchData = useCallback(async () => {
     try {
@@ -138,19 +167,31 @@ export default function PasienPage({ onLogout }) {
           const latestRmId = sortedIds[0];
 
           const rekam = await contract.methods.getRekamMedis(latestRmId).call();
-          const pembuatNama = await getActorName(rekam[6]);
+
+          const pembuatAddress = rekam[5]; // Ambil alamat pembuat
+          const pembuatNama = await getActorName(pembuatAddress); // Ambil nama pembuat
+
+          let pembuatRSNama = "N/A";
+          // Jika pembuat adalah dokter, cari RS-nya
+          const isDoc = await contract.methods.isDokter(pembuatAddress).call();
+          if (isDoc) {
+            const dokterInfo = await contract.methods.getDokter(pembuatAddress).call();
+            const dokterAdminRSAddress = dokterInfo[5]; // Index 5 di struct Dokter adalah adminRS
+            pembuatRSNama = await getAdminRSName(dokterAdminRSAddress); // Ambil nama RS
+          }
+
 
           setRekamMedisTerbaru({
-            id: rekam[0].toString(),
+            id_rm: rekam[0].toString(),
             pasien: rekam[1],
             diagnosa: rekam[2],
             foto: rekam[3],
             catatan: rekam[4],
-            // Removed 'valid' as per smart contract change
-            pembuat: rekam[6],
+            pembuat: pembuatAddress, // Storing address for debugging/consistency, but 'pembuatNama' is displayed
             pembuatNama: pembuatNama,
-            timestampPembuatan: rekam[7],
-            tipeRekamMedis: rekam[8],
+            pembuatRSNama: pembuatRSNama, // <--- Add the hospital name here
+            timestampPembuatan: rekam[6],
+            tipeRekamMedis: rekam[7],
           });
 
         } else {
@@ -163,7 +204,7 @@ export default function PasienPage({ onLogout }) {
     } finally {
       setLoading(false);
     }
-  }, [getActorName]);
+  }, [getActorName, getAdminRSName]); // Add getAdminRSName to dependencies
 
   useEffect(() => {
     fetchData();
@@ -192,11 +233,6 @@ export default function PasienPage({ onLogout }) {
     // --- Logic to generate patient ID (P-001, P-002, etc.) ---
     let newPatientId = "";
     try {
-      // Fetch the total number of patients to generate the next ID
-      // This assumes your smart contract has a way to get the total count,
-      // or you might need to iterate through daftarPasien.
-      // For simplicity, let's assume `daftarPasien` from contract can give count.
-      // If `daftarPasien` contains all patients, length + 1 would be the next.
       const allPatients = await contract.methods.getDaftarPasien().call();
       const nextIdNumber = allPatients.length + 1;
       newPatientId = `P-${String(nextIdNumber).padStart(3, '0')}`;
