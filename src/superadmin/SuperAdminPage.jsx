@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import contract from "../contract";
-import AdminRSRow from "./AdminRSRow"; // <--- Import komponen AdminRSRow
+import AdminRSRow from "./AdminRSRow";
 
 export default function SuperAdminPage({ account, onLogout }) {
     const [showRegister, setShowRegister] = useState(false);
@@ -9,7 +9,7 @@ export default function SuperAdminPage({ account, onLogout }) {
     const [adminAddress, setAdminAddress] = useState("");
     const [alamatRS, setAlamatRS] = useState("");
     const [kotaRS, setKotaRS] = useState("");
-    const [IDRS, setIDRS] = useState("");
+    const [NIBRS, setNIBRS] = useState(""); // IDRS diubah jadi NIBRS
 
     const [notif, setNotif] = useState("");
     const [notifType, setNotifType] = useState("info");
@@ -27,7 +27,7 @@ export default function SuperAdminPage({ account, onLogout }) {
         namaRumahSakit: "",
         alamatRumahSakit: "",
         kota: "",
-        IDRS: ""
+        NIBRS: "" // IDRS diubah jadi NIBRS
     });
     // --- State untuk Modal Konfirmasi Aktif/Nonaktif ---
     const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
@@ -45,7 +45,7 @@ export default function SuperAdminPage({ account, onLogout }) {
                     adminAddresses.map(async (addr) => {
                         try {
                             // PENTING: Index harus sesuai dengan urutan return dari fungsi getAdminRS di Solidity
-                            // getAdminRS mengembalikan: nama, aktif, alamat, kota, IDRS
+                            // getAdminRS mengembalikan: nama, aktif, alamat, kota, NIBRS (sebelumnya IDRS)
                             const adminDataRaw = await contract.methods.getAdminRS(addr).call();
                             return {
                                 address: addr,
@@ -53,29 +53,28 @@ export default function SuperAdminPage({ account, onLogout }) {
                                 aktif: adminDataRaw[1],
                                 alamatRumahSakit: adminDataRaw[2],
                                 kota: adminDataRaw[3],
-                                IDRS: adminDataRaw[4]
+                                NIBRS: adminDataRaw[4] // IDRS diubah jadi NIBRS
                             };
                         } catch (detailErr) {
                             console.error(`Error fetching detail for admin ${addr}:`, detailErr);
-                            // Set notif yang lebih informatif di sini juga
                             setNotif(`Gagal memuat detail untuk admin ${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}. Cek konsol browser.`);
                             setNotifType("error");
-                            return { address: addr, namaRumahSakit: "Gagal memuat", aktif: false, alamatRumahSakit: "", kota: "", IDRS: "" };
+                            return { address: addr, namaRumahSakit: "Gagal memuat", aktif: false, alamatRumahSakit: "", kota: "", NIBRS: "" }; // IDRS diubah jadi NIBRS
                         }
                     })
                 );
                 setDaftarAdmin(detailedAdmins);
             } else {
-                throw new Error("Kontrak atau metode tidak tersedia (getAllAdminRSAddresses/getAdminRS)"); // Teks disesuaikan
+                throw new Error("Kontrak atau metode tidak tersedia (getAllAdminRSAddresses/getAdminRS)");
             }
         } catch (err) {
-            setNotif("Gagal mengambil daftar admin RS utama! Pastikan kontrak sudah di-deploy dan ABI terbaru."); // Teks disesuaikan
+            setNotif("Gagal mengambil daftar admin RS utama! Pastikan kontrak sudah di-deploy dan ABI terbaru.");
             setNotifType("error");
             console.error("Fetch admins error (main):", err);
             setDaftarAdmin([]);
         }
         setInitialLoading(false);
-    }, []); // Dependensi kosong karena contract statis (contract sudah di-import)
+    }, []);
 
     useEffect(() => {
         if (account) {
@@ -85,16 +84,6 @@ export default function SuperAdminPage({ account, onLogout }) {
             setInitialLoading(false);
         }
     }, [account, fetchAdmins]);
-
-
-    // FUNGSI INI DIHAPUS KARENA SUDAH TIDAK DIGUNAKAN
-    /*
-    const getNamaRS = useCallback(async (address) => {
-        // Fungsi ini tidak perlu lagi mengambil data terpisah
-        const admin = daftarAdmin.find(a => a.address === address);
-        return admin ? admin.namaRumahSakit : "N/A (check AdminRSRow logic)";
-    }, [daftarAdmin]);
-    */
 
 
     // --- Handler untuk Form Registrasi ---
@@ -107,8 +96,8 @@ export default function SuperAdminPage({ account, onLogout }) {
                 throw new Error("Metode registerAdminRS tidak tersedia di kontrak.");
             }
             // Pastikan parameter sesuai dengan urutan di kontrak Solidity
-            // registerAdminRS(address _admin, string _namaRS, string _alamatRS, string _kotaRS, string _IDRS)
-            await contract.methods.registerAdminRS(adminAddress, namaRS, alamatRS, kotaRS, IDRS).send({ from: account });
+            // registerAdminRS(address _admin, string _namaRS, string _alamatRS, string _kotaRS, string _NIBRS)
+            await contract.methods.registerAdminRS(adminAddress, namaRS, alamatRS, kotaRS, NIBRS).send({ from: account }); // IDRS diubah jadi NIBRS
 
             setNotif("Sukses mendaftarkan admin RS!");
             setNotifType("success");
@@ -118,20 +107,20 @@ export default function SuperAdminPage({ account, onLogout }) {
             setAdminAddress("");
             setAlamatRS("");
             setKotaRS("");
-            setIDRS("");
+            setNIBRS(""); // IDRS diubah jadi NIBRS
             await fetchAdmins(); // Muat ulang daftar admin setelah registrasi
         } catch (err) {
             let errorMessage = "Gagal mendaftarkan admin RS.";
             if (err.message.includes("Admin RS sudah terdaftar")) {
-                errorMessage = "Gagal mendaftarkan: Alamat admin sudah terdaftar."; // Teks disesuaikan
-            } else if (err.message.includes("IDRS sudah digunakan")) {
-                errorMessage = "Gagal mendaftarkan: IDRS sudah digunakan."; // Teks disesuaikan
+                errorMessage = "Gagal mendaftarkan: Alamat admin sudah terdaftar.";
+            } else if (err.message.includes("NIBRS sudah digunakan")) { // Pesan error disesuaikan
+                errorMessage = "Gagal mendaftarkan: NIBRS sudah digunakan.";
             } else if (err.message.includes("Nama Rumah Sakit tidak boleh kosong")) {
-                errorMessage = "Gagal mendaftarkan: Nama Rumah Sakit tidak boleh kosong."; // Teks disesuaikan
-            } else if (err.message.includes("IDRS tidak boleh kosong")) {
-                errorMessage = "Gagal mendaftarkan: IDRS tidak boleh kosong."; // Teks disesuaikan
+                errorMessage = "Gagal mendaftarkan: Nama Rumah Sakit tidak boleh kosong.";
+            } else if (err.message.includes("NIBRS tidak boleh kosong")) { // Pesan error disesuaikan
+                errorMessage = "Gagal mendaftarkan: NIBRS tidak boleh kosong.";
             } else if (err.code === 4001) {
-                errorMessage = "Transaksi ditolak oleh pengguna."; // Teks disesuaikan
+                errorMessage = "Transaksi ditolak oleh pengguna.";
             } else {
                 console.error("Register RS error:", err);
                 errorMessage += ` Detail: ${err.message || String(err)}`;
@@ -171,7 +160,7 @@ export default function SuperAdminPage({ account, onLogout }) {
             namaRumahSakit: adminData.namaRumahSakit,
             alamatRumahSakit: adminData.alamatRumahSakit,
             kota: adminData.kota,
-            IDRS: adminData.IDRS
+            NIBRS: adminData.NIBRS // IDRS diubah jadi NIBRS
         });
         setShowUpdateModal(true);
     };
@@ -184,33 +173,33 @@ export default function SuperAdminPage({ account, onLogout }) {
         setLoading(true);
         try {
             if (!contract.methods.updateAdminRSDetails) {
-                throw new Error("Metode updateAdminRSDetails tidak tersedia di kontrak."); // Teks disesuaikan
+                throw new Error("Metode updateAdminRSDetails tidak tersedia di kontrak.");
             }
             // Pastikan parameter sesuai dengan urutan di kontrak Solidity
-            // updateAdminRSDetails(address _admin, string _namaBaru, string _alamatBaru, string _kotaBaru, string _IDRSBaru)
+            // updateAdminRSDetails(address _admin, string _namaBaru, string _alamatBaru, string _kotaBaru, string _NIBRSBaru)
             await contract.methods.updateAdminRSDetails(
                 currentAdminToUpdate.address,
                 updateFormData.namaRumahSakit,
                 updateFormData.alamatRumahSakit,
                 updateFormData.kota,
-                updateFormData.IDRS
+                updateFormData.NIBRS // IDRS diubah jadi NIBRS
             ).send({ from: account });
 
-            setNotif("Sukses memperbarui detail Admin RS!"); // Teks disesuaikan
+            setNotif("Sukses memperbarui detail Admin RS!");
             setNotifType("success");
             setShowUpdateModal(false);
             setCurrentAdminToUpdate(null);
             await fetchAdmins(); // Muat ulang daftar admin setelah update
         } catch (err) {
-            let errorMessage = "Gagal memperbarui detail Admin RS."; // Teks disesuaikan
-            if (err.message.includes("IDRS sudah digunakan")) {
-                errorMessage = "Gagal memperbarui: IDRS baru sudah digunakan."; // Teks disesuaikan
+            let errorMessage = "Gagal memperbarui detail Admin RS.";
+            if (err.message.includes("NIBRS sudah digunakan")) { // Pesan error disesuaikan
+                errorMessage = "Gagal memperbarui: NIBRS baru sudah digunakan.";
             } else if (err.message.includes("Nama Rumah Sakit baru tidak boleh kosong")) {
-                errorMessage = "Gagal memperbarui: Nama Rumah Sakit tidak boleh kosong."; // Teks disesuaikan
-            } else if (err.message.includes("IDRS baru tidak boleh kosong")) {
-                errorMessage = "Gagal memperbarui: IDRS tidak boleh kosong."; // Teks disesuaikan
+                errorMessage = "Gagal memperbarui: Nama Rumah Sakit tidak boleh kosong.";
+            } else if (err.message.includes("NIBRS baru tidak boleh kosong")) { // Pesan error disesuaikan
+                errorMessage = "Gagal memperbarui: NIBRS tidak boleh kosong.";
             } else if (err.code === 4001) {
-                errorMessage = "Transaksi ditolak oleh pengguna."; // Teks disesuaikan
+                errorMessage = "Transaksi ditolak oleh pengguna.";
             } else {
                 console.error("Update Admin RS error:", err);
                 errorMessage += ` Detail: ${err.message || String(err)}`;
@@ -235,24 +224,24 @@ export default function SuperAdminPage({ account, onLogout }) {
         setLoading(true);
         try {
             if (!contract.methods.setStatusAdminRS) {
-                throw new Error("Metode setStatusAdminRS tidak tersedia di kontrak."); // Teks disesuaikan
+                throw new Error("Metode setStatusAdminRS tidak tersedia di kontrak.");
             }
             await contract.methods.setStatusAdminRS(
                 adminToToggleStatus.address,
                 statusToSet
             ).send({ from: account });
 
-            setNotif(`Sukses ${statusToSet ? "mengaktifkan" : "menonaktifkan"} Admin RS!`); // Teks disesuaikan
+            setNotif(`Sukses ${statusToSet ? "mengaktifkan" : "menonaktifkan"} Admin RS!`);
             setNotifType("success");
             setShowStatusConfirmModal(false);
             setAdminToToggleStatus(null);
             await fetchAdmins(); // Muat ulang daftar admin setelah perubahan status
         } catch (err) {
-            let errorMessage = `Gagal ${statusToSet ? "mengaktifkan" : "menonaktifkan"} Admin RS.`; // Teks disesuaikan
+            let errorMessage = `Gagal ${statusToSet ? "mengaktifkan" : "menonaktifkan"} Admin RS.`;
             if (err.message.includes("Admin RS tidak ditemukan")) {
-                errorMessage = "Gagal: Admin RS tidak ditemukan di kontrak."; // Teks disesuaikan
+                errorMessage = "Gagal: Admin RS tidak ditemukan di kontrak.";
             } else if (err.code === 4001) {
-                errorMessage = "Transaksi ditolak oleh pengguna."; // Teks disesuaikan
+                errorMessage = "Transaksi ditolak oleh pengguna.";
             } else {
                 console.error("Set status Admin RS error:", err);
                 errorMessage += ` Detail: ${err.message || String(err)}`;
@@ -290,7 +279,7 @@ export default function SuperAdminPage({ account, onLogout }) {
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
                             Dashboard Super Admin
-                        </h1> {/* Teks disesuaikan */}
+                        </h1>
                         <button
                             className="bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg hover:shadow-red-500/40 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75 flex items-center gap-2.5 transform active:scale-95"
                             onClick={handleLogoutClick}
@@ -336,8 +325,8 @@ export default function SuperAdminPage({ account, onLogout }) {
                     {showRegister && (
                         <div className="mt-6 bg-white shadow-2xl rounded-xl border border-slate-200/80 p-6 sm:p-8 transform transition-all duration-300 ease-out">
                             <p className="text-sm text-slate-600 mb-4 border-b pb-3 border-slate-200">
-                                Harap diperhatikan: Satu alamat Ethereum hanya dapat didaftarkan sebagai Admin RS untuk satu rumah sakit. Pastikan alamat dan IDRS yang dimasukkan belum terdaftar.
-                            </p> {/* Petunjuk baru */}
+                                Harap diperhatikan: Satu alamat Ethereum hanya dapat didaftarkan sebagai Admin RS untuk satu rumah sakit. Pastikan alamat dan NIBRS yang dimasukkan belum terdaftar.
+                            </p> {/* Petunjuk disesuaikan */}
                             <form onSubmit={handleRegisterRS} className="space-y-6">
                                 <div>
                                     <label htmlFor="namaRS" className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -383,17 +372,17 @@ export default function SuperAdminPage({ account, onLogout }) {
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="IDRS" className="block text-sm font-medium text-slate-700 mb-1.5">
-                                        IDRS (ID Rumah Sakit)
-                                    </label>
+                                    <label htmlFor="NIBRS" className="block text-sm font-medium text-slate-700 mb-1.5">
+                                        NIBRS (Nomor Induk Berusaha Rumah Sakit)
+                                    </label> {/* Label disesuaikan */}
                                     <input
-                                        id="IDRS"
+                                        id="NIBRS" // ID diubah jadi NIBRS
                                         type="text"
                                         className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-3.5 transition-all duration-150 ease-in-out"
                                         required
-                                        value={IDRS}
-                                        onChange={(e) => setIDRS(e.target.value)}
-                                        placeholder="Contoh: RSID-001 (Contoh ID unik dari RS)" // Placeholder disesuaikan
+                                        value={NIBRS} // State diubah jadi NIBRS
+                                        onChange={(e) => setNIBRS(e.target.value)} // State diubah jadi NIBRS
+                                        placeholder="Contoh: 1234567890 (Contoh NIB unik dari RS)" // Placeholder disesuaikan
                                         disabled={loading}
                                     />
                                 </div>
@@ -415,7 +404,7 @@ export default function SuperAdminPage({ account, onLogout }) {
                                     />
                                     <p className="text-xs text-slate-500 mt-1">
                                         Ini adalah alamat wallet Ethereum yang akan menjadi admin untuk rumah sakit ini. Pastikan alamat ini unik dan belum digunakan sebagai admin RS lain.
-                                    </p> {/* Petunjuk baru */}
+                                    </p>
                                 </div>
                                 <button
                                     type="submit"
@@ -477,7 +466,7 @@ export default function SuperAdminPage({ account, onLogout }) {
                                             <th scope="col" className="px-4 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Nama Rumah Sakit</th>
                                             <th scope="col" className="px-4 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Alamat RS</th>
                                             <th scope="col" className="px-4 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Kota</th>
-                                            <th scope="col" className="px-4 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">IDRS</th>
+                                            <th scope="col" className="px-4 py-3.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">NIBRS</th> {/* Judul kolom diubah jadi NIBRS */}
                                             <th scope="col" className="px-4 py-3.5 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                                             <th scope="col" className="px-4 py-3.5 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Aksi</th>
                                         </tr>
@@ -581,14 +570,14 @@ export default function SuperAdminPage({ account, onLogout }) {
                                 />
                             </div>
                             <div>
-                                <label htmlFor="updateIDRS" className="block text-sm font-medium text-slate-700 mb-1.5">IDRS</label>
+                                <label htmlFor="updateNIBRS" className="block text-sm font-medium text-slate-700 mb-1.5">NIBRS</label> {/* Label disesuaikan */}
                                 <input
-                                    id="updateIDRS"
+                                    id="updateNIBRS" // ID diubah jadi NIBRS
                                     type="text"
                                     className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-sky-500 focus:border-sky-500 sm:text-sm p-3.5 transition-all duration-150 ease-in-out"
                                     required
-                                    value={updateFormData.IDRS}
-                                    onChange={(e) => setUpdateFormData(prev => ({ ...prev, IDRS: e.target.value }))}
+                                    value={updateFormData.NIBRS} // State diubah jadi NIBRS
+                                    onChange={(e) => setUpdateFormData(prev => ({ ...prev, NIBRS: e.target.value }))} // State diubah jadi NIBRS
                                     disabled={loading}
                                 />
                             </div>

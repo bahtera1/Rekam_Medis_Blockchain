@@ -18,7 +18,7 @@ const IconToggle = () => (
 // Komponen menampilkan satu baris admin RS
 export default function AdminRSRow({ adminData, no, onEdit, onToggleStatus }) {
     // adminData kini berisi objek lengkap dari smart contract
-    const { address, namaRumahSakit, aktif, alamatRumahSakit, kota, IDRS } = adminData;
+    const { address, namaRumahSakit, aktif, alamatRumahSakit, kota, NIBRS } = adminData; // IDRS diubah jadi NIBRS
 
     return (
         <tr
@@ -33,7 +33,7 @@ export default function AdminRSRow({ adminData, no, onEdit, onToggleStatus }) {
             <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-800">{namaRumahSakit}</td>
             <td className="px-4 py-3 text-sm text-slate-600 break-words max-w-xs">{alamatRumahSakit || '-'}</td>
             <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{kota || '-'}</td>
-            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{IDRS || '-'}</td>
+            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{NIBRS || '-'}</td> {/* IDRS diubah jadi NIBRS */}
             <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${aktif ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                     {aktif ? "Aktif" : "Non-Aktif"}
