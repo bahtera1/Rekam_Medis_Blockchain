@@ -15,9 +15,6 @@ export default function ManageAssign({
 }) {
     const [openIndex, setOpenIndex] = useState(null);
 
-    const commonSelectClass =
-        "w-full border border-gray-300 rounded-md px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 ease-in-out disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed bg-white";
-
     const commonThClass = "px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider";
 
     // Siapkan data untuk react-select
@@ -129,12 +126,13 @@ export default function ManageAssign({
 
             {/* Card 2: Daftar Penugasan Dokter - Pasien */}
             <div className="bg-white rounded-xl shadow-xl p-6 sm:p-8">
-                <h3 className="text-2xl font-semibold text-slate-800 mb-6">
-                    Daftar Penugasan Dokter - Pasien
+                {/* Judul ini sekarang memiliki border-b untuk konsistensi */}
+                <h3 className="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3">
+                    Tabel Penugasan Dokter - Pasien
                 </h3>
                 {!assignedPairs || assignedPairs.length === 0 ? (
                     <p className="italic text-gray-500 text-center py-4">
-                        Belum ada penugasan dokter dan pasien.
+                        Belum ada penugasan .
                     </p>
                 ) : (
                     <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -145,7 +143,7 @@ export default function ManageAssign({
                                     <th className={commonThClass}>Nama Dokter</th>
                                     <th className={commonThClass}>No. Lisensi</th>
                                     <th className={`${commonThClass} min-w-48`}>Alamat Dokter</th>
-                                    <th className={`${commonThClass} text-center`}>Daftar Pasien Ditugaskan</th>
+                                    <th className={`${commonThClass} text-center`}>Tabel Pasien Ditugaskan</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">

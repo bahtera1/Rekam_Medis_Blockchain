@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 export default function ManageDokterPage({
   dokterList,
@@ -30,7 +30,6 @@ export default function ManageDokterPage({
     "Penyakit Dalam",
     "Bedah",
     "Gigi",
-    "Kulit dan Kelamin",
   ];
 
   const filteredDokter = dokterList.filter((d) => {
@@ -83,12 +82,6 @@ export default function ManageDokterPage({
       // Handle error (misalnya tampilkan notifikasi)
     }
   };
-
-  useEffect(() => {
-    if (!loading && !dokterAddress && !dokterNama && !dokterSpesialisasi && !dokterNomorLisensi) {
-      // Logika reset field pendaftaran bisa disempurnakan di sini jika perlu
-    }
-  }, [loading, dokterAddress, dokterNama, dokterSpesialisasi, dokterNomorLisensi]);
 
 
   return (
@@ -171,8 +164,9 @@ export default function ManageDokterPage({
 
         {/* Bagian Daftar Dokter */}
         <div className="bg-white rounded-xl shadow-xl p-6 sm:p-8">
-          <h3 className="text-2xl font-semibold text-slate-800 mb-2">
-            Daftar Dokter
+          {/* Judul ini sekarang memiliki border-b untuk konsistensi */}
+          <h3 className="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3">
+            Tabel Dokter
           </h3>
           <p className="text-sm text-gray-600 mb-5">
             Total dokter terdaftar:{" "}
@@ -231,7 +225,6 @@ export default function ManageDokterPage({
                   {filteredDokter.map((d, index) => (
                     <tr key={d.address} className="hover:bg-slate-50 transition-colors duration-150">
                       <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{index + 1}</td>
-                      {/* Perubahan di sini: Menghapus div dengan class w-32 dan truncate */}
                       <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap break-all">
                         {d.address}
                       </td>

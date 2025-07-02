@@ -17,7 +17,7 @@ export default function AdminPage({ account, onLogout }) {
   const [selectedDokter, setSelectedDokter] = useState("");
   const [assignedPairs, setAssignedPairs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activePage, setActivePage] = useState("manageDokter"); // Default aktif di Manajemen Dokter
+  const [activePage, setActivePage] = useState("manageDokter"); // Default aktif di MANAJEMEN Dokter
   const [namaRumahSakit, setNamaRumahSakit] = useState("");
 
   // Memoize fetch functions with useCallback for better performance and dependency management
@@ -273,9 +273,9 @@ export default function AdminPage({ account, onLogout }) {
           className="mb-8 text-4xl font-bold text-gray-800 tracking-tight relative animate-fadeIn sm:text-3xl xs:text-2xl
             after:content-[''] after:absolute after:bottom-[-10px] after:left-0 after:w-20 after:h-1 after:bg-blue-500 after:rounded"
         >
-          {activePage === "manageDokter" && "Manajemen Dokter"}
-          {activePage === "managePasien" && "Manajemen Pasien"}
-          {activePage === "manageAssign" && "Penugasan Dokter - Pasien"}
+          {activePage === "manageDokter" && "MANAJEMEN DOKTER"}
+          {activePage === "managePasien" && "PASIEN TERDAFTAR"}
+          {activePage === "manageAssign" && "PENUGASAN PASIEN-DOKTER"}
           {!["manageDokter", "managePasien", "manageAssign"].includes(activePage) && "Panel Admin"}
         </h2>
 

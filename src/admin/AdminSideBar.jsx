@@ -92,7 +92,7 @@ export default function AdminSideBar({ activePage, setActivePage, onLogout, nama
                     {isOpen ? (
                         <div className="text-center w-full">
                             <span className="block font-extrabold text-2xl tracking-tight text-white drop-shadow-lg">
-                                Admin Panel
+                                Beranda Admin
                             </span>
                             {namaRumahSakit && (
                                 <span
