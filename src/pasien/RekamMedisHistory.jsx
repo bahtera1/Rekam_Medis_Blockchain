@@ -6,54 +6,81 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [error, setError] = useState(null);
-    const [actorNamesCache, setActorNamesCache] = useState({}); // Mengubah nama cache untuk mencerminkan bisa dokter/pasien/admin
-
-    // --- State untuk Paginasi dan Pengurutan ---
+    const [actorInfoCache, setActorInfoCache] = useState({});
     const [currentPage, setCurrentPage] = useState(1);
-    const [recordsPerPage] = useState(10); // Maksimal 10 item per halaman
-    const [sortOrder, setSortOrder] = useState("desc"); // 'desc' (terbaru) atau 'asc' (terlama)
+    const [recordsPerPage] = useState(10);
+    const [sortOrder, setSortOrder] = useState("desc");
 
-    // Fungsi untuk mendapatkan nama aktor (pembuat RM) dari alamat
-    const getActorName = useCallback(async (actorAddress) => {
+    const getActorDetails = useCallback(async (actorAddress) => {
         if (!actorAddress || actorAddress === "0x0000000000000000000000000000000000000000") {
-            return "N/A";
+            return { name: "N/A", hospitalName: "N/A", role: "Unknown" };
         }
-        if (actorNamesCache[actorAddress]) { // Menggunakan actorNamesCache
-            return actorNamesCache[actorAddress];
+
+        if (actorInfoCache[actorAddress]) {
+            return actorInfoCache[actorAddress];
         }
+
+        let name = "";
+        let hospitalName = "N/A";
+        let role = "";
+
         try {
-            const role = await contract.methods.getUserRole(actorAddress).call();
-            let name = "";
+            role = await contract.methods.getUserRole(actorAddress).call();
 
             switch (role) {
                 case "Dokter":
-                case "InactiveDokter": // Dokter tetap punya nama walau non-aktif
+                case "InactiveDokter":
                     const dokterInfo = await contract.methods.getDokter(actorAddress).call();
-                    name = dokterInfo[0]; // nama dokter
+                    name = dokterInfo[0];
+                    const affiliatedAdminRSAddress = dokterInfo[5];
+                    if (affiliatedAdminRSAddress !== "0x0000000000000000000000000000000000000000") {
+                        try {
+                            const adminRSData = await contract.methods.getAdminRS(affiliatedAdminRSAddress).call();
+                            hospitalName = adminRSData[0];
+                        } catch (e) {
+                            console.warn(`Gagal mendapatkan nama RS afiliasi untuk dokter ${actorAddress}:`, e);
+                            hospitalName = "N/A (RS Error)";
+                        }
+                    }
                     break;
                 case "Pasien":
-                    const pasienData = await contract.methods.getPasienData(actorAddress).call();
-                    name = pasienData[0]; // nama pasien
+                    const pasienDataFromContract = await contract.methods.getPasienData(actorAddress).call();
+                    name = pasienDataFromContract[0];
+                    const responsibleRSAddress = pasienDataFromContract[8];
+                    if (responsibleRSAddress !== "0x0000000000000000000000000000000000000000") {
+                        try {
+                            const adminRSData = await contract.methods.getAdminRS(responsibleRSAddress).call();
+                            hospitalName = adminRSData[0];
+                        } catch (e) {
+                            console.warn(`Gagal mendapatkan nama RS penanggung jawab untuk pasien ${actorAddress}:`, e);
+                            hospitalName = "N/A (RS Error)";
+                        }
+                    }
                     break;
                 case "AdminRS":
-                case "InactiveAdminRS": // Admin RS tetap punya nama RS walau non-aktif
+                case "InactiveAdminRS":
                     const adminInfo = await contract.methods.dataAdmin(actorAddress).call();
-                    name = adminInfo[0]; // namaRumahSakit Admin RS
+                    name = adminInfo[0];
+                    hospitalName = adminInfo[0];
                     break;
                 case "SuperAdmin":
-                    name = "Super Admin (Sistem)"; // Nama hardcode untuk super admin
+                    name = "Super Admin (Sistem)";
+                    hospitalName = "Sistem Utama";
                     break;
                 default:
                     name = `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+                    hospitalName = "N/A";
             }
-
-            setActorNamesCache((prev) => ({ ...prev, [actorAddress]: name }));
-            return name;
         } catch (err) {
-            console.warn(`Gagal mendapatkan nama untuk aktor ${actorAddress}:`, err);
-            return `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+            console.warn(`Gagal mendapatkan detail aktor ${actorAddress}:`, err);
+            name = `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+            hospitalName = "N/A (Error)";
         }
-    }, [actorNamesCache]); // Depend on actorNamesCache for memoization
+
+        const details = { name, hospitalName, role };
+        setActorInfoCache((prev) => ({ ...prev, [actorAddress]: details }));
+        return details;
+    }, [actorInfoCache]);
 
     useEffect(() => {
         let isMounted = true;
@@ -80,9 +107,8 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                 for (const id of rekamMedisIds) {
                     const rmData = await contract.methods.getRekamMedis(id).call();
 
-
-                    const pembuatAddress = rmData[5]; // Pembuat adalah di indeks 5
-                    const actorName = await getActorName(pembuatAddress); // Dapatkan nama pembuat
+                    const pembuatAddress = rmData[5];
+                    const { name: actorName, hospitalName: rmHospitalName } = await getActorDetails(pembuatAddress);
 
                     tempAllRecords.push({
                         id_rm: rmData[0].toString(),
@@ -90,10 +116,10 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                         diagnosa: rmData[2],
                         foto: rmData[3],
                         catatan: rmData[4],
-                        pembuat: actorName, // Gunakan nama aktor yang sudah didapatkan
-                        timestamp: Number(rmData[6]), // Timestamp di indeks 6
-                        tipeRekamMedis: rmData[7], // Tipe RM di indeks 7
-                        // rumahSakitPembuatRM TIDAK ADA di smart contract lama
+                        pembuat: actorName,
+                        rumahSakitPembuatRM: rmHospitalName,
+                        timestamp: Number(rmData[6]),
+                        tipeRekamMedis: rmData[7],
                     });
                 }
 
@@ -131,7 +157,7 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
         return () => {
             isMounted = false;
         };
-    }, [rekamMedisIds, getActorName, sortOrder]); // sortOrder ditambahkan ke dependencies
+    }, [rekamMedisIds, getActorDetails, sortOrder]);
 
     const formatTimestamp = (ts) => {
         if (typeof ts === "bigint") {
@@ -139,19 +165,17 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
         }
         if (!ts || ts === 0 || isNaN(ts)) return "-";
         const date = new Date(ts * 1000);
-        // Format tanggal dan waktu ke waktu lokal Jakarta (WIB)
         return date.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta", // Menggunakan zona waktu WIB
+            timeZone: "Asia/Jakarta",
             year: "numeric",
             month: "short",
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
-            hour12: false // Format 24 jam
+            hour12: false
         });
     };
-
 
     const filteredAndSortedRecords = useMemo(() => {
         const filtered = allRecordsFlat.filter(
@@ -160,13 +184,12 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                 item.catatan.toLowerCase().includes(search.toLowerCase()) ||
                 item.pembuat.toLowerCase().includes(search.toLowerCase()) ||
                 (item.tipeRekamMedis && item.tipeRekamMedis.toLowerCase().includes(search.toLowerCase())) ||
-                // item.rumahSakitPembuatRM tidak ada di smart contract lama, jadi hapus dari filter
+                (item.rumahSakitPembuatRM && item.rumahSakitPembuatRM.toLowerCase().includes(search.toLowerCase())) ||
                 formatTimestamp(item.timestamp).toLowerCase().includes(search.toLowerCase())
         );
         return filtered;
     }, [allRecordsFlat, search]);
 
-    // Logika Paginasi
     const indexOfLastRecord = currentPage * recordsPerPage;
     const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
     const currentRecords = filteredAndSortedRecords.slice(indexOfFirstRecord, indexOfLastRecord);
@@ -198,7 +221,7 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                 <button
                     key={1}
                     onClick={() => paginate(1)}
-                    className="px-4 py-2 mx-1 rounded-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    className="px-3 py-2 mx-1 rounded-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
                 >
                     1
                 </button>
@@ -213,7 +236,7 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                 <button
                     key={i}
                     onClick={() => paginate(i)}
-                    className={`px-4 py-2 mx-1 rounded-lg font-medium transition-colors ${currentPage === i
+                    className={`px-3 py-2 mx-1 rounded-lg font-medium transition-colors ${currentPage === i
                         ? "bg-blue-600 text-white shadow-md"
                         : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                         }`}
@@ -231,7 +254,7 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                 <button
                     key={totalPages}
                     onClick={() => paginate(totalPages)}
-                    className="px-4 py-2 mx-1 rounded-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    className="px-3 py-2 mx-1 rounded-lg font-medium transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
                 >
                     {totalPages}
                 </button>
@@ -241,152 +264,182 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
         return pages;
     };
 
-
     return (
-        <div className="w-full p-4">
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <h3 className="text-xl font-semibold text-blue-700">Riwayat Rekam Medis Detail</h3>
-                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                    {/* Input Pencarian */}
-                    <input
-                        type="text"
-                        className="border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 w-full sm:w-80 shadow-sm"
-                        placeholder="Cari diagnosa, catatan, pembuat, tipe, atau waktu..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                    {/* Dropdown Pengurutan */}
-                    <select
-                        value={sortOrder}
-                        onChange={(e) => setSortOrder(e.target.value)}
-                        className="border border-blue-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 w-full sm:w-auto shadow-sm text-gray-700"
-                    >
-                        <option value="desc">Terbaru Dulu</option>
-                        <option value="asc">Terlama Dulu</option>
-                    </select>
+        <div className="w-full p-6 bg-gray-50 min-h-screen">
+            {/* Header Section */}
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <h3 className="text-2xl font-bold text-gray-900 flex items-center">
+                        📋 Riwayat Rekam Medis Detail
+                    </h3>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                        <input
+                            type="text"
+                            className="border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-80 shadow-sm transition-all"
+                            placeholder="🔍 Cari diagnosa, catatan, pembuat..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                        <select
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value)}
+                            className="border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-auto shadow-sm text-gray-700 transition-all"
+                        >
+                            <option value="desc">📅 Terbaru Dulu</option>
+                            <option value="asc">📅 Terlama Dulu</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
+            {/* Error Alert */}
             {error && (
-                <div
-                    className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
-                    role="alert"
-                >
-                    {error}
+                <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded-lg">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <span className="text-red-400">⚠️</span>
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-red-700">{error}</p>
+                        </div>
+                    </div>
                 </div>
             )}
 
-            <div className="overflow-x-auto shadow-lg rounded-xl border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-blue-600 text-white">
-                        <tr>
-                            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider border-r border-blue-500">
-                                No.
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider border-r border-blue-500">
-                                ID RM
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider border-r border-blue-500">
-                                Tipe RM
-                            </th>
-                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-r border-blue-500">
-                                Diagnosa
-                            </th>
-                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-r border-blue-500">
-                                Catatan
-                            </th>
-                            <th className="px-4 py-3 text-center font-semibold uppercase tracking-wider border-r border-blue-500">
-                                Foto/File
-                            </th>
-                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider">
-                                Dibuat Oleh
-                            </th>
-                            {/* HAPUS KOLOM "RS Pembuat RM" karena tidak ada di smart contract lama */}
-                            {/* <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider border-r border-blue-500">
-                                RS Pembuat RM
-                            </th> */}
-                            <th className="px-4 py-3 text-left font-semibold uppercase tracking-wider">
-                                Waktu Pembuatan
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
-                        {loading ? (
+            {/* Table Section */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gradient-to-r from-blue-600 to-blue-700">
                             <tr>
-                                {/* colSpan disesuaikan menjadi 8 (asumsi tanpa kolom RS Pembuat RM) */}
-                                <td colSpan={8} className="text-center py-8 text-gray-500 text-lg">
-                                    Memuat data riwayat...
-                                </td>
+                                <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                                    No.
+                                </th>
+                                <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                                    ID RM
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                    Tipe RM
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                    Diagnosa
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                    Catatan
+                                </th>
+                                <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                                    Foto/File
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                    Dibuat Oleh
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                    RS Pembuat RM
+                                </th>
+                                <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                                    Waktu Pembuatan
+                                </th>
                             </tr>
-                        ) : filteredAndSortedRecords.length === 0 ? (
-                            <tr>
-                                {/* colSpan disesuaikan menjadi 8 */}
-                                <td colSpan={8} className="text-center py-8 text-gray-500 italic text-lg">
-                                    Tidak ada riwayat rekam medis ditemukan.
-                                </td>
-                            </tr>
-                        ) : (
-                            currentRecords.map((item) => {
-                                const actorDisplay = item.pembuat;
-                                const timestampDisplay = item.timestamp ? formatTimestamp(item.timestamp) : "-";
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={9} className="text-center py-12">
+                                        <div className="flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                            <span className="ml-3 text-gray-500">Memuat data riwayat...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredAndSortedRecords.length === 0 ? (
+                                <tr>
+                                    <td colSpan={9} className="text-center py-12">
+                                        <div className="text-gray-500">
+                                            <span className="text-4xl mb-4 block">📋</span>
+                                            <p className="text-lg italic">Tidak ada riwayat rekam medis ditemukan.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                currentRecords.map((item, index) => {
+                                    const actorDisplay = item.pembuat;
+                                    const timestampDisplay = item.timestamp ? formatTimestamp(item.timestamp) : "-";
 
-                                return (
-                                    <tr key={`${item.id_rm}-${item.timestamp}`} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-4 py-3 text-center text-gray-700">{item.noUrut}</td>
-                                        <td className="px-4 py-3 text-center font-mono text-gray-800 text-sm break-all">
-                                            {item.id_rm}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-800 min-w-[120px] break-words">
-                                            {item.tipeRekamMedis || "-"}
-                                        </td>
-                                        <td className="px-4 py-3 break-words text-gray-800 max-w-xs">{item.diagnosa}</td>
-                                        <td className="px-4 py-3 break-words text-gray-600 max-w-xs">{item.catatan}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            {item.foto ? (
-                                                <a
-                                                    href={item.foto}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-blue-600 hover:underline text-sm font-medium"
-                                                >
-                                                    Lihat
-                                                </a>
-                                            ) : (
-                                                <span className="italic text-gray-500 text-sm">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-700" title={item.pembuat || ""}>
-                                            {actorDisplay}
-                                        </td>
-                                        <td className="px-4 py-3 text-xs text-gray-500 italic">
-                                            {timestampDisplay}
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
+                                    return (
+                                        <tr key={`${item.id_rm}-${item.timestamp}`} className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}>
+                                            <td className="px-4 py-4 text-center text-gray-700 font-medium">{item.noUrut}</td>
+                                            <td className="px-4 py-4 text-center font-mono text-gray-800 text-sm">
+                                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                                    {item.id_rm}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4 text-sm text-gray-800">
+                                                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                                                    {item.tipeRekamMedis || "-"}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4 text-gray-800 max-w-xs">
+                                                <div className="line-clamp-2">{item.diagnosa}</div>
+                                            </td>
+                                            <td className="px-4 py-4 text-gray-600 max-w-xs">
+                                                <div className="line-clamp-2">{item.catatan}</div>
+                                            </td>
+                                            <td className="px-4 py-4 text-center">
+                                                {item.foto ? (
+                                                    <a
+                                                        href={item.foto}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
+                                                    >
+                                                        📎 Lihat
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-gray-400 text-sm">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 text-sm text-gray-700" title={item.pembuat || ""}>
+                                                {actorDisplay}
+                                            </td>
+                                            <td className="px-4 py-4 text-sm text-gray-700">
+                                                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
+                                                    {item.rumahSakitPembuatRM || "-"}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4 text-xs text-gray-500">
+                                                <div className="flex flex-col">
+                                                    <span>⏰ {timestampDisplay}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            {/* Kontrol Paginasi */}
-            {totalPages > 0 && ( // Tampilkan paginasi hanya jika ada item (totalPages > 0)
-                <div className="flex justify-center items-center mt-6">
-                    <button
-                        onClick={() => paginate(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="px-4 py-2 mx-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        Sebelumnya
-                    </button>
-                    {renderPaginationButtons()}
-                    <button
-                        onClick={() => paginate(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="px-4 py-2 mx-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        Berikutnya
-                    </button>
+            {/* Pagination */}
+            {totalPages > 0 && (
+                <div className="bg-white rounded-lg shadow-sm p-4 mt-6">
+                    <div className="flex justify-center items-center">
+                        <button
+                            onClick={() => paginate(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 mx-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            ← Sebelumnya
+                        </button>
+                        {renderPaginationButtons()}
+                        <button
+                            onClick={() => paginate(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 mx-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Berikutnya →
+                        </button>
+                    </div>
                 </div>
             )}
         </div>

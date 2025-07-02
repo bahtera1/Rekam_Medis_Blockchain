@@ -96,7 +96,7 @@ export default function PasienSideBar({ activeMenu, setActiveMenu, onLogout }) {
                     {isOpen ? (
                         <div className="text-center w-full">
                             <span className="block font-extrabold text-2xl tracking-tight text-white drop-shadow-lg">
-                                Menu Pasien
+                                Beranda Pasien
                             </span>
                         </div>
                     ) : (
