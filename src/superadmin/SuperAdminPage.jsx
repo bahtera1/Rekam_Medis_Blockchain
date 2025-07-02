@@ -1,7 +1,8 @@
 // SuperAdminPage.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import contract from "../contract";
 import AddAdminRSPage from "./AddAdminRSPage.jsx";
+import EditAdminRSModal from "./EditAdminRSModal.jsx"; // Import komponen modal yang baru
 
 // Icon untuk Edit
 const IconEdit = ({ className = "w-4 h-4" }) => (
@@ -26,8 +27,15 @@ const PlusIcon = ({ className = "w-5 h-5" }) => (
 
 // Icon untuk Logout
 const IconLogout = ({ className = "w-5 h-5" }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+    <svg xmlns="http://www.w3.0000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+    </svg>
+);
+
+// Icon untuk Search
+const IconSearch = ({ className = "w-5 h-5" }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
     </svg>
 );
 
@@ -37,22 +45,14 @@ export default function SuperAdminPage({ account, onLogout }) {
     const [notifType, setNotifType] = useState("info");
 
     const [daftarAdmin, setDaftarAdmin] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); // Global loading for main actions
     const [initialLoading, setInitialLoading] = useState(true);
 
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-    // State Modal Update Admin RS
+    // State Modal Update Admin RS (sekarang hanya untuk mengontrol show/hide dan data yang akan diedit)
     const [showUpdateModal, setShowUpdateModal] = useState(false);
-    const [currentAdminToUpdate, setCurrentAdminToUpdate] = useState(null);
-    const [updateFormData, setUpdateFormData] = useState({
-        namaRumahSakit: "",
-        alamatRumahSakut: "",
-        kota: "",
-        NIBRS: ""
-    });
-    // Menambahkan state untuk melacak apakah ada perubahan pada form update
-    const [hasChanges, setHasChanges] = useState(false);
+    const [adminDataToEdit, setAdminDataToEdit] = useState(null); // Data yang akan dikirim ke modal
 
     // State Modal Konfirmasi Status Admin RS
     const [showStatusConfirmModal, setShowStatusConfirmModal] = useState(false);
@@ -61,6 +61,9 @@ export default function SuperAdminPage({ account, onLogout }) {
 
     // State untuk tampilan form registrasi Admin RS baru
     const [showAddAdminForm, setShowAddAdminForm] = useState(false);
+
+    // State untuk Search
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Fungsi ambil daftar Admin RS
     const fetchAdmins = useCallback(async () => {
@@ -76,15 +79,16 @@ export default function SuperAdminPage({ account, onLogout }) {
                                 address: addr,
                                 namaRumahSakit: adminDataRaw[0],
                                 aktif: adminDataRaw[1],
-                                alamatRumahSakut: adminDataRaw[2],
+                                alamatRumahSakit: adminDataRaw[2],
                                 kota: adminDataRaw[3],
                                 NIBRS: adminDataRaw[4]
                             };
                         } catch (detailErr) {
                             console.error(`Error fetching admin ${addr}:`, detailErr);
+                            // Notifikasi ini bisa muncul di SuperAdminPage
                             setNotif(`Gagal memuat detail untuk admin ${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}.`);
                             setNotifType("error");
-                            return { address: addr, namaRumahSakit: "Gagal memuat", aktif: false, alamatRumahSakut: "", kota: "", NIBRS: "" };
+                            return { address: addr, namaRumahSakit: "Gagal memuat", aktif: false, alamatRumahSakit: "", kota: "", NIBRS: "" };
                         }
                     })
                 );
@@ -138,98 +142,15 @@ export default function SuperAdminPage({ account, onLogout }) {
 
     // Handler Edit Admin RS
     const handleEditClick = (adminData) => {
-        setCurrentAdminToUpdate(adminData);
-        setUpdateFormData({
-            namaRumahSakit: adminData.namaRumahSakit,
-            alamatRumahSakut: adminData.alamatRumahSakut, // Perhatikan penulisan "alamatRumahSakut"
-            kota: adminData.kota,
-            NIBRS: adminData.NIBRS
-        });
-        setHasChanges(false); // Set false di awal saat modal dibuka
+        setAdminDataToEdit(adminData); // Mengatur data yang akan diedit
+        setShowUpdateModal(true); // Menampilkan modal
         setNotif(""); // Bersihkan notifikasi saat membuka modal
-        setShowUpdateModal(true);
     };
 
-    // Handler perubahan input pada form update
-    const handleUpdateFormChange = (e) => {
-        const { id, value } = e.target;
-        // Gunakan destructuring yang sesuai dengan nama state Anda
-        const fieldName = id === 'updateNamaRS' ? 'namaRumahSakit' :
-            id === 'updateAlamatRS' ? 'alamatRumahSakut' : // Perhatikan penulisan
-                id === 'updateKotaRS' ? 'kota' :
-                    id === 'updateNIBRS' ? 'NIBRS' : id; // Default fallback, meskipun seharusnya tercover
-
-        setUpdateFormData(prev => {
-            const newData = { ...prev, [fieldName]: value };
-
-            // Cek apakah ada perubahan dibandingkan data awal
-            const changed = (
-                newData.namaRumahSakit !== currentAdminToUpdate.namaRumahSakit ||
-                newData.alamatRumahSakut !== currentAdminToUpdate.alamatRumahSakut || // Perhatikan penulisan
-                newData.kota !== currentAdminToUpdate.kota ||
-                newData.NIBRS !== currentAdminToUpdate.NIBRS
-            );
-            setHasChanges(changed);
-            return newData;
-        });
-    };
-
-    const handleUpdateAdminRSDetails = async (e) => {
-        e.preventDefault();
-        if (!currentAdminToUpdate) return;
-
-        // Tidak perlu validasi hasChanges di sini lagi, karena tombolnya sudah disabled
-        // if (!hasChanges && !loading) { /* ... */ }
-
-        // Validasi form kosong saat update
-        if (!updateFormData.namaRumahSakit.trim() ||
-            !updateFormData.alamatRumahSakut.trim() || // Perhatikan penulisan
-            !updateFormData.kota.trim() ||
-            !updateFormData.NIBRS.trim()) {
-            setNotif("Semua field detail rumah sakit tidak boleh kosong.");
-            setNotifType("error");
-            return;
-        }
-
-        setNotif("");
-        setLoading(true);
-        try {
-            if (!contract.methods.updateAdminRSDetails) {
-                throw new Error("Metode updateAdminRSDetails tidak tersedia.");
-            }
-            await contract.methods.updateAdminRSDetails(
-                currentAdminToUpdate.address,
-                updateFormData.namaRumahSakit,
-                updateFormData.alamatRumahSakut, // Perhatikan penulisan
-                updateFormData.kota,
-                updateFormData.NIBRS
-            ).send({ from: account });
-
-            setNotif("Sukses memperbarui detail Admin RS!");
-            setNotifType("success");
-            setShowUpdateModal(false);
-            setCurrentAdminToUpdate(null);
-            setHasChanges(false); // Reset setelah sukses
-            await fetchAdmins();
-        } catch (err) {
-            let errorMessage = "Gagal memperbarui detail Admin RS.";
-            if (err.message.includes("IDRS sudah digunakan") || err.message.includes("NIBRS sudah digunakan") || err.message.includes("Nomor Induk Berusaha sudah digunakan")) {
-                errorMessage = "Gagal memperbarui: NIBRS baru sudah digunakan.";
-            } else if (err.message.includes("Nama Rumah Sakit baru tidak boleh kosong") || err.message.includes("Nama Rumah Sakit tidak boleh kosong")) {
-                errorMessage = "Gagal memperbarui: Nama Rumah Sakit tidak boleh kosong.";
-            } else if (err.message.includes("Nomor Induk Berusaha Rumah Sakit tidak boleh kosong") || err.message.includes("NIBRS tidak boleh kosong")) {
-                errorMessage = "Gagal memperbarui: NIBRS tidak boleh kosong.";
-            } else if (err.code === 4001) {
-                errorMessage = "Transaksi ditolak oleh pengguna.";
-            } else {
-                errorMessage += ` Detail: ${err.message || String(err)}`;
-                console.error("Update Admin RS error:", err);
-            }
-            setNotif(errorMessage);
-            setNotifType("error");
-        } finally {
-            setLoading(false);
-        }
+    // Handler tutup modal edit
+    const handleCloseUpdateModal = () => {
+        setShowUpdateModal(false);
+        setAdminDataToEdit(null); // Bersihkan data setelah modal ditutup
     };
 
     // Handler ubah status aktif/non-aktif
@@ -277,6 +198,22 @@ export default function SuperAdminPage({ account, onLogout }) {
         setAdminToToggleStatus(null);
     };
 
+    // Filtered Admins logic
+    const filteredAdmins = useMemo(() => {
+        if (!searchTerm) {
+            return daftarAdmin;
+        }
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+        return daftarAdmin.filter(admin =>
+            admin.namaRumahSakit.toLowerCase().includes(lowerCaseSearchTerm) ||
+            admin.alamatRumahSakit.toLowerCase().includes(lowerCaseSearchTerm) ||
+            admin.kota.toLowerCase().includes(lowerCaseSearchTerm) ||
+            admin.NIBRS.toLowerCase().includes(lowerCaseSearchTerm) ||
+            admin.address.toLowerCase().includes(lowerCaseSearchTerm) // Opsional: search by address
+        );
+    }, [daftarAdmin, searchTerm]);
+
+
     // Render kondisional: jika tampilkan form tambah admin RS
     if (showAddAdminForm) {
         return (
@@ -292,7 +229,7 @@ export default function SuperAdminPage({ account, onLogout }) {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-100 to-blue-50 py-10 px-4 sm:px-6 lg:px-12">
-            <div className="max-w-6xl mx-auto space-y-10">
+            <div className="max-w-7xl mx-auto space-y-10">
                 {/* Header */}
                 <header>
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -325,8 +262,8 @@ export default function SuperAdminPage({ account, onLogout }) {
                     </div>
                 )}
 
-                {/* Tombol Registrasi RS Baru */}
-                <section>
+                {/* Tombol Registrasi RS Baru dan Search Bar */}
+                <section className="flex flex-col sm:flex-row justify-between items-center gap-4">
                     <button
                         className="flex items-center justify-center gap-2 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition-transform transform active:scale-95"
                         onClick={handleShowAddAdminForm}
@@ -334,6 +271,19 @@ export default function SuperAdminPage({ account, onLogout }) {
                         <PlusIcon />
                         Tambah Rumah Sakit Baru
                     </button>
+                    {/* Search Bar */}
+                    <div className="relative w-full sm:w-72">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <IconSearch className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Cari admin RS..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="block w-full rounded-lg border-gray-300 pl-10 pr-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                    </div>
                 </section>
 
                 {/* Tabel Daftar Admin RS */}
@@ -363,13 +313,17 @@ export default function SuperAdminPage({ account, onLogout }) {
                                 </svg>
                                 <p className="mt-3 text-gray-500 text-sm">Memuat daftar admin...</p>
                             </div>
-                        ) : daftarAdmin.length === 0 ? (
+                        ) : filteredAdmins.length === 0 ? (
                             <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 mx-auto text-gray-400 mb-4">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                                 </svg>
-                                <p className="text-gray-600 font-semibold text-lg">Belum ada admin RS terdaftar.</p>
-                                <p className="text-sm text-gray-500 mt-1.5">Silakan daftarkan admin RS baru melalui form di atas.</p>
+                                <p className="text-gray-600 font-semibold text-lg">
+                                    {searchTerm ? `Tidak ada hasil untuk "${searchTerm}"` : "Belum ada admin RS terdaftar."}
+                                </p>
+                                {!searchTerm && (
+                                    <p className="text-sm text-gray-500 mt-1.5">Silakan daftarkan admin RS baru melalui form di atas.</p>
+                                )}
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
@@ -387,7 +341,7 @@ export default function SuperAdminPage({ account, onLogout }) {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {daftarAdmin.map((adminData, idx) => (
+                                        {filteredAdmins.map((adminData, idx) => (
                                             <tr
                                                 key={adminData.address}
                                                 className={`transition-colors duration-150 ${adminData.aktif
@@ -398,7 +352,7 @@ export default function SuperAdminPage({ account, onLogout }) {
                                                 <td className="px-4 py-3 text-sm text-center font-medium text-gray-700">{idx + 1}</td>
                                                 <td className="px-4 py-3 text-sm text-gray-600 font-mono break-all">{adminData.address}</td>
                                                 <td className="px-4 py-3 text-sm text-gray-800">{adminData.namaRumahSakit}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-600 break-words max-w-xs">{adminData.alamatRumahSakut || '-'}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-600 break-words max-w-xs">{adminData.alamatRumahSakit || '-'}</td>
                                                 <td className="px-4 py-3 text-sm text-gray-600">{adminData.kota || '-'}</td>
                                                 <td className="px-4 py-3 text-sm text-gray-600">{adminData.NIBRS || '-'}</td>
                                                 <td className="px-4 py-3 text-sm text-center">
@@ -464,97 +418,16 @@ export default function SuperAdminPage({ account, onLogout }) {
                 </div>
             )}
 
-            {/* Modal Edit Admin RS */}
-            {showUpdateModal && currentAdminToUpdate && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-lg border border-gray-200">
-                        <h3 className="text-xl font-semibold text-gray-800 mb-6 text-center">Edit Detail Admin RS</h3>
-                        <form onSubmit={handleUpdateAdminRSDetails} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Admin (Tidak dapat diubah)</label>
-                                <input
-                                    type="text"
-                                    value={currentAdminToUpdate.address}
-                                    disabled
-                                    className="w-full rounded-lg bg-gray-100 border border-gray-300 p-3 font-mono text-sm cursor-not-allowed"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="namaRumahSakit" className="block text-sm font-medium text-gray-700 mb-1">Nama Rumah Sakit</label>
-                                <input
-                                    id="namaRumahSakit"
-                                    type="text"
-                                    required
-                                    value={updateFormData.namaRumahSakit}
-                                    onChange={handleUpdateFormChange}
-                                    placeholder="Contoh: RS Harapan Bangsa"
-                                    className="w-full rounded-lg border-gray-300 p-3 shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors"
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="alamatRumahSakut" className="block text-sm font-medium text-gray-700 mb-1">Alamat Rumah Sakit</label>
-                                <input
-                                    id="alamatRumahSakut"
-                                    type="text"
-                                    required
-                                    value={updateFormData.alamatRumahSakut}
-                                    onChange={handleUpdateFormChange}
-                                    placeholder="Contoh: Jl. Merdeka No. 123"
-                                    className="w-full rounded-lg border-gray-300 p-3 shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors"
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="kota" className="block text-sm font-medium text-gray-700 mb-1">Kota</label>
-                                <input
-                                    id="kota"
-                                    type="text"
-                                    required
-                                    value={updateFormData.kota}
-                                    onChange={handleUpdateFormChange}
-                                    placeholder="Contoh: Yogyakarta"
-                                    className="w-full rounded-lg border-gray-300 p-3 shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors"
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="NIBRS" className="block text-sm font-medium text-gray-700 mb-1">NIBRS</label>
-                                <input
-                                    id="NIBRS"
-                                    type="text"
-                                    required
-                                    value={updateFormData.NIBRS}
-                                    onChange={handleUpdateFormChange}
-                                    placeholder="Contoh: NIBRS unik"
-                                    className="w-full rounded-lg border-gray-300 p-3 shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors"
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowUpdateModal(false);
-                                        setNotif(""); // Bersihkan notif saat modal dibatalkan
-                                    }}
-                                    className="px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold transition-colors"
-                                    disabled={loading}
-                                >
-                                    Batal
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-6 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-70"
-                                    disabled={loading || !hasChanges} // Tombol dinonaktifkan jika loading atau tidak ada perubahan
-                                >
-                                    {loading ? "Menyimpan..." : "Simpan Perubahan"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            {/* Render EditAdminRSModal */}
+            <EditAdminRSModal
+                show={showUpdateModal}
+                onClose={handleCloseUpdateModal}
+                adminData={adminDataToEdit}
+                setNotif={setNotif}
+                setNotifType={setNotifType}
+                account={account}
+                fetchAdmins={fetchAdmins}
+            />
 
             {/* Modal Konfirmasi Ubah Status */}
             {showStatusConfirmModal && adminToToggleStatus && (
