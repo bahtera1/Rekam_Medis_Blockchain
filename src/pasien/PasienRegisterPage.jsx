@@ -159,7 +159,7 @@ export default function PasienRegisterPage({
                                 onChange={(e) => setForm((f) => ({ ...f, alamat: e.target.value }))}
                                 rows={3}
                                 required
-                                placeholder="Cth: Jl. Contoh No. 123, Kota Contoh"
+                                placeholder="Cth: Jl. Contoh No. 123, Kota A"
                             />
                         </div>
 
@@ -224,7 +224,7 @@ export default function PasienRegisterPage({
                                 onClick={onLogout}
                                 disabled={isSubmitting}
                             >
-                                Kembali & Logout
+                                Kembali
                             </button>
                             <button
                                 className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-bold shadow-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-opacity-75 text-lg disabled:opacity-60 disabled:cursor-not-allowed"
