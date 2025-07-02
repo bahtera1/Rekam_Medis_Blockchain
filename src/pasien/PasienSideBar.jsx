@@ -29,17 +29,18 @@ const UserIconSolid = ({ className = "w-5 h-5" }) => (
 );
 
 
-export default function PasienSideBar({ activeTab, setActiveTab, onLogout }) {
+// KOREKSI: Ganti activeTab, setActiveTab menjadi activeMenu, setActiveMenu
+export default function PasienSideBar({ activeMenu, setActiveMenu, onLogout }) {
     const [isOpen, setIsOpen] = useState(true);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     const menuItems = [
         { key: "dataDiri", label: "Data Diri", icon: <UserCircleIcon /> },
-        { key: "riwayat", label: "Riwayat Rekam Medis", icon: <ClipboardDocumentCheckIcon /> },
+        { key: "rekamMedisHistory", label: "Riwayat Rekam Medis", icon: <ClipboardDocumentCheckIcon /> }, // Menggunakan key yang sesuai dengan activeMenu di PasienPage
     ];
 
     const handleMenuItemClick = (key) => {
-        setActiveTab(key);
+        setActiveMenu(key); // Pastikan memanggil setActiveMenu
     };
 
     const handleLogoutClick = () => {
@@ -97,7 +98,6 @@ export default function PasienSideBar({ activeTab, setActiveTab, onLogout }) {
                             <span className="block font-extrabold text-2xl tracking-tight text-white drop-shadow-lg">
                                 Menu Pasien
                             </span>
-                            {/* You can add Pasien's name or other info here if available */}
                         </div>
                     ) : (
                         <div className="p-2 bg-teal-600 rounded-lg">
@@ -115,22 +115,22 @@ export default function PasienSideBar({ activeTab, setActiveTab, onLogout }) {
                                 flex items-center py-3 rounded-lg font-medium text-sm transition-all duration-200 ease-in-out
                                 group-hover:shadow-lg
                                 ${isOpen ? "px-4 w-full justify-start" : "px-0 w-12 h-12 justify-center"}
-                                ${activeTab === item.key
+                                ${activeMenu === item.key // Pastikan menggunakan activeMenu
                                     ? "bg-gradient-to-r from-teal-500 to-teal-400 text-white shadow-lg scale-105"
                                     : "text-slate-400 hover:bg-slate-700 hover:text-slate-100"}
                             `}
                             onClick={() => handleMenuItemClick(item.key)}
                             title={isOpen ? "" : item.label}
                         >
-                            <span className={`transition-transform duration-200 ${activeTab === item.key && isOpen ? "scale-110" : ""}`}>
+                            <span className={`transition-transform duration-200 ${activeMenu === item.key && isOpen ? "scale-110" : ""}`}>
                                 {React.cloneElement(item.icon, { className: `w-5 h-5 ${isOpen ? "mr-3" : "mr-0"}` })}
                             </span>
                             {isOpen && (
-                                <span className={`transition-opacity duration-200 ${activeTab === item.key ? "font-semibold" : ""}`}>
+                                <span className={`transition-opacity duration-200 ${activeMenu === item.key ? "font-semibold" : ""}`}>
                                     {item.label}
                                 </span>
                             )}
-                            {!isOpen && activeTab === item.key && (
+                            {!isOpen && activeMenu === item.key && (
                                 <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-teal-400 rounded-r-full" />
                             )}
                         </button>
