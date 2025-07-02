@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 
 // Ikon
-const HomeIcon = ({ className = "w-6 h-6" }) => (
+const ProfileIcon = ({ className = "w-6 h-6" }) => ( // <<< ICON BARU UNTUK PROFIL
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a.75.75 0 011.06 0l8.955 8.955M2.25 12l8.954 8.955a.75.75 0 001.06 0l8.955-8.955M2.25 12h19.5M12 2.25v19.5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a8.966 8.966 0 0115 0H4.501z" />
     </svg>
 );
 
@@ -15,7 +15,7 @@ const DocumentTextIcon = ({ className = "w-6 h-6" }) => (
 
 const ArrowLeftOnRectangleIcon = ({ className = "w-6 h-6" }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
     </svg>
 );
 
@@ -31,8 +31,8 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     const menuItems = [
-        { key: "dashboard", label: "Beranda", icon: <HomeIcon /> },
-        { key: "update", label: "Data Pasien", icon: <DocumentTextIcon /> },
+        { key: "profile", label: "Profil", icon: <ProfileIcon /> }, // <<< DIUBAH: key "dashboard" menjadi "profile", label "Beranda" menjadi "Profil", icon HomeIcon menjadi ProfileIcon
+        { key: "update", label: "Pasien Saya", icon: <DocumentTextIcon /> }, // <<< DIUBAH: label "Data Pasien" menjadi "Pasien Saya"
     ];
 
     const handleMenuItemClick = (key) => {
@@ -60,19 +60,19 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) {
         <>
             <aside className={`
                 flex flex-col bg-gradient-to-b from-slate-800 via-slate-900 to-black text-slate-200
-                shadow-2xl shadow-sky-900/30 
-                ${isOpen ? "px-6" : "px-3 items-center"} 
+                shadow-2xl shadow-blue-900/30 
+                ${isOpen ? "px-6" : "px-3 items-center"}
                 py-8 rounded-r-3xl border-r border-slate-700 font-poppins relative
                 transition-all duration-300 ease-in-out
-                ${isOpen ? "w-64" : "w-20"} 
+                ${isOpen ? "w-64" : "w-20"}
                 min-h-screen group
             `}>
                 <button
                     className={`
-                        absolute top-7 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white 
+                        absolute top-7 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white
                         rounded-full p-1.5 transition-all duration-200 z-20
-                        focus:outline-none focus:ring-2 focus:ring-sky-500
-                        ${isOpen ? "right-[-15px]" : "right-[-15px] transform"} 
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 
+                        ${isOpen ? "right-[-15px]" : "right-[-15px] transform"}
                     `}
                     onClick={() => setIsOpen(!isOpen)}
                     aria-label={isOpen ? "Tutup sidebar" : "Buka sidebar"}
@@ -90,11 +90,11 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) {
                     {isOpen ? (
                         <div className="text-center w-full">
                             <span className="block font-extrabold text-2xl tracking-tight text-white drop-shadow-lg">
-                                Menu Dokter
+                                Beranda Dokter
                             </span>
                         </div>
                     ) : (
-                        <div className="p-2 bg-sky-600 rounded-lg">
+                        <div className="p-2 bg-blue-600 rounded-lg">
                             <HospitalIcon className="w-5 h-5 text-white" />
                         </div>
                     )}
@@ -109,7 +109,7 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) {
                                 group-hover:shadow-lg
                                 ${isOpen ? "px-4 w-full justify-start" : "px-0 w-12 h-12 justify-center"}
                                 ${activeTab === item.key
-                                    ? "bg-gradient-to-r from-sky-500 to-sky-400 text-white shadow-lg scale-105"
+                                    ? "bg-gradient-to-r from-blue-500 to-blue-400 text-white shadow-lg scale-105" // <<< DIUBAH: from-sky-500 to-sky-400 menjadi from-blue-500 to-blue-400
                                     : "text-slate-400 hover:bg-slate-700 hover:text-slate-100"}
                             `}
                             onClick={() => handleMenuItemClick(item.key)}
@@ -124,7 +124,7 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) {
                                 </span>
                             )}
                             {!isOpen && activeTab === item.key && (
-                                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-sky-400 rounded-r-full" />
+                                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-blue-400 rounded-r-full" /> // <<< DIUBAH: bg-sky-400 menjadi bg-blue-400
                             )}
                         </button>
                     ))}
@@ -139,10 +139,10 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) {
                             text-red-400 hover:bg-red-700/20 hover:text-red-300
                         `}
                         onClick={handleLogoutClick}
-                        title={isOpen ? "" : "Keluar"}
+                        title={isOpen ? "" : "Logout"}
                     >
                         <ArrowLeftOnRectangleIcon className={`w-5 h-5 ${isOpen ? "mr-3" : "mr-0"}`} />
-                        {isOpen && <span>Keluar</span>}
+                        {isOpen && <span>Logout</span>}
                     </button>
                 </div>
             </aside>
@@ -150,9 +150,9 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) {
             {showConfirmModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-700">
-                        <h3 className="text-xl font-semibold text-white mb-6 text-center">Konfirmasi Keluar</h3>
+                        <h3 className="text-xl font-semibold text-white mb-6 text-center">Konfirmasi Logout</h3>
                         <p className="text-slate-300 mb-8 text-center">
-                            Apakah Anda yakin ingin keluar dari sesi ini?
+                            Apakah Anda yakin ingin Logout dari sesi ini?
                         </p>
                         <div className="flex flex-col sm:flex-row justify-center gap-4">
                             <button
@@ -165,7 +165,7 @@ export default function DokterSideBar({ onSelect, activeTab, onLogout }) {
                                 onClick={confirmLogout}
                                 className="w-full sm:w-auto px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors duration-150 order-1 sm:order-2"
                             >
-                                Ya, Keluar
+                                Ya, Logout
                             </button>
                         </div>
                     </div>

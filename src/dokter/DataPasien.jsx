@@ -40,9 +40,9 @@ const IconBloodType = () => (
 
 // Icon baru untuk ID pasien
 const IconIDPasien = () => (
-    <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zM5 9a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 4a1 1 0 000 2h6a1 1 0 000-2H6z" clipRule="evenodd" />
-    </svg>
+  <svg className="w-5 h-5 mr-2.5 text-blue-600 inline" fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zM5 9a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 4a1 1 0 000 2h6a1 1 0 000-2H6z" clipRule="evenodd" />
+  </svg>
 );
 
 
@@ -59,9 +59,9 @@ const DetailItem = ({ icon, label, value }) => (
 
 // Fungsi pembantu untuk memotong teks
 const truncateText = (text, maxLength) => {
-    if (!text) return { display: '-', truncated: false };
-    if (text.length <= maxLength) return { display: text, truncated: false };
-    return { display: text.substring(0, maxLength) + '...', truncated: true };
+  if (!text) return { display: '-', truncated: false };
+  if (text.length <= maxLength) return { display: text, truncated: false };
+  return { display: text.substring(0, maxLength) + '...', truncated: true };
 };
 
 
@@ -165,14 +165,14 @@ export default function DataPasien({ account, assignedPatients }) {
       for (const id of rmIds) {
         const rmData = await contract.methods.getRekamMedis(id).call();
         // RekamMedisData struct:
-        // uint id;                 // Index 0
-        // address pasien;          // Index 1
-        // string diagnosa;         // Index 2
-        // string foto;             // Index 3
-        // string catatan;          // Index 4
-        // address pembuat;         // Index 5 (Ini bergeser dari 6)
+        // uint id;              // Index 0
+        // address pasien;       // Index 1
+        // string diagnosa;       // Index 2
+        // string foto;           // Index 3
+        // string catatan;        // Index 4
+        // address pembuat;        // Index 5 (Ini bergeser dari 6)
         // uint256 timestampPembuatan; // Index 6 (Ini bergeser dari 7)
-        // string tipeRekamMedis;   // Index 7 (Ini bergeser dari 8)
+        // string tipeRekamMedis; // Index 7 (Ini bergeser dari 8)
 
         const actorName = await getActorName(rmData[5]); // Updated index: pembuat is now at index 5
 
@@ -264,11 +264,11 @@ export default function DataPasien({ account, assignedPatients }) {
 
   const filteredPatients = search
     ? patientInfos.filter(
-        (p) =>
-          (p.nama && p.nama.toLowerCase().includes(search.toLowerCase())) ||
-          (p.ID && p.ID.toLowerCase().includes(search.toLowerCase())) || // Tambahkan pencarian berdasarkan ID
-          (p.address && p.address.toLowerCase().includes(search.toLowerCase()))
-      )
+      (p) =>
+        (p.nama && p.nama.toLowerCase().includes(search.toLowerCase())) ||
+        (p.ID && p.ID.toLowerCase().includes(search.toLowerCase())) || // Tambahkan pencarian berdasarkan ID
+        (p.address && p.address.toLowerCase().includes(search.toLowerCase()))
+    )
     : patientInfos;
 
   const formatTimestamp = (ts) => {
@@ -336,11 +336,11 @@ export default function DataPasien({ account, assignedPatients }) {
     // Sesuaikan startPage dan endPage agar selalu ada 5 tombol jika totalPages memungkinkan
     // Prioritaskan 5 tombol di sekitar halaman aktif
     if (endPage - startPage + 1 < 5) {
-        if (startPage === 1) { // Jika di awal, perluas ke kanan
-            endPage = Math.min(totalPages, 5);
-        } else if (endPage === totalPages) { // Jika di akhir, perluas ke kiri
-            startPage = Math.max(1, totalPages - 4);
-        }
+      if (startPage === 1) { // Jika di awal, perluas ke kanan
+        endPage = Math.min(totalPages, 5);
+      } else if (endPage === totalPages) { // Jika di akhir, perluas ke kiri
+        startPage = Math.max(1, totalPages - 4);
+      }
     }
 
 
@@ -399,10 +399,13 @@ export default function DataPasien({ account, assignedPatients }) {
 
 
   return (
-    <div className="w-full p-4 sm:p-6 md:p-8 ">
+    <div className="w-full p-1 sm:p-1 md:p-1 ">
       {!selectedPatient ? (
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-blue-700 border-b border-gray-300 pb-4">Pilih Pasien</h2>
+        <div className="max-w-full mx-auto"> {/* <<< DIUBAH: max-w-8xl menjadi max-w-full */}
+          {/* Judul "PASIEN SAYA" - Diperbarui agar konsisten */}
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-8 border-b pb-4"> {/* <<< DIUBAH FONT-SIZE, FONT-WEIGHT, TEXT-COLOR, MB */}
+            PASIEN SAYA
+          </h2>
           <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row gap-4 items-center">
             <div className="relative w-full sm:max-w-lg">
               <span className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -416,17 +419,18 @@ export default function DataPasien({ account, assignedPatients }) {
               />
             </div>
           </div>
-          {loadingData ? <p className="text-center text-gray-600 py-10 text-lg">Memuat daftar pasien...</p> :
+          {loadingData ? <p className="text-center text-slate-600 py-10 text-lg">Memuat daftar pasien...</p> : // <<< DIUBAH TEXT-COLOR
             filteredPatients.length === 0 ? (
               <div className="bg-white rounded-xl shadow-md p-10 text-center">
-                <p className="italic text-gray-600 text-lg">
+                <p className="italic text-slate-600 text-lg"> {/* <<< DIUBAH TEXT-COLOR */}
                   {search ? "Tidak ada pasien yang cocok dengan pencarian Anda." : "Tidak ada pasien yang ditugaskan kepada Anda."}
                 </p>
               </div>
             ) : (
               <div className="overflow-x-auto bg-white rounded-xl shadow-lg">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-blue-600 text-white">
+                  {/* Header Tabel - Diperbarui agar konsisten */}
+                  <thead className="bg-blue-600 text-white"> {/* <<< DIUBAH BG DAN TEXT COLOR */}
                     <tr>
                       <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">No.</th>
                       <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">ID Pasien</th>
@@ -458,20 +462,25 @@ export default function DataPasien({ account, assignedPatients }) {
             )}
         </div>
       ) : (
-        <div className="animate-fadeIn max-w-7xl mx-auto p-6 sm:p-8 md:p-10">
-          <button
-            onClick={() => setSelectedPatient(null)}
-            className="mb-8 inline-flex items-center bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-          >
-            <IconArrowLeft /> Kembali ke Daftar Pasien
-          </button>
+        <div className="animate-fadeIn max-w-full mx-auto p-6 sm:p-8 md:p-10">
+          {/* <<< AWAL PERUBAHAN UNTUK TOMBOL KEMBALI */}
+          <div className="w-full max-w-9xl mx-auto mb-8"> {/* Container untuk tombol kembali, sejajarkan dengan card di bawah */}
+            <button
+              onClick={() => setSelectedPatient(null)}
+              className="inline-flex items-center bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+            >
+              <IconArrowLeft /> Kembali ke Daftar Pasien
+            </button>
+          </div>
+          {/* <<< AKHIR PERUBAHAN UNTUK TOMBOL KEMBALI */}
 
           {pasienData && (
-            <div className="mb-10 sm:mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-blue-700 border-b border-gray-300 pb-5">
+            <div className="mb-10 sm:mb-12 bg-white rounded-xl shadow-xl p-6 sm:p-8">
+              {/* Judul "Detail Pasien" - Diperbarui agar konsisten */}
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 border-b pb-5">
                 Detail Pasien: <span className="text-blue-800">{pasienData.nama}</span>
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2"> {/* gap-x-6 untuk kerapian */}
                 <DetailItem icon={<IconUser />} label="Nama Lengkap" value={pasienData.nama} />
                 <DetailItem icon={<IconIDPasien />} label="ID Pasien" value={pasienData.ID} />
                 <DetailItem icon={<IconCalendar />} label="Tanggal Lahir" value={pasienData.tanggalLahir} />
@@ -484,9 +493,12 @@ export default function DataPasien({ account, assignedPatients }) {
             </div>
           )}
 
-          <div>
+          <div className="mt-6 bg-white rounded-xl shadow-xl p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row items-center justify-between mb-6 pb-5 border-b border-gray-300">
-              <h3 className="font-bold text-2xl sm:text-3xl text-blue-700 mb-4 sm:mb-0">Riwayat Rekam Medis</h3>
+              {/* Judul "Riwayat Rekam Medis" - Diperbarui agar konsisten */}
+              <h3 className="font-semibold text-2xl sm:text-2xl text-slate-800 mb-4 sm:mb-0">
+                Riwayat Rekam Medis
+              </h3>
               <button
                 onClick={handleOpenModal}
                 className="inline-flex items-center bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold text-sm transition shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
@@ -520,15 +532,16 @@ export default function DataPasien({ account, assignedPatients }) {
             {/* --- Akhir Filter dan Search --- */}
 
             {loadingHistory ? (
-              <p className="italic text-gray-600 text-center py-10 text-lg">Memuat riwayat rekam medis...</p>
+              <p className="italic text-slate-600 text-center py-10 text-lg">Memuat riwayat rekam medis...</p>
             ) : getFilteredAndSortedHistory.length === 0 ? (
-              <p className="italic text-gray-600 text-center py-10 text-lg">
+              <p className="italic text-slate-600 text-center py-10 text-lg">
                 {historySearchTerm ? "Tidak ada rekam medis yang cocok dengan pencarian." : "Belum ada data rekam medis untuk pasien ini."}
               </p>
             ) : (
               <div className="overflow-x-auto border border-gray-200 rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-blue-600 text-white">
+                  {/* Header Tabel - Diperbarui agar konsisten */}
+                  <thead className="bg-slate-100 text-slate-600">
                     <tr>
                       <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">No.</th>
                       {/* Kolom ID RM dihapus sesuai permintaan */}
@@ -563,21 +576,21 @@ export default function DataPasien({ account, assignedPatients }) {
                             )}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600 min-w-[250px] overflow-hidden whitespace-normal" // Changed to normal to allow wrapping in modal
-                              title={rm.catatan}> {/* Catatan lengkap tetap muncul saat hover */}
+                            title={rm.catatan}> {/* Catatan lengkap tetap muncul saat hover */}
                             {truncatedNote.display} {/* Tampilkan teks yang sudah dipotong */}
                             {truncatedNote.truncated && (
-                                <button
-                                    onClick={() => handleOpenNoteModal(rm.catatan)}
-                                    className="text-blue-600 hover:text-blue-800 text-xs ml-1 font-semibold underline focus:outline-none"
-                                >
-                                    selengkapnya
-                                </button>
+                              <button
+                                onClick={() => handleOpenNoteModal(rm.catatan)}
+                                className="text-blue-600 hover:text-blue-800 text-xs ml-1 font-semibold underline focus:outline-none"
+                              >
+                                selengkapnya
+                              </button>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" title={rm.pembuat || ''}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500" title={rm.pembuat || ''}>
                             {actorDisplay}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 italic">
+                          <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 italic">
                             {timestampDisplay}
                           </td>
                         </tr>
@@ -588,13 +601,13 @@ export default function DataPasien({ account, assignedPatients }) {
               </div>
             )}
 
-            {/* --- Pagination Controls --- */}
+            {/* --- Pagination Controls - Diperbarui agar konsisten --- */}
             {totalPages > 0 && (
               <div className="flex justify-center items-center mt-6">
                 <button
                   onClick={() => paginate(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 mx-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="px-4 py-2 mx-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
                 >
                   Sebelum
                 </button>
@@ -602,7 +615,7 @@ export default function DataPasien({ account, assignedPatients }) {
                 <button
                   onClick={() => paginate(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 mx-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="px-4 py-2 mx-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
                 >
                   Sesudah
                 </button>

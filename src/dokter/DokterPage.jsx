@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react"; // <<< DIUBAH: useCallback, useMemo dihapus
 import DokterSideBar from "./DokterSideBar";
-import DokterDashboard from "./DokterDashboard";
+import DokterProfile from "./DokterProfile";
 import DataPasien from "./DataPasien";
 import contract from "../contract"; // Pastikan path ini benar
 
 export default function DokterPage({ account, onLogout }) {
     const [assignedPatients, setAssignedPatients] = useState([]);
     const [dokterProfile, setDokterProfile] = useState(null);
-    const [view, setView] = useState("dashboard");
+    const [view, setView] = useState("profile");
     const [isLoading, setIsLoading] = useState(true);
     const [fetchError, setFetchError] = useState(null);
 
@@ -109,17 +109,17 @@ export default function DokterPage({ account, onLogout }) {
             if (window.confirm("Apakah Anda yakin ingin logout?")) {
                 onLogout();
             }
-        } else if (tab === "update") {
+        } else if (tab === "update") { // Ini adalah tab "Pasien Saya"
             if (!dokterProfile) {
                 alert("Data profil dokter belum termuat atau tidak valid.");
                 return;
             }
             if (!dokterProfile.aktif) {
-                alert("Akun dokter Anda saat ini tidak aktif. Anda tidak dapat mengupdate data pasien.");
+                alert("Akun dokter Anda saat ini tidak aktif. Anda tidak dapat mengakses data pasien."); // Pesan disesuaikan
                 return;
             }
             setView(tab);
-        } else {
+        } else { // Ini adalah tab "Profil"
             setView(tab);
         }
     };
@@ -184,8 +184,8 @@ export default function DokterPage({ account, onLogout }) {
                 onLogout={onLogout}
             />
             <main className="flex-1 px-4 sm:px-8 py-8 sm:py-10 transition-all duration-300 overflow-y-auto">
-                {view === "dashboard" && dokterProfile && (
-                    <DokterDashboard
+                {view === "profile" && dokterProfile && (
+                    <DokterProfile
                         assignedPatients={assignedPatients} // Mengirim pasien yang sudah difilter
                         dokterProfile={dokterProfile}
                     />

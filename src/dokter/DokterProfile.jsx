@@ -14,21 +14,22 @@ const IconLicense = () => (
 );
 
 
-export default function DokterDashboard({ assignedPatients, dokterProfile }) {
+export default function DokterProfile({ assignedPatients, dokterProfile }) { // <<< DIUBAH NAMA KOMPONEN
     return (
         <section className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-10 animate-fadeIn">
-            <h2 className="text-3xl font-bold text-blue-700 mb-8 border-b pb-4">
-                Beranda Dokter
+            {/* Judul Halaman - Diubah agar konsisten */}
+            <h2 className="text-3xl font-bold text-gray-800 mb-8 border-b pb-4">
+                PROFIL SAYA
             </h2>
 
             {dokterProfile && (
                 <div className="mb-8 p-6 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md border border-blue-100">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex-1 mb-4 sm:mb-0">
-                            <h3 className="text-2xl font-semibold text-blue-800 mb-2">
+                            <h3 className="text-2xl font-semibold text-slate-800 mb-2"> {/* <<< DIUBAH TEXT-COLOR */}
                                 {dokterProfile.nama}
                             </h3>
-                            <div className="space-y-1.5 text-gray-700">
+                            <div className="space-y-1.5 text-slate-700"> {/* <<< DIUBAH TEXT-COLOR */}
                                 <p className="flex items-center">
                                     <IconStethoscope />
                                     Spesialisasi: <span className="font-semibold ml-1">{dokterProfile.spesialisasi}</span>
@@ -53,17 +54,18 @@ export default function DokterDashboard({ assignedPatients, dokterProfile }) {
             )}
 
             <div className="mt-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Ringkasan Pasien</h3>
+                {/* Judul Ringkasan Pasien - Diperbarui agar konsisten */}
+                <h3 className="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3"> {/* <<< DIUBAH FONT-SIZE, FONT-WEIGHT, TEXT-COLOR, ADDED BORDER */}
+                    Ringkasan Pasien
+                </h3>
                 <div className="bg-gray-50 p-6 rounded-xl shadow border border-gray-200 text-center sm:text-left">
-                    <p className="text-gray-600 text-lg mb-2"> {/* Ditambah mb-2 */}
+                    <p className="text-slate-600 text-lg mb-2"> {/* <<< DIUBAH TEXT-COLOR */}
                         Total Pasien yang Anda Tangani:
                     </p>
-                    {/* Ukuran angka pasien diperkecil dari text-5xl menjadi text-4xl */}
-                    <p className="text-4xl font-extrabold text-blue-600 mt-1 mb-2"> {/* Ditambah mb-2 */}
+                    <p className="text-4xl font-extrabold text-blue-600 mt-1 mb-2">
                         {assignedPatients.length}
                     </p>
-                    {/* Keterangan ditambahkan di bawah angka */}
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-sm text-slate-500 mt-2"> {/* <<< DIUBAH TEXT-COLOR */}
                         Ini adalah jumlah pasien aktif yang anda tangani.
                     </p>
                 </div>
