@@ -211,15 +211,15 @@ function App() {
             {/* Left Section: Branding/Title */}
             <div className="card-left flex-1 p-10 text-white bg-gradient-to-br from-blue-800/70 to-indigo-900/70 backdrop-blur-md flex flex-col justify-center text-center sm:text-left">
               <h1 className="text-xl sm:text-2xl uppercase tracking-wider mb-3 font-light">Sistem Informasi</h1>
-              <h2 className="text-4xl sm:text-5xl font-extrabold leading-tight">Rekam Medis Digital</h2>
+              <h2 className="text-4xl sm:text-5xl font-extrabold leading-tight">Rekam Medis Elektronik</h2>
               <p className="mt-4 text-blue-100 text-sm sm:text-base">
-                Platform terdesentralisasi untuk pengelolaan rekam medis yang aman dan transparan.
+                Platform terdesentralisasi untuk pengelolaan rekam medis.
               </p>
             </div>
 
             {/* Right Section: Login Button */}
             <div className="card-right flex-1 bg-white p-10 flex flex-col justify-center items-center">
-              <h3 className="text-2xl font-bold text-gray-800 mb-6">Masuk ke Dashboard</h3>
+              <h3 className="text-2xl font-bold text-gray-800 mb-6">Masuk ke Beranda</h3>
               {accountChangedMessage && ( // Tampilkan pesan notifikasi jika ada
                 <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded" role="alert">
                   <p className="font-bold">Perhatian!</p>
@@ -231,7 +231,7 @@ function App() {
                 onClick={loginWithMetaMask}
               >
                 <div className="flex items-center space-x-2">
-                  <span>LOGIN DENGAN</span> {/* Teks disesuaikan */}
+                  <span>HUBUNGKAN DENGAN</span> {/* Teks disesuaikan */}
                   <span className="w-20 h-20 bg-[url('./logo-metamask.png')] bg-contain bg-no-repeat bg-center"></span>
                 </div>
               </button>
