@@ -97,7 +97,7 @@ export default function AddAdminRSPage({ account, fetchAdmins, setNotif, setNoti
                             <ArrowLeftIcon className="w-6 h-6" />
                         </button>
                         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                            Registrasi Rumah Sakit Baru
+                            Tambah Rumah Sakit Baru
                         </h1>
                     </div>
                 </div>
