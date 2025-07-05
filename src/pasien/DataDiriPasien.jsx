@@ -26,15 +26,6 @@ const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
   </div>
 );
 
-// Fungsi formatTimestamp tidak lagi diperlukan di sini
-// const formatTimestamp = (ts) => {
-//     if (typeof ts === 'bigint') {
-//         ts = Number(ts);
-//     }
-//     if (!ts || ts === 0 || isNaN(ts)) return "-";
-//     const date = new Date(ts * 1000);
-//     return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
-// };
 
 export default function DataDiriPasien({
   dataDiri,
