@@ -11,13 +11,6 @@ const IconBloodType = () => <span className="mr-2 text-red-600">🩸</span>;
 const IconHospital = () => <span className="mr-2 text-blue-600">🏥</span>;
 const IconEdit = () => <span className="mr-2">✏️</span>;
 const IconId = () => <span className="mr-2 text-blue-600">🆔</span>;
-// Icon-icon rekam medis tidak lagi diperlukan di sini
-// const IconDiagnosa = () => <span className="mr-2 text-blue-600">📝</span>;
-// const IconCatatan = () => <span className="mr-2 text-blue-600">🗒️</span>;
-// const IconFoto = () => <span className="mr-2 text-blue-600">📸</span>;
-// const IconMedicalType = () => <span className="mr-2 text-blue-600">🩺</span>;
-// const IconTime = () => <span className="mr-2 text-blue-600">⏱️</span>;
-// const IconDoctor = () => <span className="mr-2 text-blue-600">👨‍⚕️</span>;
 
 // Komponen DetailItem yang diperbaiki
 const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
