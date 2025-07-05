@@ -4,7 +4,6 @@ import DataDiriPasien from "./DataDiriPasien";
 import RekamMedisHistory from "./RekamMedisHistory";
 import PasienRegisterPage from "./PasienRegisterPage";
 import contract from "../contract";
-import web3 from "../web3";
 
 export default function PasienPage({ account, onLogout }) {
   const [activeMenu, setActiveMenu] = useState("dataDiri"); // Default ke dataDiri
@@ -15,6 +14,7 @@ export default function PasienPage({ account, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [listAdminRS, setListAdminRS] = useState([]);
   const [nextPatientId, setNextPatientId] = useState(''); // State baru untuk ID pasien yang di-generate
+  const [error, setError] = useState(null); // State untuk menangani error
 
   // State form untuk registrasi / update data diri
   const [form, setForm] = useState({
@@ -34,7 +34,7 @@ export default function PasienPage({ account, onLogout }) {
   const [actorInfoCache, setActorInfoCache] = useState({});
 
   // Fungsi untuk mendapatkan nama aktor dan nama rumah sakit terkait dari alamat
-  // Ini mengintegrasikan logika getActorName dan getHospitalNameForDisplay
+  // Fungsi ini tetap di sini seperti kode asli Anda.
   const getActorDetails = useCallback(async (actorAddress) => {
     if (!actorAddress || actorAddress === "0x0000000000000000000000000000000000000000") {
       return { name: "N/A", hospitalName: "N/A", role: "Unknown" };
@@ -84,7 +84,7 @@ export default function PasienPage({ account, onLogout }) {
           break;
         case "AdminRS":
         case "InactiveAdminRS":
-          const adminInfo = await contract.methods.dataAdmin(actorAddress).call();
+          const adminInfo = await contract.methods.getAdminRS(actorAddress).call(); // Menggunakan getAdminRS, bukan dataAdmin
           name = adminInfo[0]; // namaRumahSakit Admin RS
           hospitalName = adminInfo[0]; // Untuk Admin RS, nama RS adalah dirinya sendiri
           break;
@@ -107,39 +107,10 @@ export default function PasienPage({ account, onLogout }) {
     return details;
   }, [actorInfoCache]); // actorInfoCache sebagai dependency
 
-  // Fetch daftar Admin RS yang aktif
-  const fetchAdminRSList = useCallback(async () => {
-    try {
-      const addresses = await contract.methods.getAllAdminRSAddresses().call();
-      const adminRSData = await Promise.all(
-        addresses.map(async (addr) => {
-          try {
-            const data = await contract.methods.getAdminRS(addr).call();
-            if (data.aktif) {
-              return {
-                address: addr,
-                nama: data.namaRumahSakit,
-                alamat: data.alamatRumahSakit,
-                kota: data.kota,
-                IDRS: data.IDRS,
-              };
-            }
-            return null;
-          } catch (error) {
-            console.error(`Error fetching AdminRS data for ${addr}:`, error);
-            return null;
-          }
-        })
-      );
-      setListAdminRS(adminRSData.filter(Boolean));
-    } catch (error) {
-      console.error("Error fetching admin RS list:", error);
-    }
-  }, []); // Tidak ada perubahan besar di sini
-
   // Fungsi untuk memuat data diri pasien dan rekam medis
   const loadPasienData = useCallback(async () => {
     setLoading(true);
+    setError(null); // Reset error
     try {
       const registered = await contract.methods.isPasien(account).call();
       setIsRegistered(registered);
@@ -171,16 +142,16 @@ export default function PasienPage({ account, onLogout }) {
           adminRS: pasienData[8],
         });
 
-        // Fetch rekam medis terbaru
         const rmIds = await contract.methods.getRekamMedisIdsByPasien(account).call();
         setRekamMedisIds(rmIds);
 
         if (rmIds.length > 0) {
+          // Ambil ID rekam medis terakhir (terbaru)
           const latestRmId = rmIds[rmIds.length - 1];
           const latestRmData = await contract.methods.getRekamMedis(latestRmId).call();
 
           const pembuatAddress = latestRmData[5];
-          // GUNAKAN getActorDetails YANG BARU DI SINI
+          // GUNAKAN getActorDetails YANG SAMA DI SINI
           const { name: pembuatNama, hospitalName: pembuatRSNama } = await getActorDetails(pembuatAddress);
 
           setRekamMedisTerbaru({
@@ -192,7 +163,7 @@ export default function PasienPage({ account, onLogout }) {
             pembuat: latestRmData[5], // Tetap simpan alamat aslinya jika perlu
             pembuatNama: pembuatNama, // Nama aktor yang sudah diformat
             pembuatRSNama: pembuatRSNama, // Nama RS pembuat rekam medis
-            timestampPembuatan: latestRmData[6],
+            timestampPembuatan: Number(latestRmData[6]),
             tipeRekamMedis: latestRmData[7],
           });
         } else {
@@ -200,13 +171,17 @@ export default function PasienPage({ account, onLogout }) {
         }
         setActiveMenu("dataDiri"); // Set menu default ke dataDiri setelah berhasil load
       } else {
-        // Jika tidak terdaftar, pastikan data kosong
         setDataDiri(null);
         setRekamMedisTerbaru(null);
         setRekamMedisIds([]);
+        setForm({
+          nama: "", ID: "", golonganDarah: "", tanggalLahir: "",
+          gender: "", alamat: "", noTelepon: "", email: "", adminRS: "",
+        });
       }
     } catch (error) {
       console.error("Error loading pasien data:", error);
+      setError("Gagal memuat data pasien. Pastikan Anda terhubung ke jaringan blockchain yang benar.");
       setIsRegistered(false);
       setDataDiri(null);
       setRekamMedisTerbaru(null);
@@ -215,6 +190,37 @@ export default function PasienPage({ account, onLogout }) {
       setLoading(false);
     }
   }, [account, getActorDetails]); // getActorDetails ditambahkan sebagai dependency
+
+  // Fetch daftar Admin RS yang aktif
+  const fetchAdminRSList = useCallback(async () => {
+    try {
+      const addresses = await contract.methods.getAllAdminRSAddresses().call();
+      const adminRSData = await Promise.all(
+        addresses.map(async (addr) => {
+          try {
+            const data = await contract.methods.getAdminRS(addr).call();
+            if (data.aktif) {
+              return {
+                address: addr,
+                nama: data.namaRumahSakit,
+                alamat: data.alamatRumahSakit,
+                kota: data.kota,
+                IDRS: data.IDRS,
+              };
+            }
+            return null;
+          } catch (error) {
+            console.error(`Error fetching AdminRS data for ${addr}:`, error);
+            return null;
+          }
+        })
+      );
+      setListAdminRS(adminRSData.filter(Boolean));
+    } catch (error) {
+      console.error("Error fetching admin RS list:", error);
+      setError("Gagal memuat daftar Rumah Sakit. Coba refresh halaman.");
+    }
+  }, []); // Tidak ada perubahan besar di sini
 
   // Fungsi untuk meng-generate ID pasien berikutnya
   const generateNextPatientId = useCallback(async () => {
@@ -225,6 +231,7 @@ export default function PasienPage({ account, onLogout }) {
       setNextPatientId(formattedId);
     } catch (error) {
       console.error("Error generating next patient ID:", error);
+      setError("Gagal meng-generate ID Pasien otomatis.");
       setNextPatientId("P-ERR"); // Fallback jika gagal generate
     }
   }, []);
@@ -255,8 +262,13 @@ export default function PasienPage({ account, onLogout }) {
       await loadPasienData(); // Muat ulang data pasien setelah pendaftaran
     } catch (error) {
       console.error("Error self-registering patient:", error);
-      alert("Gagal mendaftar pasien. Pastikan ID unik dan RS valid. Lihat konsol untuk detail.");
-      throw error;
+      let errorMessage = "Gagal mendaftar pasien. Pastikan ID unik dan RS valid. Lihat konsol untuk detail.";
+      if (error.message.includes("Pasien already registered")) {
+        errorMessage = "Anda sudah terdaftar sebagai pasien.";
+      } else if (error.message.includes("ID already taken")) {
+        errorMessage = "ID pasien sudah digunakan. Coba refresh halaman untuk ID baru.";
+      }
+      alert(errorMessage);
     }
   }, [account, form, loadPasienData, nextPatientId]);
 
@@ -310,8 +322,17 @@ export default function PasienPage({ account, onLogout }) {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen text-blue-700 text-xl">
+      <div className="flex justify-center items-center h-screen text-blue-700 text-xl font-semibold">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mr-3"></div>
         Memuat data pasien...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-red-50 border-l-4 border-red-400 p-4 text-red-700 font-medium">
+        <span className="text-2xl mr-2">🚫</span> {error}
       </div>
     );
   }
@@ -331,22 +352,26 @@ export default function PasienPage({ account, onLogout }) {
   }
 
   return (
-    <div className="flex">
+    <div className="flex min-h-screen bg-gray-50">
       <PasienSideBar setActiveMenu={setActiveMenu} activeMenu={activeMenu} onLogout={onLogout} />
       <div className="flex-1 p-8">
         {activeMenu === "dataDiri" && dataDiri ? (
           <DataDiriPasien
             dataDiri={dataDiri}
-            rekamMedisTerbaru={rekamMedisTerbaru}
+            // rekamMedisTerbaru tidak lagi diteruskan ke DataDiriPasien
             listAdminRS={listAdminRS}
             updatePasienData={updatePasienData}
             updatePasienRumahSakit={updatePasienRumahSakit}
           />
         ) : activeMenu === "rekamMedisHistory" ? (
-          <RekamMedisHistory rekamMedisIds={rekamMedisIds} />
+          <RekamMedisHistory
+            rekamMedisIds={rekamMedisIds}
+            rekamMedisTerbaru={rekamMedisTerbaru} // rekamMedisTerbaru diteruskan ke RekamMedisHistory
+          // Fungsi getActorDetails dan cache-nya tetap di RekamMedisHistory
+          />
         ) : (
-          <div className="flex justify-center items-center min-h-screen-70vh text-gray-500">
-            Pilih menu dari sidebar atau data sedang dimuat...
+          <div className="flex justify-center items-center min-h-[70vh] text-gray-500 text-lg italic bg-white p-6 rounded-lg shadow-md">
+            <span className="text-4xl mr-3">✨</span> Pilih menu dari sidebar untuk melihat informasi Anda.
           </div>
         )}
       </div>

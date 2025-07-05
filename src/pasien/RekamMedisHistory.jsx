@@ -1,7 +1,41 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useDeferredValue } from "react";
 import contract from "../contract";
 
-export default function RekamMedisHistory({ rekamMedisIds }) {
+// Komponen untuk ikon (menggunakan karakter Unicode)
+const IconId = () => <span className="mr-2 text-blue-600">🆔</span>;
+const IconDiagnosa = () => <span className="mr-2 text-blue-600">📝</span>;
+const IconCatatan = () => <span className="mr-2 text-blue-600">🗒️</span>;
+const IconFoto = () => <span className="mr-2 text-blue-600">📸</span>;
+const IconMedicalType = () => <span className="mr-2 text-blue-600">🩺</span>;
+const IconTime = () => <span className="mr-2 text-blue-600">⏱️</span>;
+const IconDoctor = () => <span className="mr-2 text-blue-600">👨‍⚕️</span>;
+const IconHospital = () => <span className="mr-2 text-blue-600">🏥</span>;
+
+// Komponen DetailItem yang diperbaiki
+const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
+    <div className={`${colSpan === 2 ? 'md:col-span-2' : ''}`}>
+        <div className="flex items-start">
+            <span className="font-medium text-gray-700 min-w-0 flex items-center mr-3">
+                {icon} {label}:
+            </span>
+            <span className="text-gray-900 break-words flex-1">
+                {value || "-"}
+            </span>
+        </div>
+    </div>
+);
+
+// Fungsi formatTimestamp
+const formatTimestamp = (ts) => {
+    if (typeof ts === 'bigint') {
+        ts = Number(ts);
+    }
+    if (!ts || ts === 0 || isNaN(ts)) return "-";
+    const date = new Date(ts * 1000);
+    return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+};
+
+export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) { // rekamMedisTerbaru diterima sebagai prop
     const [allRecordsFlat, setAllRecordsFlat] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -11,6 +45,10 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
     const [recordsPerPage] = useState(10);
     const [sortOrder, setSortOrder] = useState("desc");
 
+    const deferredSearch = useDeferredValue(search);
+    const deferredSortOrder = useDeferredValue(sortOrder);
+
+    // Fungsi getActorDetails tetap di sini seperti kode asli Anda
     const getActorDetails = useCallback(async (actorAddress) => {
         if (!actorAddress || actorAddress === "0x0000000000000000000000000000000000000000") {
             return { name: "N/A", hospitalName: "N/A", role: "Unknown" };
@@ -59,7 +97,7 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                     break;
                 case "AdminRS":
                 case "InactiveAdminRS":
-                    const adminInfo = await contract.methods.dataAdmin(actorAddress).call();
+                    const adminInfo = await contract.methods.getAdminRS(actorAddress).call(); // Menggunakan getAdminRS, bukan dataAdmin
                     name = adminInfo[0];
                     hospitalName = adminInfo[0];
                     break;
@@ -82,6 +120,11 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
         return details;
     }, [actorInfoCache]);
 
+    /**
+     * useEffect hook untuk mengambil riwayat rekam medis saat komponen dimuat
+     * atau ketika 'rekamMedisIds' atau 'sortOrder' berubah.
+     * Menggunakan cleanup function untuk mencegah update state pada komponen yang sudah tidak mounted.
+     */
     useEffect(() => {
         let isMounted = true;
         const MIN_LOADING_TIME = 300;
@@ -102,12 +145,13 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
             const startTime = Date.now();
 
             try {
-                let tempAllRecords = [];
+                const tempAllRecords = [];
 
                 for (const id of rekamMedisIds) {
                     const rmData = await contract.methods.getRekamMedis(id).call();
 
                     const pembuatAddress = rmData[5];
+                    // Gunakan fungsi getActorDetails yang ada di sini
                     const { name: actorName, hospitalName: rmHospitalName } = await getActorDetails(pembuatAddress);
 
                     tempAllRecords.push({
@@ -124,7 +168,7 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
                 }
 
                 const sortedRecords = tempAllRecords.sort((a, b) =>
-                    sortOrder === "desc" ? b.timestamp - a.timestamp : a.timestamp - b.timestamp
+                    deferredSortOrder === "desc" ? b.timestamp - a.timestamp : a.timestamp - b.timestamp
                 );
 
                 sortedRecords.forEach((record, idx) => {
@@ -157,38 +201,20 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
         return () => {
             isMounted = false;
         };
-    }, [rekamMedisIds, getActorDetails, sortOrder]);
-
-    const formatTimestamp = (ts) => {
-        if (typeof ts === "bigint") {
-            ts = Number(ts);
-        }
-        if (!ts || ts === 0 || isNaN(ts)) return "-";
-        const date = new Date(ts * 1000);
-        return date.toLocaleString("id-ID", {
-            timeZone: "Asia/Jakarta",
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: false
-        });
-    };
+    }, [rekamMedisIds, getActorDetails, deferredSortOrder]);
 
     const filteredAndSortedRecords = useMemo(() => {
         const filtered = allRecordsFlat.filter(
             (item) =>
-                item.diagnosa.toLowerCase().includes(search.toLowerCase()) ||
-                item.catatan.toLowerCase().includes(search.toLowerCase()) ||
-                item.pembuat.toLowerCase().includes(search.toLowerCase()) ||
-                (item.tipeRekamMedis && item.tipeRekamMedis.toLowerCase().includes(search.toLowerCase())) ||
-                (item.rumahSakitPembuatRM && item.rumahSakitPembuatRM.toLowerCase().includes(search.toLowerCase())) ||
-                formatTimestamp(item.timestamp).toLowerCase().includes(search.toLowerCase())
+                item.diagnosa.toLowerCase().includes(deferredSearch.toLowerCase()) ||
+                item.catatan.toLowerCase().includes(deferredSearch.toLowerCase()) ||
+                item.pembuat.toLowerCase().includes(deferredSearch.toLowerCase()) ||
+                (item.tipeRekamMedis && item.tipeRekamMedis.toLowerCase().includes(deferredSearch.toLowerCase())) ||
+                (item.rumahSakitPembuatRM && item.rumahSakitPembuatRM.toLowerCase().includes(deferredSearch.toLowerCase())) ||
+                formatTimestamp(item.timestamp).toLowerCase().includes(deferredSearch.toLowerCase())
         );
         return filtered;
-    }, [allRecordsFlat, search]);
+    }, [allRecordsFlat, deferredSearch]);
 
     const indexOfLastRecord = currentPage * recordsPerPage;
     const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
@@ -266,11 +292,64 @@ export default function RekamMedisHistory({ rekamMedisIds }) {
 
     return (
         <div className="w-full p-6 bg-gray-50 min-h-screen">
-            {/* Header Section */}
+            {/* Card Rekam Medis Terbaru - Dipindahkan ke sini */}
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-6">
+                    📜 Rekam Medis Terbaru Anda
+                </h3>
+
+                {rekamMedisTerbaru ? (
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DetailItem icon={<IconId />} label="ID Rekam Medis" value={rekamMedisTerbaru.id_rm} />
+                            <DetailItem icon={<IconMedicalType />} label="Tipe RM" value={rekamMedisTerbaru.tipeRekamMedis} />
+                            <DetailItem icon={<IconDiagnosa />} label="Diagnosa" value={rekamMedisTerbaru.diagnosa} />
+                            <DetailItem icon={<IconDoctor />} label="Dibuat Oleh" value={rekamMedisTerbaru.pembuatNama} />
+                            <DetailItem icon={<IconCatatan />} label="Catatan" value={rekamMedisTerbaru.catatan} />
+                            <DetailItem icon={<IconHospital />} label="RS Pembuat" value={rekamMedisTerbaru.pembuatRSNama || 'N/A'} />
+                        </div>
+
+                        <div className="border-t border-gray-200 pt-4">
+                            <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
+                                <DetailItem
+                                    icon={<IconTime />}
+                                    label="Waktu Pembuatan"
+                                    value={formatTimestamp(rekamMedisTerbaru.timestampPembuatan)}
+                                />
+                                <div className="flex items-center">
+                                    <span className="font-medium text-gray-700 flex items-center mr-3">
+                                        <IconFoto /> Foto:
+                                    </span>
+                                    {rekamMedisTerbaru.foto ? (
+                                        <a
+                                            href={rekamMedisTerbaru.foto}
+                                            className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            Lihat Foto/File
+                                        </a>
+                                    ) : (
+                                        <span className="text-gray-500 italic">Tidak ada</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-8">
+                        <p className="text-gray-500 italic">
+                            Belum ada rekam medis yang tercatat.
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Header Section untuk Riwayat Lengkap */}
             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <h3 className="text-2xl font-bold text-gray-900 flex items-center">
-                        📋 Riwayat Rekam Medis Detail
+                        📚 Riwayat Rekam Medis Lengkap
                     </h3>
                     <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                         <input

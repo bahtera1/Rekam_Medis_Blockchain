@@ -11,12 +11,13 @@ const IconBloodType = () => <span className="mr-2 text-red-600">🩸</span>;
 const IconHospital = () => <span className="mr-2 text-blue-600">🏥</span>;
 const IconEdit = () => <span className="mr-2">✏️</span>;
 const IconId = () => <span className="mr-2 text-blue-600">🆔</span>;
-const IconDiagnosa = () => <span className="mr-2 text-blue-600">📝</span>;
-const IconCatatan = () => <span className="mr-2 text-blue-600">🗒️</span>;
-const IconFoto = () => <span className="mr-2 text-blue-600">📸</span>;
-const IconMedicalType = () => <span className="mr-2 text-blue-600">🩺</span>;
-const IconTime = () => <span className="mr-2 text-blue-600">⏱️</span>;
-const IconDoctor = () => <span className="mr-2 text-blue-600">👨‍⚕️</span>;
+// Icon-icon rekam medis tidak lagi diperlukan di sini
+// const IconDiagnosa = () => <span className="mr-2 text-blue-600">📝</span>;
+// const IconCatatan = () => <span className="mr-2 text-blue-600">🗒️</span>;
+// const IconFoto = () => <span className="mr-2 text-blue-600">📸</span>;
+// const IconMedicalType = () => <span className="mr-2 text-blue-600">🩺</span>;
+// const IconTime = () => <span className="mr-2 text-blue-600">⏱️</span>;
+// const IconDoctor = () => <span className="mr-2 text-blue-600">👨‍⚕️</span>;
 
 // Komponen DetailItem yang diperbaiki
 const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
@@ -32,19 +33,19 @@ const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
   </div>
 );
 
-// Fungsi formatTimestamp
-const formatTimestamp = (ts) => {
-  if (typeof ts === 'bigint') {
-    ts = Number(ts);
-  }
-  if (!ts || ts === 0 || isNaN(ts)) return "-";
-  const date = new Date(ts * 1000);
-  return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
-};
+// Fungsi formatTimestamp tidak lagi diperlukan di sini
+// const formatTimestamp = (ts) => {
+//     if (typeof ts === 'bigint') {
+//         ts = Number(ts);
+//     }
+//     if (!ts || ts === 0 || isNaN(ts)) return "-";
+//     const date = new Date(ts * 1000);
+//     return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+// };
 
 export default function DataDiriPasien({
   dataDiri,
-  rekamMedisTerbaru,
+  // rekamMedisTerbaru tidak lagi diterima sebagai prop
   listAdminRS = [],
   updatePasienData,
   updatePasienRumahSakit,
@@ -335,59 +336,6 @@ export default function DataDiriPasien({
           </div>
         </div>
       )}
-
-      {/* Card Rekam Medis Terbaru */}
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-        <h3 className="text-xl font-bold text-gray-900 mb-6">
-          📜 Rekam Medis Terbaru
-        </h3>
-
-        {rekamMedisTerbaru ? (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <DetailItem icon={<IconId />} label="ID Rekam Medis" value={rekamMedisTerbaru.id_rm} />
-              <DetailItem icon={<IconMedicalType />} label="Tipe RM" value={rekamMedisTerbaru.tipeRekamMedis} />
-              <DetailItem icon={<IconDiagnosa />} label="Diagnosa" value={rekamMedisTerbaru.diagnosa} />
-              <DetailItem icon={<IconDoctor />} label="Dibuat Oleh" value={rekamMedisTerbaru.pembuatNama} />
-              <DetailItem icon={<IconCatatan />} label="Catatan" value={rekamMedisTerbaru.catatan} />
-              <DetailItem icon={<IconHospital />} label="RS Pembuat" value={rekamMedisTerbaru.pembuatRSNama || 'N/A'} />
-            </div>
-
-            <div className="border-t border-gray-200 pt-4">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
-                <DetailItem
-                  icon={<IconTime />}
-                  label="Waktu Pembuatan"
-                  value={formatTimestamp(rekamMedisTerbaru.timestampPembuatan)}
-                />
-                <div className="flex items-center">
-                  <span className="font-medium text-gray-700 flex items-center mr-3">
-                    <IconFoto /> Foto:
-                  </span>
-                  {rekamMedisTerbaru.foto ? (
-                    <a
-                      href={rekamMedisTerbaru.foto}
-                      className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Lihat Foto/File
-                    </a>
-                  ) : (
-                    <span className="text-gray-500 italic">Tidak ada</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-500 italic">
-              Belum ada rekam medis yang tercatat.
-            </p>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
