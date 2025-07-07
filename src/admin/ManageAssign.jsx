@@ -1,6 +1,21 @@
-import React, { useState } from "react";
-import Select from 'react-select'; // <--- Import react-select
+// ManageAssign.js (UI Tabel Telah Diperbarui)
 
+import React, { useState } from "react";
+import Select from 'react-select';
+
+// --- Komponen Ikon ---
+const ChevronDownIcon = () => (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+);
+const TrashIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+);
+
+// --- Komponen Utama ---
 export default function ManageAssign({
     dokterList,
     listPasien,
@@ -15,212 +30,137 @@ export default function ManageAssign({
 }) {
     const [openIndex, setOpenIndex] = useState(null);
 
-    const commonThClass = "px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider";
-
-    // Siapkan data untuk react-select
+    // Opsi dan style untuk react-select
     const dokterOptions = dokterList.map(dokter => ({
         value: dokter.address,
-        label: `${dokter.nama} - ${dokter.spesialisasi} (Lisensi: ${dokter.nomorLisensi}) (${dokter.address.substring(0, 6)}...${dokter.address.substring(dokter.address.length - 4)})`
+        label: `${dokter.nama} - ${dokter.spesialisasi} (${dokter.address.substring(0, 8)}...)`
     }));
-
     const pasienOptions = listPasien.map(pasien => ({
         value: pasien.address,
-        label: `${pasien.nama || "Nama Belum Terdaftar"} (ID: ${pasien.ID || "-"}) (${pasien.address.substring(0, 6)}...${pasien.address.substring(pasien.address.length - 4)})` // Ditambahkan ID
+        label: `${pasien.nama || "N/A"} (ID: ${pasien.ID || "-"}) (${pasien.address.substring(0, 8)}...)`
     }));
-
-    // Gaya kustom untuk react-select agar mirip dengan input Tailwind lainnya
     const customStyles = {
-        control: (provided, state) => ({
-            ...provided,
-            borderColor: state.isFocused ? '#3B82F6' : '#D1D5DB', // Warna border biru saat fokus
-            boxShadow: state.isFocused ? '0 0 0 1px #3B82F6' : 'none', // Ring saat fokus
-            borderRadius: '0.375rem', // rounded-md
-            minHeight: '2.5rem', // py-2.5 (disesuaikan)
-            padding: '0.375rem 0.75rem', // px-4 (disesuaikan)
-            backgroundColor: state.isDisabled ? '#F3F4F6' : 'white', // bg-slate-100 saat disabled
-            color: state.isDisabled ? '#6B7280' : provided.color, // text-slate-500 saat disabled
-            cursor: state.isDisabled ? 'not-allowed' : 'default',
-            transition: 'all 150ms ease-in-out',
-        }),
-        option: (provided, state) => ({
-            ...provided,
-            backgroundColor: state.isSelected ? '#3B82F6' : state.isFocused ? '#EFF6FF' : null, // bg-blue-600 selected, bg-blue-50 focused
-            color: state.isSelected ? 'white' : '#1F2937', // text-white selected, text-gray-800 normal
-            cursor: 'pointer',
-            padding: '0.5rem 1rem',
-        }),
-        singleValue: (provided) => ({
-            ...provided,
-            color: '#1F2937', // text-gray-800
-        }),
-        placeholder: (provided) => ({
-            ...provided,
-            color: '#9CA3AF', // placeholder-gray-400
-        }),
-        dropdownIndicator: (provided) => ({
-            ...provided,
-            color: '#9CA3AF', // Warna ikon dropdown
-            '&:hover': {
-                color: '#6B7280',
-            }
-        }),
-        clearIndicator: (provided) => ({
-            ...provided,
-            color: '#9CA3AF',
-            '&:hover': {
-                color: '#6B7280',
-            }
-        }),
-        menu: (provided) => ({
-            ...provided,
-            borderRadius: '0.375rem',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-            marginTop: '0.25rem',
-        }),
+        control: (p, s) => ({ ...p, borderColor: s.isFocused ? '#3B82F6' : '#D1D5DB', boxShadow: s.isFocused ? '0 0 0 1px #3B82F6' : 'none', borderRadius: '0.75rem', padding: '0.5rem', transition: 'all 150ms ease-in-out' }),
+        option: (p, s) => ({ ...p, backgroundColor: s.isSelected ? '#3B82F6' : s.isFocused ? '#EFF6FF' : null, color: s.isSelected ? 'white' : '#1F2937', cursor: 'pointer', padding: '0.75rem 1rem' }),
+        menu: (p) => ({ ...p, borderRadius: '0.75rem', marginTop: '0.5rem' })
     };
 
-
     return (
-        <div className="space-y-8">
-            {/* Card 1: Form Tugaskan Dokter ke Pasien */}
-            <div className="bg-white rounded-xl shadow-xl p-6 sm:p-8">
-                <h3 className="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3">
-                    Tugaskan Dokter ke Pasien
+        <div className="space-y-10">
+            {/* --- Card 1: Form Penugasan Baru --- */}
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-blue-200">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-4">
+                    Formulir Penugasan Baru
                 </h3>
-                <div className="space-y-4 mb-6">
-                    {/* Dropdown Pilih Pasien (sekarang yang pertama) */}
-                    <Select
-                        options={pasienOptions}
-                        value={pasienOptions.find(option => option.value === pasienAddress) || null}
-                        onChange={selectedOption => setPasienAddress(selectedOption ? selectedOption.value : '')}
-                        isDisabled={loading}
-                        placeholder="Pilih Pasien"
-                        isClearable={true}
-                        isSearchable={true}
-                        styles={customStyles}
-                        classNamePrefix="react-select"
-                    />
-
-                    {/* Dropdown Pilih Dokter (sekarang yang kedua) */}
-                    <Select
-                        options={dokterOptions}
-                        value={dokterOptions.find(option => option.value === selectedDokter) || null}
-                        onChange={selectedOption => setSelectedDokter(selectedOption ? selectedOption.value : '')}
-                        isDisabled={loading}
-                        placeholder="Pilih Dokter"
-                        isClearable={true}
-                        isSearchable={true}
-                        styles={customStyles}
-                        classNamePrefix="react-select"
-                    />
+                <div className="space-y-6">
+                    <div>
+                        <label htmlFor="select-pasien" className="block text-sm font-medium text-gray-700 mb-2">Pilih Pasien</label>
+                        <Select id="select-pasien" options={pasienOptions} value={pasienOptions.find(o => o.value === pasienAddress) || null} onChange={opt => setPasienAddress(opt ? opt.value : '')} isDisabled={loading} placeholder="Cari nama atau ID pasien..." styles={customStyles} />
+                    </div>
+                    <div>
+                        <label htmlFor="select-dokter" className="block text-sm font-medium text-gray-700 mb-2">Pilih Dokter</label>
+                        <Select id="select-dokter" options={dokterOptions} value={dokterOptions.find(o => o.value === selectedDokter) || null} onChange={opt => setSelectedDokter(opt ? opt.value : '')} isDisabled={loading} placeholder="Cari nama atau spesialisasi dokter..." styles={customStyles} />
+                    </div>
+                    <div className="pt-4 flex justify-end">
+                        <button onClick={assignPasien} disabled={loading || !selectedDokter || !pasienAddress} className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                            {loading ? "Memproses..." : "Tugaskan"}
+                        </button>
+                    </div>
                 </div>
-
-                <button
-                    onClick={assignPasien}
-                    disabled={loading || !selectedDokter || !pasienAddress}
-                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-semibold transition duration-150 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                    {loading ? "Memproses..." : "Tugaskan Dokter"} {/* Teks tombol disesuaikan */}
-                </button>
             </div>
 
-            {/* Card 2: Daftar Penugasan Dokter - Pasien */}
-            <div className="bg-white rounded-xl shadow-xl p-6 sm:p-8">
-                {/* Judul ini sekarang memiliki border-b untuk konsistensi */}
-                <h3 className="text-2xl font-semibold text-slate-800 mb-6 border-b pb-3">
-                    Tabel Penugasan Dokter - Pasien
-                </h3>
-                {!assignedPairs || assignedPairs.length === 0 ? (
-                    <p className="italic text-gray-500 text-center py-4">
-                        Belum ada penugasan .
-                    </p>
-                ) : (
-                    <div className="overflow-x-auto rounded-lg border border-gray-200">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-slate-100">
-                                <tr>
-                                    <th className={`${commonThClass} text-center w-16`}>No.</th>
-                                    <th className={commonThClass}>Nama Dokter</th>
-                                    <th className={commonThClass}>No. Lisensi</th>
-                                    <th className={`${commonThClass} min-w-48`}>Alamat Dokter</th>
-                                    <th className={`${commonThClass} text-center`}>Tabel Pasien Ditugaskan</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {assignedPairs.map((pair, idx) => (
-                                    <React.Fragment key={idx}>
-                                        <tr className="hover:bg-slate-50 transition-colors duration-150">
-                                            <td className="px-4 py-3 text-sm text-gray-700 text-center align-middle">{idx + 1}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium align-middle">{pair.dokterNama}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700 align-middle">{pair.dokterLisensi}</td>
-                                            <td className="px-4 py-3 text-xs text-gray-600 align-middle" title={pair.dokterAddress}>
-                                                {pair.dokterAddress.substring(0, 12)}...{pair.dokterAddress.substring(pair.dokterAddress.length - 8)}
-                                            </td>
-                                            <td className="px-4 py-3 text-center align-middle">
-                                                <button
-                                                    onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
-                                                    className={`inline-flex items-center text-sm font-medium px-3 py-1.5 rounded-md transition-all duration-150 ease-in-out
-                                                    ${openIndex === idx
-                                                            ? "bg-blue-600 text-white hover:bg-blue-700"
-                                                            : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                                                        }`}
-                                                >
-                                                    {openIndex === idx ? "Sembunyikan" : `Tampilkan (${pair.pasienList.length})`}
-                                                </button>
+            {/* --- Card 2: Tabel Penugasan Aktif --- */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-xl overflow-hidden border border-blue-200">
+                <div className="p-8 border-b border-gray-200">
+                    <h3 className="text-2xl font-bold text-gray-800">Daftar Penugasan Aktif</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[1024px] text-sm">
+                        <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                            <tr>
+                                <th className="py-4 px-4 font-semibold text-center w-16">No.</th>
+                                <th className="py-4 px-4 font-semibold text-left">Info Dokter</th>
+                                <th className="py-4 px-4 font-semibold text-left">No. Lisensi</th>
+                                <th className="py-4 px-4 font-semibold text-left min-w-48">Alamat Wallet</th>
+                                <th className="py-4 px-4 font-semibold text-center">Pasien Ditangani</th>
+                            </tr>
+                        </thead>
+                        {/* ======================================================== */}
+
+                        <tbody className="divide-y divide-blue-100">
+                            {/* ================================================= */}
+                            {/* === PERUBAHAN WARNA DIVIDER BODY TABEL (END) === */}
+                            {/* ================================================= */}
+                            {loading && (
+                                <tr><td colSpan={5} className="text-center py-12 text-gray-500">Memuat data...</td></tr>
+                            )}
+                            {!loading && (!assignedPairs || assignedPairs.length === 0) && (
+                                <tr><td colSpan={5} className="text-center py-12 text-gray-500 italic">Belum ada penugasan yang dibuat.</td></tr>
+                            )}
+                            {!loading && assignedPairs.map((pair, idx) => (
+                                <React.Fragment key={idx}>
+                                    <tr className="hover:bg-blue-50/50 transition-colors duration-200 group">
+                                        <td className="py-4 px-4 text-center text-gray-600 font-medium">{idx + 1}</td>
+                                        <td className="py-4 px-4">
+                                            <div className="font-semibold text-gray-800">{pair.dokterNama}</div>
+                                            <div className="text-xs text-gray-500">{pair.dokterSpesialisasi}</div>
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            <code className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-xs font-mono">{pair.dokterLisensi}</code>
+                                        </td>
+                                        <td className="py-4 px-4">
+                                            <code className="text-xs bg-gray-100 px-2 py-1 rounded border text-gray-600">{pair.dokterAddress}</code>
+                                        </td>
+                                        <td className="py-4 px-4 text-center">
+                                            <button onClick={() => setOpenIndex(openIndex === idx ? null : idx)} className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors duration-200 text-sm font-medium">
+                                                <span>{openIndex === idx ? "Sembunyikan" : `Tampilkan (${pair.pasienList.length})`}</span>
+                                                <ChevronDownIcon />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {openIndex === idx && (
+                                        <tr className="bg-blue-50/40">
+                                            <td colSpan={5} className="p-0">
+                                                <div className="p-4 m-4 bg-white rounded-xl shadow-inner border">
+                                                    {/* Nested table styling is kept different for visual hierarchy */}
+                                                    {pair.pasienList.length === 0 ? (
+                                                        <p className="text-sm text-gray-500 italic text-center py-3">Dokter ini tidak memiliki pasien.</p>
+                                                    ) : (
+                                                        <table className="min-w-full">
+                                                            <thead>
+                                                                <tr className="border-b border-gray-200">
+                                                                    <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">Nama Pasien</th>
+                                                                    <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">ID Pasien</th>
+                                                                    <th className="py-2 px-3 text-center text-xs font-semibold text-gray-500">Aksi</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {pair.pasienList.map((p, i) => (
+                                                                    <tr key={i} className="hover:bg-red-50/50 border-b border-gray-100 last:border-b-0">
+                                                                        <td className="py-3 px-3 text-sm text-gray-700">{p.nama}</td>
+                                                                        <td className="py-3 px-3 text-sm text-gray-700">
+                                                                            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-xs">{p.ID}</span>
+                                                                        </td>
+                                                                        <td className="py-3 px-3 text-center">
+                                                                            <button onClick={() => unassignPasien(pair.dokterAddress, p.address)} disabled={loading} className="inline-flex items-center space-x-1 bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+                                                                                <TrashIcon />
+                                                                                <span>Lepas Tugas</span>
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
-                                        {openIndex === idx && (
-                                            <tr>
-                                                <td colSpan={5} className="p-0 bg-slate-50">
-                                                    <div className="p-3 m-2 border border-slate-200 rounded-md bg-white shadow-inner">
-                                                        {pair.pasienList.length === 0 ? (
-                                                            <p className="text-sm text-gray-500 italic text-center py-3">Tidak ada pasien untuk dokter ini.</p>
-                                                        ) : (
-                                                            <div className="overflow-x-auto">
-                                                                <table className="min-w-full">
-                                                                    <thead className="bg-slate-100">
-                                                                        <tr>
-                                                                            <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-14">No.</th>
-                                                                            <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID Pasien</th> {/* Ditambahkan kolom ID Pasien */}
-                                                                            <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nama Pasien</th>
-                                                                            <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider min-w-40">Alamat Wallet Pasien</th>
-                                                                            <th className="px-3 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Aksi</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody className="divide-y divide-gray-100">
-                                                                        {pair.pasienList.map((p, i) => (
-                                                                            <tr key={p.address} className="hover:bg-slate-50 transition-colors">
-                                                                                <td className="px-3 py-2 text-sm text-gray-600 text-center align-middle">{i + 1}</td>
-                                                                                <td className="px-3 py-2 text-sm text-gray-800 align-middle">{p.ID || "-"}</td> {/* Tampilkan ID Pasien */}
-                                                                                <td className="px-3 py-2 text-sm text-gray-800 align-middle">{p.nama || "Nama Belum Ada"}</td>
-                                                                                <td className="px-3 py-2 text-xs text-gray-500 align-middle" title={p.address}>
-                                                                                    {p.address.substring(0, 10)}...{p.address.substring(p.address.length - 6)}
-                                                                                </td>
-                                                                                <td className="px-3 py-2 text-center align-middle">
-                                                                                    <button
-                                                                                        onClick={() => unassignPasien(pair.dokterAddress, p.address)}
-                                                                                        disabled={loading}
-                                                                                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
-                                                                                    >
-                                                                                        Hapus
-                                                                                    </button>
-                                                                                </td>
-                                                                            </tr>
-                                                                        ))}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </React.Fragment>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

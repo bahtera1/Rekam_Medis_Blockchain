@@ -22,9 +22,14 @@ export default function AdminPage({ account, onLogout }) {
   const [activePage, setActivePage] = useState("manageDokter");
   const [namaRumahSakit, setNamaRumahSakit] = useState("");
 
+  // Di dalam file AdminPage.js
   const fetchNamaRS = useCallback(async () => {
     try {
       const adminData = await contract.methods.dataAdmin(account).call();
+
+      // TAMBAHKAN BARIS INI UNTUK DEBUGGING
+      console.log("Data Admin RS:", adminData);
+
       if (adminData && adminData.namaRumahSakit) {
         setNamaRumahSakit(adminData.namaRumahSakit);
       } else {
@@ -95,6 +100,8 @@ export default function AdminPage({ account, onLogout }) {
     }
   }, [account]);
 
+  // Di dalam file AdminPage.js
+
   const fetchAssignedPairs = useCallback(async () => {
     if (dokterList.length === 0 || listPasien.length === 0) {
       return;
@@ -110,6 +117,7 @@ export default function AdminPage({ account, onLogout }) {
         .map((dok) => ({
           dokterNama: dok.nama,
           dokterLisensi: dok.nomorLisensi,
+          dokterSpesialisasi: dok.spesialisasi, // <-- TAMBAHKAN BARIS INI
           dokterAddress: dok.address,
           pasienList: dok.assignedPasien.map((addr) => {
             const pasienData = listPasien.find((p) => p.address === addr);
@@ -303,7 +311,7 @@ export default function AdminPage({ account, onLogout }) {
           <ManagePasienPage
             loading={loading}
             listPasien={listPasien}
-            managePasien // listPasien sekarang memiliki semua detail
+            account={account}
           />
         )}
         {activePage === "manageAssign" && (
