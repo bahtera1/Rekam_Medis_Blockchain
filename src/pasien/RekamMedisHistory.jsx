@@ -35,7 +35,8 @@ const formatTimestamp = (ts) => {
     return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 };
 
-export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) {
+// **PERUBAHAN UTAMA DI SINI:** rekamMedisTerbaru sekarang opsional, dan komponen akan fetch data sendiri berdasarkan rekamMedisIds.
+export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) { // rekamMedisTerbaru diterima sebagai prop
     const [allRecordsFlat, setAllRecordsFlat] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -50,12 +51,14 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
 
     // Fungsi getActorDetails tetap di sini seperti kode asli Anda
     const getActorDetails = useCallback(async (actorAddress) => {
-        if (!actorAddress || actorAddress === "0x0000000000000000000000000000000000000000") {
+        const addressAsString = typeof actorAddress === 'string' ? actorAddress : String(actorAddress);
+
+        if (addressAsString === "0x0000000000000000000000000000000000000000" || !addressAsString) {
             return { name: "N/A", hospitalName: "N/A", role: "Unknown" };
         }
 
-        if (actorInfoCache[actorAddress]) {
-            return actorInfoCache[actorAddress];
+        if (actorInfoCache[addressAsString]) {
+            return actorInfoCache[addressAsString];
         }
 
         let name = "";
@@ -63,12 +66,12 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
         let role = "";
 
         try {
-            role = await contract.methods.getUserRole(actorAddress).call();
+            role = await contract.methods.getUserRole(addressAsString).call();
 
             switch (role) {
                 case "Dokter":
                 case "InactiveDokter":
-                    const dokterInfo = await contract.methods.getDokter(actorAddress).call();
+                    const dokterInfo = await contract.methods.getDokter(addressAsString).call();
                     name = dokterInfo[0];
                     const affiliatedAdminRSAddress = dokterInfo[5];
                     if (affiliatedAdminRSAddress !== "0x0000000000000000000000000000000000000000") {
@@ -76,32 +79,29 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
                             const adminRSData = await contract.methods.getAdminRS(affiliatedAdminRSAddress).call();
                             hospitalName = adminRSData[0];
                         } catch (e) {
-                            console.warn(`Gagal mendapatkan nama RS afiliasi untuk dokter ${actorAddress}:`, e);
+                            console.warn(`Gagal mendapatkan nama RS afiliasi untuk dokter ${addressAsString}:`, e);
                             hospitalName = "N/A (RS Error)";
                         }
                     }
                     break;
                 case "Pasien":
-                    // Perbaikan: gunakan nama variabel yang sudah didefinisikan
-                    const pasienDataContract = await contract.methods.getPasienData(actorAddress).call();
-                    name = pasienDataContract[0]; // Nama pasien
-                    // NIK sekarang di index 2
-                    // Tanggal Lahir di index 4
-                    // RS Penanggung Jawab di index 9
-                    const responsibleRSAddress = pasienDataContract[9]; // <-- PASTIKAN INDEX INI BENAR SESUAI SC
+                    // *** PERBAIKAN DI SINI: Akses properti struct langsung ***
+                    const pasienDataContract = await contract.methods.getPasienData(addressAsString).call();
+                    name = pasienDataContract.nama; // Akses properti 'nama'
+                    const responsibleRSAddress = pasienDataContract.rumahSakitPenanggungJawab; // Akses properti 'rumahSakitPenanggungJawab'
                     if (responsibleRSAddress !== "0x0000000000000000000000000000000000000000") {
                         try {
                             const adminRSData = await contract.methods.getAdminRS(responsibleRSAddress).call();
                             hospitalName = adminRSData[0];
                         } catch (e) {
-                            console.warn(`Gagal mendapatkan nama RS penanggung jawab untuk pasien ${actorAddress}:`, e);
+                            console.warn(`Gagal mendapatkan nama RS penanggung jawab untuk pasien ${addressAsString}:`, e);
                             hospitalName = "N/A (RS Error)";
                         }
                     }
                     break;
                 case "AdminRS":
                 case "InactiveAdminRS":
-                    const adminInfo = await contract.methods.getAdminRS(actorAddress).call(); // Menggunakan getAdminRS, bukan dataAdmin
+                    const adminInfo = await contract.methods.getAdminRS(addressAsString).call();
                     name = adminInfo[0];
                     hospitalName = adminInfo[0];
                     break;
@@ -110,25 +110,20 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
                     hospitalName = "Sistem Utama";
                     break;
                 default:
-                    name = `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+                    name = `${addressAsString.substring(0, 6)}...${addressAsString.substring(addressAsString.length - 4)}`;
                     hospitalName = "N/A";
             }
         } catch (err) {
-            console.warn(`Gagal mendapatkan detail aktor ${actorAddress}:`, err);
-            name = `${actorAddress.substring(0, 6)}...${actorAddress.substring(actorAddress.length - 4)}`;
+            console.warn(`Gagal mendapatkan detail aktor ${addressAsString}:`, err);
+            name = `${addressAsString.substring(0, 6)}...${addressAsString.substring(addressAsString.length - 4)}`;
             hospitalName = "N/A (Error)";
         }
 
         const details = { name, hospitalName, role };
-        setActorInfoCache((prev) => ({ ...prev, [actorAddress]: details }));
+        setActorInfoCache((prev) => ({ ...prev, [addressAsString]: details }));
         return details;
     }, [actorInfoCache]);
 
-    /**
-     * useEffect hook untuk mengambil riwayat rekam medis saat komponen dimuat
-     * atau ketika 'rekamMedisIds' atau 'sortOrder' berubah.
-     * Menggunakan cleanup function untuk mencegah update state pada komponen yang sudah tidak mounted.
-     */
     useEffect(() => {
         let isMounted = true;
         const MIN_LOADING_TIME = 300;
@@ -150,12 +145,11 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
 
             try {
                 const tempAllRecords = [];
-
+                
                 for (const id of rekamMedisIds) {
                     const rmData = await contract.methods.getRekamMedis(id).call();
 
                     const pembuatAddress = rmData[5];
-                    // Gunakan fungsi getActorDetails yang ada di sini
                     const { name: actorName, hospitalName: rmHospitalName } = await getActorDetails(pembuatAddress);
 
                     tempAllRecords.push({
@@ -205,7 +199,7 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
         return () => {
             isMounted = false;
         };
-    }, [rekamMedisIds, getActorDetails, deferredSortOrder]);
+    }, [rekamMedisIds, getActorDetails, deferredSortOrder]); // rekamMedisIds adalah dependency utama
 
     const filteredAndSortedRecords = useMemo(() => {
         const filtered = allRecordsFlat.filter(
@@ -471,9 +465,9 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
                                                 {item.foto ? (
                                                     <a
                                                         href={item.foto}
+                                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
                                                     >
                                                         📎 Lihat
                                                     </a>

@@ -1,4 +1,6 @@
+// DataDiriPasien.jsx
 import React, { useState, useEffect } from "react";
+import { QRCodeCanvas } from 'qrcode.react'; // Import named export QRCodeCanvas
 
 // Komponen untuk ikon (menggunakan karakter Unicode)
 const IconUser = () => <span className="mr-2 text-blue-600">👤</span>;
@@ -11,7 +13,8 @@ const IconBloodType = () => <span className="mr-2 text-red-600">🩸</span>;
 const IconHospital = () => <span className="mr-2 text-blue-600">🏥</span>;
 const IconEdit = () => <span className="mr-2">✏️</span>;
 const IconId = () => <span className="mr-2 text-blue-600">🆔</span>;
-const IconNIK = () => <span className="mr-2 text-blue-600">💳</span>; // Ikon baru untuk NIK
+const IconNIK = () => <span className="mr-2 text-blue-600">💳</span>;
+const IconPrint = () => <span className="mr-2">🖨️</span>; // Icon baru untuk cetak
 
 // Komponen DetailItem yang diperbaiki
 const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
@@ -36,6 +39,7 @@ export default function DataDiriPasien({
 }) {
   const [showEditDataDiriModal, setShowEditDataDiriModal] = useState(false);
   const [showEditRSModal, setShowEditRSModal] = useState(false);
+  const [showIDCardModal, setShowIDCardModal] = useState(false); // State baru untuk modal kartu ID
   const [editFormData, setEditFormData] = useState({});
   const [selectedRSforUpdate, setSelectedRSforUpdate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +48,7 @@ export default function DataDiriPasien({
     if (dataDiri) {
       setEditFormData({
         nama: dataDiri.nama || '',
-        NIK: dataDiri.NIK || '', // <-- Inisialisasi NIK di editFormData
+        NIK: dataDiri.NIK || '',
         golonganDarah: dataDiri.golonganDarah || '',
         tanggalLahir: dataDiri.tanggalLahir || '',
         gender: dataDiri.gender || '',
@@ -79,8 +83,6 @@ export default function DataDiriPasien({
       setShowEditDataDiriModal(false);
     } catch (error) {
       console.error("Error submitting updated data:", error);
-      // Pesan error dari PasienPage (kontrak) sudah ditangani di sana
-      // Cukup tampilkan pesan generik atau error yang dilempar dari PasienPage
       alert(error.message || "Gagal memperbarui data diri.");
     } finally {
       setIsSubmitting(false);
@@ -106,6 +108,53 @@ export default function DataDiriPasien({
     }
   };
 
+  // Fungsi untuk handle print
+  const handlePrint = () => {
+    const printContent = document.getElementById('idCardContent');
+    const originalContents = document.body.innerHTML;
+    const newContents = printContent.innerHTML;
+
+    // Buat style untuk cetak
+    const printStyles = `
+            @page { size: landscape; margin: 1cm; }
+            body { margin: 0; padding: 0; }
+            .print-area {
+                width: 100%; /* Sesuaikan lebar agar pas di halaman */
+                max-width: 21cm; /* Misalnya ukuran A4 landscape */
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 1cm;
+                padding: 1cm;
+                border: 2px solid #2563EB;
+                border-radius: 0.5rem;
+                font-family: sans-serif;
+            }
+            .print-area h4 { font-size: 1.25rem; margin-bottom: 0.5rem; color: #1E40AF; }
+            .print-area p { font-size: 0.75rem; line-height: 1.2; margin-bottom: 0.2rem; }
+            .print-area strong { font-weight: bold; }
+            .print-area .text-xs { font-size: 0.65rem; }
+            .print-area .font-mono { font-family: monospace; }
+            img { display: block; max-width: 128px; height: auto; } /* Untuk QR code */
+            .no-print { display: none; }
+        `;
+
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write('<html><head><title>Cetak Kartu ID Pasien</title>');
+    printWindow.document.write('<style>' + printStyles + '</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write('<div class="print-area">'); // Bungkus dengan div agar style cetak diterapkan
+    printWindow.document.write(newContents);
+    printWindow.document.write('</div>');
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+    printWindow.close(); // Tutup jendela cetak setelah selesai mencetak
+  };
+  // Untuk pengembangan lokal: "http://localhost:3000"
+  const APP_BASE_URL = process.env.REACT_APP_BASE_URL;
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Card Data Diri Pasien */}
@@ -114,24 +163,32 @@ export default function DataDiriPasien({
           <h2 className="text-2xl font-bold text-gray-900">
             Data Diri Pasien
           </h2>
-          <button
-            onClick={() => setShowEditDataDiriModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-          >
-            <IconEdit /> Edit Data Diri
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowIDCardModal(true)} // Tombol untuk membuka modal kartu ID
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
+            >
+              <IconPrint /> Cetak Kartu ID
+            </button>
+            <button
+              onClick={() => setShowEditDataDiriModal(true)}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            >
+              <IconEdit /> Edit Data Diri
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <DetailItem icon={<IconId />} label="ID Pasien" value={dataDiri.ID} />
           <DetailItem icon={<IconUser />} label="Nama Lengkap" value={dataDiri.nama} />
-          <DetailItem icon={<IconNIK />} label="NIK" value={dataDiri.NIK} /> {/* <-- Tampilkan NIK di sini */}
+          <DetailItem icon={<IconNIK />} label="NIK" value={dataDiri.NIK} />
           <DetailItem icon={<IconBloodType />} label="Golongan Darah" value={dataDiri.golonganDarah} />
           <DetailItem icon={<IconCalendar />} label="Tanggal Lahir" value={dataDiri.tanggalLahir} />
           <DetailItem icon={<IconGender />} label="Gender" value={dataDiri.gender} />
           <DetailItem icon={<IconPhone />} label="No. Telepon" value={dataDiri.noTelepon} />
           <DetailItem icon={<IconMail />} label="Email" value={dataDiri.email} />
-          <DetailItem icon={<IconLocation />} label="Alamat" value={dataDiri.alamat} colSpan={2} /> {/* Alamat bisa full-width */}
+          <DetailItem icon={<IconLocation />} label="Alamat" value={dataDiri.alamat} colSpan={2} />
         </div>
       </div>
 
@@ -276,7 +333,52 @@ export default function DataDiriPasien({
         </div>
       )}
 
-      {/* Card RS Penanggung Jawab */}
+      {/* Modal Cetak Kartu ID Pasien */}
+      {showIDCardModal && dataDiri && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl relative animate-fadeInUp no-print"> {/* Added no-print class */}
+            <button
+              onClick={() => setShowIDCardModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold"
+            >
+              ×
+            </button>
+            <h3 className="text-2xl font-bold text-gray-800 p-6 border-b">Kartu Identitas Pasien</h3>
+
+            <div className="p-6">
+              {/* Konten yang akan dicetak */}
+              <div id="idCardContent" className="border-2 border-blue-600 rounded-lg p-6 bg-gradient-to-br from-blue-50 to-white flex flex-col md:flex-row items-center gap-6">
+                <div className="flex-shrink-0 mb-4 md:mb-0">
+                  {/* QR Code akan mengkodekan URL yang mengarahkan ke dashboard pasien dengan parameter alamat wallet */}
+                  <QRCodeCanvas value={`${APP_BASE_URL}/pasien-dashboard?address=${dataDiri.address}`} size={128} level="H" includeMargin={true} />
+                  <p className="text-xs text-gray-600 text-center mt-2">Pindai untuk Akses</p>
+                </div>
+                <div className="flex-grow text-gray-800 text-left w-full">
+                  <h4 className="text-xl font-bold text-blue-800 mb-2">{dataDiri.nama}</h4>
+                  <p className="text-sm"><strong>ID Pasien:</strong> {dataDiri.ID}</p>
+                  <p className="text-sm"><strong>NIK:</strong> {dataDiri.NIK}</p>
+                  <p className="text-sm"><strong>Golongan Darah:</strong> {dataDiri.golonganDarah}</p>
+                  <p className="text-sm"><strong>Tgl. Lahir:</strong> {dataDiri.tanggalLahir}</p>
+                  <p className="text-sm"><strong>Gender:</strong> {dataDiri.gender}</p>
+                  {/* Informasi yang tidak permanen atau berubah-ubah dihapus dari cetakan kartu */}
+                  <p className="text-xs text-gray-500 mt-2">Alamat Wallet: <span className="font-mono">{dataDiri.address}</span></p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end p-6 border-t">
+              <button
+                onClick={handlePrint}
+                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+              >
+                <IconPrint /> Cetak Kartu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Card RS Penanggung Jawab (Ini tetap ada di tampilan aplikasi, hanya tidak dicetak di kartu ID) */}
       <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-gray-900">
