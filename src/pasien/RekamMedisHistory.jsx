@@ -35,7 +35,7 @@ const formatTimestamp = (ts) => {
     return date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 };
 
-export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) { // rekamMedisTerbaru diterima sebagai prop
+export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) {
     const [allRecordsFlat, setAllRecordsFlat] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -82,9 +82,13 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
                     }
                     break;
                 case "Pasien":
-                    const pasienDataFromContract = await contract.methods.getPasienData(actorAddress).call();
-                    name = pasienDataFromContract[0];
-                    const responsibleRSAddress = pasienDataFromContract[8];
+                    // Perbaikan: gunakan nama variabel yang sudah didefinisikan
+                    const pasienDataContract = await contract.methods.getPasienData(actorAddress).call();
+                    name = pasienDataContract[0]; // Nama pasien
+                    // NIK sekarang di index 2
+                    // Tanggal Lahir di index 4
+                    // RS Penanggung Jawab di index 9
+                    const responsibleRSAddress = pasienDataContract[9]; // <-- PASTIKAN INDEX INI BENAR SESUAI SC
                     if (responsibleRSAddress !== "0x0000000000000000000000000000000000000000") {
                         try {
                             const adminRSData = await contract.methods.getAdminRS(responsibleRSAddress).call();

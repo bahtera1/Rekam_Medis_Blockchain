@@ -11,6 +11,7 @@ const IconBloodType = () => <span className="mr-2 text-red-600">🩸</span>;
 const IconHospital = () => <span className="mr-2 text-blue-600">🏥</span>;
 const IconEdit = () => <span className="mr-2">✏️</span>;
 const IconId = () => <span className="mr-2 text-blue-600">🆔</span>;
+const IconNIK = () => <span className="mr-2 text-blue-600">💳</span>; // Ikon baru untuk NIK
 
 // Komponen DetailItem yang diperbaiki
 const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
@@ -29,7 +30,6 @@ const DetailItem = ({ icon, label, value, colSpan = 1 }) => (
 
 export default function DataDiriPasien({
   dataDiri,
-  // rekamMedisTerbaru tidak lagi diterima sebagai prop
   listAdminRS = [],
   updatePasienData,
   updatePasienRumahSakit,
@@ -44,6 +44,7 @@ export default function DataDiriPasien({
     if (dataDiri) {
       setEditFormData({
         nama: dataDiri.nama || '',
+        NIK: dataDiri.NIK || '', // <-- Inisialisasi NIK di editFormData
         golonganDarah: dataDiri.golonganDarah || '',
         tanggalLahir: dataDiri.tanggalLahir || '',
         gender: dataDiri.gender || '',
@@ -58,12 +59,29 @@ export default function DataDiriPasien({
   const handleEditDataDiriSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    // Validasi NIK: harus 16 digit angka
+    if (!/^\d{16}$/.test(editFormData.NIK)) {
+      alert("NIK harus terdiri dari 16 digit angka.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Validasi Nomor Telepon: hanya boleh berisi angka
+    if (!/^\d+$/.test(editFormData.noTelepon)) {
+      alert("Nomor Telepon hanya boleh berisi angka.");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       await updatePasienData(editFormData);
       setShowEditDataDiriModal(false);
     } catch (error) {
       console.error("Error submitting updated data:", error);
-      alert("Gagal memperbarui data diri.");
+      // Pesan error dari PasienPage (kontrak) sudah ditangani di sana
+      // Cukup tampilkan pesan generik atau error yang dilempar dari PasienPage
+      alert(error.message || "Gagal memperbarui data diri.");
     } finally {
       setIsSubmitting(false);
     }
@@ -107,12 +125,13 @@ export default function DataDiriPasien({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <DetailItem icon={<IconId />} label="ID Pasien" value={dataDiri.ID} />
           <DetailItem icon={<IconUser />} label="Nama Lengkap" value={dataDiri.nama} />
+          <DetailItem icon={<IconNIK />} label="NIK" value={dataDiri.NIK} /> {/* <-- Tampilkan NIK di sini */}
           <DetailItem icon={<IconBloodType />} label="Golongan Darah" value={dataDiri.golonganDarah} />
           <DetailItem icon={<IconCalendar />} label="Tanggal Lahir" value={dataDiri.tanggalLahir} />
           <DetailItem icon={<IconGender />} label="Gender" value={dataDiri.gender} />
-          <DetailItem icon={<IconLocation />} label="Alamat" value={dataDiri.alamat} />
           <DetailItem icon={<IconPhone />} label="No. Telepon" value={dataDiri.noTelepon} />
           <DetailItem icon={<IconMail />} label="Email" value={dataDiri.email} />
+          <DetailItem icon={<IconLocation />} label="Alamat" value={dataDiri.alamat} colSpan={2} /> {/* Alamat bisa full-width */}
         </div>
       </div>
 
@@ -140,6 +159,23 @@ export default function DataDiriPasien({
                     onChange={(e) => setEditFormData({ ...editFormData, nama: e.target.value })}
                     required
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    autoComplete="off"
+                  />
+                </div>
+
+                {/* Input NIK di Modal Edit Data Diri */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Induk Kependudukan (NIK)</label>
+                  <input
+                    type="text"
+                    pattern="\d{16}"
+                    maxLength="16"
+                    value={editFormData.NIK || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, NIK: e.target.value })}
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    autoComplete="off"
+                    placeholder="16 digit NIK"
                   />
                 </div>
 
@@ -151,6 +187,7 @@ export default function DataDiriPasien({
                     onChange={(e) => setEditFormData({ ...editFormData, golonganDarah: e.target.value })}
                     required
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    autoComplete="off"
                   />
                 </div>
 
@@ -188,6 +225,7 @@ export default function DataDiriPasien({
                     rows={3}
                     required
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    autoComplete="off"
                   />
                 </div>
 
@@ -199,6 +237,7 @@ export default function DataDiriPasien({
                     onChange={(e) => setEditFormData({ ...editFormData, noTelepon: e.target.value })}
                     required
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    autoComplete="off"
                   />
                 </div>
 
@@ -210,6 +249,7 @@ export default function DataDiriPasien({
                     onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
                     required
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    autoComplete="off"
                   />
                 </div>
 

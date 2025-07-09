@@ -9,6 +9,7 @@ const IconLocation = () => <span className="mr-2.5 text-blue-600 inline">🏠</s
 const IconGender = () => <span className="mr-2.5 text-blue-600 inline">🚻</span>;
 const IconBloodType = () => <span className="mr-2.5 text-red-600 inline">🩸</span>;
 const IconHospital = () => <span className="mr-2.5 text-blue-600 inline">🏥</span>;
+const IconNIK = () => <span className="mr-2.5 text-blue-600 inline">💳</span>; // Ikon baru untuk NIK
 
 export default function PasienRegisterPage({
     submitDataDiri,
@@ -31,6 +32,14 @@ export default function PasienRegisterPage({
         e.preventDefault();
         setIsSubmitting(true);
 
+        // Validasi NIK: harus 16 digit angka
+        if (!/^\d{16}$/.test(form.NIK)) {
+            alert("NIK harus terdiri dari 16 digit angka.");
+            setIsSubmitting(false);
+            return;
+        }
+
+        // Validasi Nomor Telepon: hanya boleh berisi angka
         if (!/^\d+$/.test(form.noTelepon)) {
             alert("Nomor Telepon hanya boleh berisi angka.");
             setIsSubmitting(false);
@@ -41,7 +50,7 @@ export default function PasienRegisterPage({
             await submitDataDiri();
         } catch (error) {
             console.error("Error submitting registration:", error);
-            alert("Gagal mendaftar. Silakan coba lagi. Pastikan semua data benar dan ID Pasien unik.");
+            alert("Gagal mendaftar. Silakan coba lagi. Pastikan semua data benar, ID Pasien dan NIK unik.");
         } finally {
             setIsSubmitting(false);
         }
@@ -80,7 +89,7 @@ export default function PasienRegisterPage({
                         <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mx-auto rounded-full"></div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" onSubmit={handleSubmit}>
+                    <form className="grid grid-cols-1 lg:grid-cols-2 gap-6" onSubmit={handleSubmit}> {/* Tambahkan form tag di sini */}
                         <div className="lg:col-span-2">
                             <label htmlFor="nama" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
                                 <IconUser /> Nama Lengkap
@@ -95,6 +104,26 @@ export default function PasienRegisterPage({
                                 required
                                 autoComplete="off"
                                 placeholder="Masukkan nama lengkap Anda"
+                            />
+                        </div>
+
+                        {/* Input NIK baru */}
+                        <div className="lg:col-span-2">
+                            <label htmlFor="nik" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                                <IconNIK /> Nomor Induk Kependudukan (NIK)
+                            </label>
+                            <input
+                                id="nik"
+                                name="NIK"
+                                type="text" // Menggunakan type="text" agar tidak ada auto-formatting yang mengganggu validasi 16 digit
+                                pattern="\d{16}" // HTML5 pattern untuk 16 digit angka
+                                maxLength="16" // Batasi input hingga 16 karakter
+                                className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
+                                value={form.NIK}
+                                onChange={(e) => setForm((f) => ({ ...f, NIK: e.target.value }))}
+                                required
+                                autoComplete="off"
+                                placeholder="Masukkan 16 digit NIK Anda"
                             />
                         </div>
 
@@ -163,6 +192,7 @@ export default function PasienRegisterPage({
                                 value={form.noTelepon}
                                 onChange={(e) => setForm((f) => ({ ...f, noTelepon: e.target.value }))}
                                 required
+                                autoComplete="off"
                                 placeholder="Cth: 081234567890"
                             />
                         </div>
@@ -179,6 +209,7 @@ export default function PasienRegisterPage({
                                 value={form.email}
                                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                                 required
+                                autoComplete="off"
                                 placeholder="Cth: nama@example.com"
                             />
                         </div>
@@ -195,6 +226,7 @@ export default function PasienRegisterPage({
                                 onChange={(e) => setForm((f) => ({ ...f, alamat: e.target.value }))}
                                 rows={3}
                                 required
+                                autoComplete="off"
                                 placeholder="Cth: Jl. Contoh No. 123, Kota A"
                             />
                         </div>
@@ -231,14 +263,13 @@ export default function PasienRegisterPage({
                             </button>
                             <button
                                 className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                                type="button"
-                                onClick={handleSubmit}
+                                type="submit"
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? "Menyimpan Data..." : "Simpan Data Diri"}
                             </button>
                         </div>
-                    </div>
+                    </form> {/* Tutup form tag di sini */}
                 </div>
             )}
         </div>

@@ -62,7 +62,7 @@ const FileIcon = () => (
 
 export default function ManagePasienPage({
     loading,
-    listPasien, // [{ address, nama, ID, golonganDarah, tanggalLahir, gender, alamat, noTelepon, email }, …]
+    listPasien, // [{ address, nama, ID, NIK, golonganDarah, tanggalLahir, gender, alamat, noTelepon, email, rumahSakitPenanggungJawab }, …]
     account // Kita butuh account Admin RS untuk memanggil kontrak
 }) {
     const [q, setQ] = useState("");
@@ -78,9 +78,10 @@ export default function ManagePasienPage({
     const filtered = safeListPasien.filter(p => {
         const nameLower = p?.nama?.toLowerCase() || "";
         const idLower = p?.ID?.toLowerCase() || "";
+        const nikLower = p?.NIK?.toLowerCase() || ""; // <-- Tambahkan NIK ke pencarian
         const addressLower = (typeof p?.address === 'string' ? p.address.toLowerCase() : "");
         const queryLower = q.toLowerCase();
-        return nameLower.includes(queryLower) || addressLower.includes(queryLower) || idLower.includes(queryLower);
+        return nameLower.includes(queryLower) || addressLower.includes(queryLower) || idLower.includes(queryLower) || nikLower.includes(queryLower);
     });
 
     const openDetailModal = (pasien) => {
@@ -147,7 +148,7 @@ export default function ManagePasienPage({
                 </div>
                 <input
                     type="search"
-                    placeholder="Cari berdasarkan nama, ID, atau alamat wallet..."
+                    placeholder="Cari berdasarkan nama, ID, NIK, atau alamat wallet..." // <-- Perbarui placeholder, HAPUS KOMENTAR JSX DI SINI
                     value={q}
                     onChange={e => setQ(e.target.value)}
                     disabled={loading}
@@ -206,6 +207,7 @@ export default function ManagePasienPage({
                             <col style={{ width: '60px' }} />
                             <col style={{ width: '15%' }} />
                             <col style={{ width: '20%' }} />
+                            <col style={{ width: '20%' }} /> {/* Kolom NIK baru */}
                             <col style={{ minWidth: '300px' }} />
                             <col style={{ width: '120px' }} />
                         </colgroup>
@@ -214,6 +216,7 @@ export default function ManagePasienPage({
                                 <th className="py-4 px-4 font-semibold text-center">No.</th>
                                 <th className="py-4 px-4 font-semibold text-left">ID Pasien</th>
                                 <th className="py-4 px-4 font-semibold text-left">Nama</th>
+                                <th className="py-4 px-4 font-semibold text-left">NIK</th> {/* <-- Tambahkan header NIK */}
                                 <th className="py-4 px-4 font-semibold text-left">Alamat Wallet</th>
                                 <th className="py-4 px-4 font-semibold text-center">Aksi</th>
                             </tr>
@@ -221,7 +224,7 @@ export default function ManagePasienPage({
                         <tbody className="divide-y divide-blue-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="py-12 px-4 text-center text-gray-500">
+                                    <td colSpan={6} className="py-12 px-4 text-center text-gray-500"> {/* <-- Ubah colSpan */}
                                         <div className="flex flex-col items-center space-y-3">
                                             <Spinner />
                                             <span className="text-lg">Memuat data pasien...</span>
@@ -233,7 +236,7 @@ export default function ManagePasienPage({
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="py-12 px-4 text-center text-gray-500">
+                                    <td colSpan={6} className="py-12 px-4 text-center text-gray-500"> {/* <-- Ubah colSpan */}
                                         <div className="flex flex-col items-center space-y-3">
                                             <div className="p-4 bg-gray-100 rounded-full">
                                                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,6 +268,9 @@ export default function ManagePasienPage({
                                                 </div>
                                                 <span className="text-gray-800 font-medium">{p?.nama || "-"}</span>
                                             </div>
+                                        </td>
+                                        <td className="py-4 px-4 text-left"> {/* <-- Sel NIK baru */}
+                                            <span className="text-gray-800 font-medium">{p?.NIK || "-"}</span>
                                         </td>
                                         <td className="py-4 px-4 text-left">
                                             <code className="text-xs bg-gray-100 px-2 py-1 rounded border text-gray-600 break-all">
@@ -322,33 +328,37 @@ export default function ManagePasienPage({
                                         <p className="text-gray-800 font-medium">{selectedPasienDetail.ID || '-'}</p>
                                     </div>
                                     <div className="bg-gray-50 p-4 rounded-xl">
-                                        <label className="text-sm font-medium text-gray-600">Golongan Darah</label>
-                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.golonganDarah || '-'}</p>
+                                        <label className="text-sm font-medium text-gray-600">NIK</label> {/* <-- Tampilkan NIK di modal */}
+                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.NIK || '-'}</p>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-gray-50 p-4 rounded-xl">
+                                        <label className="text-sm font-medium text-gray-600">Golongan Darah</label>
+                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.golonganDarah || '-'}</p>
+                                    </div>
+                                    <div className="bg-gray-50 p-4 rounded-xl">
                                         <label className="text-sm font-medium text-gray-600">Tanggal Lahir</label>
                                         <p className="text-gray-800 font-medium">{selectedPasienDetail.tanggalLahir || '-'}</p>
                                     </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-gray-50 p-4 rounded-xl">
                                         <label className="text-sm font-medium text-gray-600">Jenis Kelamin</label>
                                         <p className="text-gray-800 font-medium">{selectedPasienDetail.gender || '-'}</p>
+                                    </div>
+                                    <div className="bg-gray-50 p-4 rounded-xl">
+                                        <label className="text-sm font-medium text-gray-600">No. Telepon</label>
+                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.noTelepon || '-'}</p>
                                     </div>
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-xl">
                                     <label className="text-sm font-medium text-gray-600">Alamat</label>
                                     <p className="text-gray-800">{selectedPasienDetail.alamat || '-'}</p>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-gray-50 p-4 rounded-xl">
-                                        <label className="text-sm font-medium text-gray-600">No. Telepon</label>
-                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.noTelepon || '-'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-xl">
-                                        <label className="text-sm font-medium text-gray-600">Email</label>
-                                        <p className="text-gray-800 font-medium text-sm">{selectedPasienDetail.email || '-'}</p>
-                                    </div>
+                                <div className="bg-gray-50 p-4 rounded-xl">
+                                    <label className="text-sm font-medium text-gray-600">Email</label>
+                                    <p className="text-gray-800 font-medium text-sm">{selectedPasienDetail.email || '-'}</p>
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-xl">
                                     <label className="text-sm font-medium text-gray-600">Alamat Wallet</label>
@@ -478,9 +488,9 @@ export default function ManagePasienPage({
                                                     </td>
                                                     <td className="py-3 px-4 text-xs">
                                                         {rm.foto ? (
-                                                            <a 
-                                                                href={rm.foto} 
-                                                                target="_blank" 
+                                                            <a
+                                                                href={rm.foto}
+                                                                target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="inline-flex items-center space-x-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded-md transition-colors duration-200"
                                                             >

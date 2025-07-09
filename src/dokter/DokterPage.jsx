@@ -39,19 +39,39 @@ export default function DokterPage({ account, onLogout }) {
                     const patientsWithDetails = await Promise.all(
                         rawAssignedPasienAddresses.map(async (pasienAddress) => {
                             try {
-                                // getPasienData returns: nama (0), ID (1), golonganDarah (2), tanggalLahir (3), gender (4),
-                                // alamat (5), noTelepon (6), email (7), rumahSakitPenanggungJawab (8)
+                                // getPasienData returns:
+                                // nama (0), ID (1), NIK (2), golonganDarah (3), tanggalLahir (4), gender (5),
+                                // alamat (6), noTelepon (7), email (8), rumahSakitPenanggungJawab (9)
                                 const p = await contract.methods.getPasienData(pasienAddress).call();
                                 return {
                                     address: pasienAddress,
-                                    nama: p[0] || "Nama Tidak Tersedia", // Ambil nama pasien
-                                    ID: p[1], // <--- PASTI ID pasien ada di indeks 1
-                                    rumahSakitPenanggungJawab: p[8], // Ambil alamat AdminRS penanggung jawab pasien
+                                    nama: p[0] || "Nama Tidak Tersedia",
+                                    ID: p[1],
+                                    NIK: p[2], // <--- Tambahkan NIK di sini
+                                    golonganDarah: p[3], // Index bergeser
+                                    tanggalLahir: p[4], // Index bergeser
+                                    gender: p[5], // Index bergeser
+                                    alamat: p[6], // Index bergeser
+                                    noTelepon: p[7], // Index bergeser
+                                    email: p[8], // Index bergeser
+                                    rumahSakitPenanggungJawab: p[9], // Index bergeser
                                 };
                             } catch (patientFetchError) {
                                 console.error(`ERROR: Gagal memuat detail pasien ${pasienAddress}:`, patientFetchError);
-                                // Berikan nilai fallback untuk ID juga jika gagal
-                                return { address: pasienAddress, nama: "Gagal Memuat Nama", ID: "-", rumahSakitPenanggungJawab: "" };
+                                // Berikan nilai fallback untuk ID dan NIK juga jika gagal
+                                return { 
+                                    address: pasienAddress, 
+                                    nama: "Gagal Memuat Nama", 
+                                    ID: "-", 
+                                    NIK: "-", // <-- Fallback untuk NIK
+                                    golonganDarah: "-",
+                                    tanggalLahir: "-",
+                                    gender: "-",
+                                    alamat: "-",
+                                    noTelepon: "-",
+                                    email: "-",
+                                    rumahSakitPenanggungJawab: "" 
+                                };
                             }
                         })
                     );

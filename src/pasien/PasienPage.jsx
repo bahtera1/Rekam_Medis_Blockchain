@@ -20,6 +20,7 @@ export default function PasienPage({ account, onLogout }) {
   const [form, setForm] = useState({
     nama: "",
     ID: "", // ID Pasien (akan diisi otomatis untuk registrasi)
+    NIK: "", // <-- Tambahkan NIK di sini
     golonganDarah: "",
     tanggalLahir: "",
     gender: "",
@@ -69,9 +70,11 @@ export default function PasienPage({ account, onLogout }) {
           }
           break;
         case "Pasien":
+          // Menggunakan indeks yang diperbarui sesuai dengan struct Pasien di SC
           const pasienDataFromContract = await contract.methods.getPasienData(actorAddress).call();
           name = pasienDataFromContract[0]; // nama pasien
-          const responsibleRSAddress = pasienDataFromContract[8]; // Alamat RS Penanggung Jawab pasien
+          // NIK ada di index 2 (pasienDataFromContract[2])
+          const responsibleRSAddress = pasienDataFromContract[9]; // Alamat RS Penanggung Jawab pasien (index berubah dari 8 ke 9)
           if (responsibleRSAddress !== "0x0000000000000000000000000000000000000000") {
             try {
               const adminRSData = await contract.methods.getAdminRS(responsibleRSAddress).call();
@@ -121,25 +124,27 @@ export default function PasienPage({ account, onLogout }) {
         setDataDiri({
           nama: pasienData[0],
           ID: pasienData[1],
-          golonganDarah: pasienData[2],
-          tanggalLahir: pasienData[3],
-          gender: pasienData[4],
-          alamat: pasienData[5],
-          noTelepon: pasienData[6],
-          email: pasienData[7],
-          rumahSakitPenanggungJawab: pasienData[8],
+          NIK: pasienData[2], // <-- NIK diambil dari indeks 2
+          golonganDarah: pasienData[3], // Index bergeser
+          tanggalLahir: pasienData[4], // Index bergeser
+          gender: pasienData[5], // Index bergeser
+          alamat: pasienData[6], // Index bergeser
+          noTelepon: pasienData[7], // Index bergeser
+          email: pasienData[8], // Index bergeser
+          rumahSakitPenanggungJawab: pasienData[9], // Index bergeser
         });
 
         setForm({
           nama: pasienData[0],
           ID: pasienData[1],
-          golonganDarah: pasienData[2],
-          tanggalLahir: pasienData[3],
-          gender: pasienData[4],
-          alamat: pasienData[5],
-          noTelepon: pasienData[6],
-          email: pasienData[7],
-          adminRS: pasienData[8],
+          NIK: pasienData[2], // <-- NIK di-set ke form
+          golonganDarah: pasienData[3],
+          tanggalLahir: pasienData[4],
+          gender: pasienData[5],
+          alamat: pasienData[6],
+          noTelepon: pasienData[7],
+          email: pasienData[8],
+          adminRS: pasienData[9],
         });
 
         const rmIds = await contract.methods.getRekamMedisIdsByPasien(account).call();
@@ -175,7 +180,7 @@ export default function PasienPage({ account, onLogout }) {
         setRekamMedisTerbaru(null);
         setRekamMedisIds([]);
         setForm({
-          nama: "", ID: "", golonganDarah: "", tanggalLahir: "",
+          nama: "", ID: "", NIK: "", golonganDarah: "", tanggalLahir: "", // <-- NIK diinisialisasi
           gender: "", alamat: "", noTelepon: "", email: "", adminRS: "",
         });
       }
@@ -205,7 +210,7 @@ export default function PasienPage({ account, onLogout }) {
                 nama: data.namaRumahSakit,
                 alamat: data.alamatRumahSakit,
                 kota: data.kota,
-                IDRS: data.IDRS,
+                NIBRS: data.NIBRS, // Menggunakan NIBRS, bukan IDRS
               };
             }
             return null;
@@ -220,7 +225,7 @@ export default function PasienPage({ account, onLogout }) {
       console.error("Error fetching admin RS list:", error);
       setError("Gagal memuat daftar Rumah Sakit. Coba refresh halaman.");
     }
-  }, []); // Tidak ada perubahan besar di sini
+  }, []);
 
   // Fungsi untuk meng-generate ID pasien berikutnya
   const generateNextPatientId = useCallback(async () => {
@@ -242,7 +247,7 @@ export default function PasienPage({ account, onLogout }) {
       alert("Gagal meng-generate ID Pasien. Silakan coba lagi.");
       return;
     }
-    if (!form.nama || !form.golonganDarah || !form.tanggalLahir || !form.gender || !form.alamat || !form.noTelepon || !form.email || !form.adminRS) {
+    if (!form.nama || !form.NIK || !form.golonganDarah || !form.tanggalLahir || !form.gender || !form.alamat || !form.noTelepon || !form.email || !form.adminRS) {
       alert("Harap lengkapi semua data pendaftaran.");
       return;
     }
@@ -250,6 +255,7 @@ export default function PasienPage({ account, onLogout }) {
       await contract.methods.selfRegisterPasien(
         form.nama,
         nextPatientId,
+        form.NIK, // <-- NIK ditambahkan di sini
         form.golonganDarah,
         form.tanggalLahir,
         form.gender,
@@ -265,8 +271,10 @@ export default function PasienPage({ account, onLogout }) {
       let errorMessage = "Gagal mendaftar pasien. Pastikan ID unik dan RS valid. Lihat konsol untuk detail.";
       if (error.message.includes("Pasien already registered")) {
         errorMessage = "Anda sudah terdaftar sebagai pasien.";
-      } else if (error.message.includes("ID already taken")) {
+      } else if (error.message.includes("ID Pasien sudah digunakan")) { // Update pesan error
         errorMessage = "ID pasien sudah digunakan. Coba refresh halaman untuk ID baru.";
+      } else if (error.message.includes("NIK Pasien sudah digunakan")) { // <-- Tambahkan error NIK
+        errorMessage = "NIK pasien sudah digunakan. Harap masukkan NIK yang unik.";
       }
       alert(errorMessage);
     }
@@ -277,6 +285,7 @@ export default function PasienPage({ account, onLogout }) {
     try {
       await contract.methods.updatePasienData(
         updatedData.nama,
+        updatedData.NIK, // <-- NIK ditambahkan di sini
         updatedData.golonganDarah,
         updatedData.tanggalLahir,
         updatedData.gender,
@@ -288,7 +297,11 @@ export default function PasienPage({ account, onLogout }) {
       await loadPasienData();
     } catch (error) {
       console.error("Error updating patient data:", error);
-      alert("Gagal memperbarui data diri. Lihat konsol untuk detail.");
+      let errorMessage = "Gagal memperbarui data diri. Lihat konsol untuk detail.";
+      if (error.message.includes("NIK baru sudah digunakan")) { // <-- Pesan error NIK
+        errorMessage = "NIK baru sudah digunakan oleh pasien lain. Harap masukkan NIK yang unik.";
+      }
+      alert(errorMessage);
       throw error;
     }
   }, [account, loadPasienData]);
