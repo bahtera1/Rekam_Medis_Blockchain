@@ -124,30 +124,34 @@ export default function DataDiriPasien({
         }
 
         try {
-            const cardWidthMm = 85.6;
-            const cardHeightMm = 53.98;
+            // Dimensi kartu kredit standar: 85.6 mm x 53.98 mm
+            // Sesuaikan lebar target sesuai kebutuhan Anda
+            const targetCardWidthMm = 85.6; // Menggunakan lebar standar kartu kredit
+            const targetCardHeightMm = 53.98; // Tinggi standar kartu kredit
 
             const canvas = await html2canvas(input, {
-                scale: 3,
+                scale: 3, // Pertahankan skala ini untuk kualitas yang tidak buram
                 useCORS: true,
                 allowTaint: true,
+                // foreignObjectRendering: true, // Opsional: Coba ini jika teks masih buram
             });
 
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
                 orientation: 'landscape',
                 unit: 'mm',
-                format: [cardWidthMm, cardHeightMm],
+                format: [targetCardWidthMm, targetCardHeightMm],
                 precision: 2
             });
 
+            // Hitung rasio aspek canvas dan sesuaikan agar gambar pas di halaman PDF
             const canvasAspectRatio = canvas.width / canvas.height;
-            let imgWidthPdf = cardWidthMm;
-            let imgHeightPdf = cardWidthMm / canvasAspectRatio;
+            let imgWidthPdf = pdf.internal.pageSize.getWidth();
+            let imgHeightPdf = imgWidthPdf / canvasAspectRatio;
 
-            if (imgHeightPdf > cardHeightMm) {
-                imgHeightPdf = cardHeightMm;
-                imgWidthPdf = cardHeightMm * canvasAspectRatio;
+            if (imgHeightPdf > pdf.internal.pageSize.getHeight()) {
+                imgHeightPdf = pdf.internal.pageSize.getHeight();
+                imgWidthPdf = imgHeightPdf * canvasAspectRatio;
             }
 
             const x = (pdf.internal.pageSize.getWidth() - imgWidthPdf) / 2;
@@ -308,10 +312,13 @@ export default function DataDiriPasien({
 
                     <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-5 border border-indigo-200">
                         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-5">
-                            <div className="flex-1">
-                                <div className="bg-white rounded-lg p-3 shadow-lg">
+                            <div className="flex-1 flex justify-center items-center">
+                                <div>
                                     {/* Konten yang akan dicetak */}
-                                    <div id="idCardContent" className="border-2 border-indigo-600 rounded-lg p-5 bg-gradient-to-br from-indigo-50 to-white">
+                                    <div id="idCardContent"
+                                        className="border-2 border-indigo-600 rounded-lg p-5 bg-gradient-to-br from-indigo-50 to-white"
+                                        style={{ width: '400px', height: '240px', boxSizing: 'border-box', overflow: 'hidden' }}
+                                    >
                                         <div className="flex flex-col md:flex-row items-center gap-5">
                                             <div className="flex-shrink-0">
                                                 <div className="bg-white p-1 rounded-lg shadow-md">
@@ -336,10 +343,12 @@ export default function DataDiriPasien({
                                                     <div><strong>Tgl. Lahir:</strong> {dataDiri.tanggalLahir}</div>
                                                     <div><strong>Gender:</strong> {dataDiri.gender}</div>
                                                 </div>
+                                                {/* ---- BAGIAN YANG PERLU DIUBAH FONT-SIZE ALAMAT WALLET ---- */}
                                                 <div className="mt-2 pt-2 border-t border-indigo-200">
                                                     <p className="text-xs text-gray-500">
                                                         <strong>Alamat Wallet:</strong>
-                                                        <span className="font-mono block mt-0.5 text-xs">{dataDiri.address}</span>
+                                                        {/* Ubah text-xs menjadi text-[10px] atau text-[9px] */}
+                                                        <span className="font-mono block mt-0.5 text-[9px] text-wrap">{dataDiri.address}</span>
                                                     </p>
                                                 </div>
                                             </div>
@@ -358,9 +367,6 @@ export default function DataDiriPasien({
                                     </svg>
                                     Unduh Kartu Pasien
                                 </button>
-                                <p className="text-xs text-gray-500 text-center max-w-xs">
-                                    Kartu ini dapat digunakan sebagai identitas digital Anda di berbagai layanan kesehatan
-                                </p>
                             </div>
                         </div>
                     </div>
