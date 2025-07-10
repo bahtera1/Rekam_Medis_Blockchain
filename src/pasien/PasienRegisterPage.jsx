@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 
 // Komponen untuk ikon (menggunakan karakter Unicode)
-const IconUser = () => <span className="mr-2.5 text-blue-600 inline">👤</span>;
-const IconCalendar = () => <span className="mr-2.5 text-blue-600 inline">📅</span>;
-const IconMail = () => <span className="mr-2.5 text-blue-600 inline">📧</span>;
-const IconPhone = () => <span className="mr-2.5 text-blue-600 inline">📞</span>;
-const IconLocation = () => <span className="mr-2.5 text-blue-600 inline">🏠</span>;
-const IconGender = () => <span className="mr-2.5 text-blue-600 inline">🚻</span>;
-const IconBloodType = () => <span className="mr-2.5 text-red-600 inline">🩸</span>;
-const IconHospital = () => <span className="mr-2.5 text-blue-600 inline">🏥</span>;
-const IconNIK = () => <span className="mr-2.5 text-blue-600 inline">💳</span>; // Ikon baru untuk NIK
+const IconUser = () => <span className="mr-1.5 text-blue-600 inline text-sm">👤</span>;
+const IconCalendar = () => <span className="mr-1.5 text-blue-600 inline text-sm">📅</span>;
+const IconMail = () => <span className="mr-1.5 text-blue-600 inline text-sm">📧</span>;
+const IconPhone = () => <span className="mr-1.5 text-blue-600 inline text-sm">📞</span>;
+const IconLocation = () => <span className="mr-1.5 text-blue-600 inline text-sm">🏠</span>;
+const IconGender = () => <span className="mr-1.5 text-blue-600 inline text-sm">🚻</span>;
+const IconBloodType = () => <span className="mr-1.5 text-red-600 inline text-sm">🩸</span>;
+const IconHospital = () => <span className="mr-1.5 text-blue-600 inline text-sm">🏥</span>;
+const IconNIK = () => <span className="mr-1.5 text-blue-600 inline text-sm">💳</span>; // Ikon baru untuk NIK
 
 export default function PasienRegisterPage({
     submitDataDiri,
@@ -57,20 +57,20 @@ export default function PasienRegisterPage({
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center py-8 px-4">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center py-4 px-2">
             {showPopup && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl border border-blue-100 animate-pulse">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
+                    <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl border border-blue-100 animate-pulse">
                         <div className="text-center">
-                            <div className="text-6xl mb-4">👋</div>
-                            <h2 className="text-2xl font-bold mb-4 text-gray-800">
+                            <div className="text-5xl mb-3">👋</div>
+                            <h2 className="text-xl font-bold mb-3 text-gray-800">
                                 Selamat Datang Pasien Baru!
                             </h2>
-                            <p className="mb-6 text-gray-600 leading-relaxed">
+                            <p className="mb-4 text-gray-600 leading-relaxed text-sm">
                                 Alamat wallet Anda belum terdaftar. Mari lengkapi data diri Anda untuk mulai mengakses layanan rekam medis.
                             </p>
                             <button
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
                                 onClick={() => setShowPopup(false)}
                             >
                                 Lanjutkan Pendaftaran
@@ -81,24 +81,25 @@ export default function PasienRegisterPage({
             )}
 
             {!showPopup && (
-                <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl mx-auto border border-gray-200 backdrop-blur-sm">
-                    <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                // --- Perubahan di sini: div pembungkus form sekarang adalah card utama ---
+                <div className="bg-white rounded-xl shadow-xl p-6 max-w-3xl mx-auto border border-gray-200">
+                    <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-1.5">
                             Registrasi Data Diri Pasien
                         </h2>
-                        <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mx-auto rounded-full"></div>
+                        <div className="w-20 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 mx-auto rounded-full"></div>
                     </div>
 
-                    <form className="grid grid-cols-1 lg:grid-cols-2 gap-6" onSubmit={handleSubmit}> {/* Tambahkan form tag di sini */}
-                        <div className="lg:col-span-2">
-                            <label htmlFor="nama" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                    <form className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4" onSubmit={handleSubmit}>
+                        <div className="md:col-span-2">
+                            <label htmlFor="nama" className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                                 <IconUser /> Nama Lengkap
                             </label>
                             <input
                                 id="nama"
                                 name="nama"
                                 type="text"
-                                className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
+                                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 text-sm"
                                 value={form.nama}
                                 onChange={(e) => setForm((f) => ({ ...f, nama: e.target.value }))}
                                 required
@@ -108,17 +109,17 @@ export default function PasienRegisterPage({
                         </div>
 
                         {/* Input NIK baru */}
-                        <div className="lg:col-span-2">
-                            <label htmlFor="nik" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                        <div className="md:col-span-2">
+                            <label htmlFor="nik" className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                                 <IconNIK /> Nomor Induk Kependudukan (NIK)
                             </label>
                             <input
                                 id="nik"
                                 name="NIK"
-                                type="text" // Menggunakan type="text" agar tidak ada auto-formatting yang mengganggu validasi 16 digit
-                                pattern="\d{16}" // HTML5 pattern untuk 16 digit angka
-                                maxLength="16" // Batasi input hingga 16 karakter
-                                className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
+                                type="text"
+                                pattern="\d{16}"
+                                maxLength="16"
+                                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 text-sm"
                                 value={form.NIK}
                                 onChange={(e) => setForm((f) => ({ ...f, NIK: e.target.value }))}
                                 required
@@ -128,13 +129,13 @@ export default function PasienRegisterPage({
                         </div>
 
                         <div>
-                            <label htmlFor="golonganDarah" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                            <label htmlFor="golonganDarah" className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                                 <IconBloodType /> Golongan Darah
                             </label>
                             <select
                                 id="golonganDarah"
                                 name="golonganDarah"
-                                className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
+                                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 text-sm"
                                 value={form.golonganDarah}
                                 onChange={(e) => setForm((f) => ({ ...f, golonganDarah: e.target.value }))}
                                 required
@@ -148,14 +149,14 @@ export default function PasienRegisterPage({
                         </div>
 
                         <div>
-                            <label htmlFor="tanggalLahir" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                            <label htmlFor="tanggalLahir" className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                                 <IconCalendar /> Tanggal Lahir
                             </label>
                             <input
                                 id="tanggalLahir"
                                 name="tanggalLahir"
                                 type="date"
-                                className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
+                                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 text-sm"
                                 value={form.tanggalLahir}
                                 onChange={(e) => setForm((f) => ({ ...f, tanggalLahir: e.target.value }))}
                                 required
@@ -163,13 +164,13 @@ export default function PasienRegisterPage({
                         </div>
 
                         <div>
-                            <label htmlFor="gender" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                            <label htmlFor="gender" className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                                 <IconGender /> Gender
                             </label>
                             <select
                                 id="gender"
                                 name="gender"
-                                className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
+                                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 text-sm"
                                 value={form.gender}
                                 onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
                                 required
@@ -181,14 +182,14 @@ export default function PasienRegisterPage({
                         </div>
 
                         <div>
-                            <label htmlFor="noTelepon" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                            <label htmlFor="noTelepon" className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                                 <IconPhone /> No. Telepon
                             </label>
                             <input
                                 id="noTelepon"
                                 name="noTelepon"
                                 type="tel"
-                                className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
+                                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 text-sm"
                                 value={form.noTelepon}
                                 onChange={(e) => setForm((f) => ({ ...f, noTelepon: e.target.value }))}
                                 required
@@ -197,15 +198,15 @@ export default function PasienRegisterPage({
                             />
                         </div>
 
-                        <div className="lg:col-span-2">
-                            <label htmlFor="email" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                        <div className="md:col-span-2">
+                            <label htmlFor="email" className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                                 <IconMail /> Email
                             </label>
                             <input
                                 id="email"
                                 name="email"
                                 type="email"
-                                className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
+                                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 text-sm"
                                 value={form.email}
                                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                                 required
@@ -214,31 +215,31 @@ export default function PasienRegisterPage({
                             />
                         </div>
 
-                        <div className="lg:col-span-2">
-                            <label htmlFor="alamat" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                        <div className="md:col-span-2">
+                            <label htmlFor="alamat" className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                                 <IconLocation /> Alamat Lengkap
                             </label>
                             <textarea
                                 id="alamat"
                                 name="alamat"
-                                className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 resize-none"
+                                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 resize-none text-sm"
                                 value={form.alamat}
                                 onChange={(e) => setForm((f) => ({ ...f, alamat: e.target.value }))}
-                                rows={3}
+                                rows={2}
                                 required
                                 autoComplete="off"
                                 placeholder="Cth: Jl. Contoh No. 123, Kota A"
                             />
                         </div>
 
-                        <div className="lg:col-span-2">
-                            <label htmlFor="adminRS" className="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                        <div className="md:col-span-2">
+                            <label htmlFor="adminRS" className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                                 <IconHospital /> Pilih Rumah Sakit Penanggung Jawab
                             </label>
                             <select
                                 id="adminRS"
                                 name="adminRS"
-                                className="w-full border-2 border-gray-200 rounded-lg px-4 py-3 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
+                                className="w-full border border-gray-200 rounded-md px-3 py-2 bg-gray-50 text-gray-800 focus:outline-none focus:border-blue-500 focus:bg-white transition-all duration-200 text-sm"
                                 value={form.adminRS}
                                 onChange={(e) => setForm((f) => ({ ...f, adminRS: e.target.value }))}
                                 required
@@ -252,9 +253,9 @@ export default function PasienRegisterPage({
                             </select>
                         </div>
 
-                        <div className="lg:col-span-2 flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-gray-200">
+                        <div className="md:col-span-2 flex flex-col sm:flex-row gap-3 mt-4 pt-4 border-t border-gray-200">
                             <button
-                                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-5 py-2 rounded-md font-semibold shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                 type="button"
                                 onClick={onLogout}
                                 disabled={isSubmitting}
@@ -262,15 +263,16 @@ export default function PasienRegisterPage({
                                 Kembali
                             </button>
                             <button
-                                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2 rounded-md font-semibold shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                                 type="submit"
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? "Menyimpan Data..." : "Simpan Data Diri"}
                             </button>
                         </div>
-                    </form> {/* Tutup form tag di sini */}
+                    </form>
                 </div>
+                // --- Akhir perubahan div pembungkus form ---
             )}
         </div>
     );

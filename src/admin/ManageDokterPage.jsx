@@ -89,7 +89,7 @@ export default function ManageDokterPage({
             </label>
             <input
               type="text"
-              placeholder="Dr. John Doe, Sp.A"
+              placeholder="Dr. Iman, Sp.A"
               value={dokterNama}
               onChange={(e) => setDokterNama(e.target.value)}
               disabled={loading}
@@ -209,8 +209,8 @@ export default function ManageDokterPage({
                         onClick={() => toggleStatusDokter(d.address, d.aktif)}
                         disabled={loading}
                         className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${d.aktif
-                            ? "bg-red-500 hover:bg-red-600 text-white"
-                            : "bg-green-500 hover:bg-green-600 text-white"
+                          ? "bg-red-500 hover:bg-red-600 text-white"
+                          : "bg-green-500 hover:bg-green-600 text-white"
                           } disabled:opacity-50`}
                       >
                         {d.aktif ? "Nonaktifkan" : "Aktifkan"}

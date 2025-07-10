@@ -18,7 +18,7 @@ const TrashIcon = () => (
 // --- Komponen Utama ---
 export default function ManageAssign({
     dokterList,
-    listPasien,
+    listPasien, // Prop ini sudah berisi data NIK pasien dari AdminPage
     selectedDokter,
     setSelectedDokter,
     pasienAddress,
@@ -27,22 +27,42 @@ export default function ManageAssign({
     unassignPasien,
     loading,
     assignedPairs,
+    onAssignmentChange,
 }) {
     const [openIndex, setOpenIndex] = useState(null);
 
     // Opsi dan style untuk react-select
     const dokterOptions = dokterList.map(dokter => ({
         value: dokter.address,
-        label: `${dokter.nama} - ${dokter.spesialisasi} (${dokter.address.substring(0, 8)}...)`
+        // Tampilkan nama dan spesialisasi di label dropdown
+        label: `${dokter.nama} - ${dokter.spesialisasi} (${dokter.nomorLisensi})`
     }));
+
+    // --- MODIFIKASI PENTING DI SINI: pasienOptions ---
     const pasienOptions = listPasien.map(pasien => ({
         value: pasien.address,
-        label: `${pasien.nama || "N/A"} (ID: ${pasien.ID || "-"}) (${pasien.address.substring(0, 8)}...)`
+        // Tampilkan nama dan NIK pasien di label dropdown
+        label: `${pasien.nama || "N/A"} (ID: ${pasien.ID || "-"}) (NIK: ${pasien.NIK || "-"})`
     }));
+
     const customStyles = {
         control: (p, s) => ({ ...p, borderColor: s.isFocused ? '#3B82F6' : '#D1D5DB', boxShadow: s.isFocused ? '0 0 0 1px #3B82F6' : 'none', borderRadius: '0.75rem', padding: '0.5rem', transition: 'all 150ms ease-in-out' }),
         option: (p, s) => ({ ...p, backgroundColor: s.isSelected ? '#3B82F6' : s.isFocused ? '#EFF6FF' : null, color: s.isSelected ? 'white' : '#1F2937', cursor: 'pointer', padding: '0.75rem 1rem' }),
         menu: (p) => ({ ...p, borderRadius: '0.75rem', marginTop: '0.5rem' })
+    };
+
+    const handleAssign = async () => {
+        await assignPasien();
+        if (onAssignmentChange) {
+            onAssignmentChange();
+        }
+    };
+
+    const handleUnassign = async (dokterAddress, pasienAddressToUnassign) => {
+        await unassignPasien(dokterAddress, pasienAddressToUnassign);
+        if (onAssignmentChange) {
+            onAssignmentChange();
+        }
     };
 
     return (
@@ -62,7 +82,7 @@ export default function ManageAssign({
                         <Select id="select-dokter" options={dokterOptions} value={dokterOptions.find(o => o.value === selectedDokter) || null} onChange={opt => setSelectedDokter(opt ? opt.value : '')} isDisabled={loading} placeholder="Cari nama atau spesialisasi dokter..." styles={customStyles} />
                     </div>
                     <div className="pt-4 flex justify-end">
-                        <button onClick={assignPasien} disabled={loading || !selectedDokter || !pasienAddress} className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                        <button onClick={handleAssign} disabled={loading || !selectedDokter || !pasienAddress} className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                             {loading ? "Memproses..." : "Tugaskan"}
                         </button>
                     </div>
@@ -79,9 +99,9 @@ export default function ManageAssign({
                         <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                             <tr>
                                 <th className="py-4 px-4 font-semibold text-center w-16">No.</th>
-                                <th className="py-4 px-4 font-semibold text-left">Info Dokter</th>
+                                <th className="py-4 px-4 font-semibold text-left">Nama Dokter</th>
+                                <th className="py-4 px-4 font-semibold text-left">Spesialisasi</th>
                                 <th className="py-4 px-4 font-semibold text-left">No. Lisensi</th>
-                                <th className="py-4 px-4 font-semibold text-left min-w-48">Alamat Wallet</th>
                                 <th className="py-4 px-4 font-semibold text-center">Pasien Ditangani</th>
                             </tr>
                         </thead>
@@ -93,9 +113,7 @@ export default function ManageAssign({
                                 <tr><td colSpan={5} className="text-center py-12 text-gray-500 italic">Belum ada penugasan yang dibuat.</td></tr>
                             )}
                             {!loading && assignedPairs.map((pair, idx) => {
-                                // --- PERBAIKAN UTAMA DI SINI ---
-                                // Filter pasien yang valid sebelum menampilkannya
-                                const validPasienList = pair.pasienList.filter(p => p && p.nama && p.ID);
+                                const displayPasienList = pair.pasienList;
 
                                 return (
                                     <React.Fragment key={idx}>
@@ -103,17 +121,16 @@ export default function ManageAssign({
                                             <td className="py-4 px-4 text-center text-gray-600 font-medium">{idx + 1}</td>
                                             <td className="py-4 px-4">
                                                 <div className="font-semibold text-gray-800">{pair.dokterNama}</div>
-                                                <div className="text-xs text-gray-500">{pair.dokterSpesialisasi}</div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="text-gray-800">{pair.dokterSpesialisasi}</div>
                                             </td>
                                             <td className="py-4 px-4">
                                                 <code className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-xs font-mono">{pair.dokterLisensi}</code>
                                             </td>
-                                            <td className="py-4 px-4">
-                                                <code className="text-xs bg-gray-100 px-2 py-1 rounded border text-gray-600">{pair.dokterAddress}</code>
-                                            </td>
                                             <td className="py-4 px-4 text-center">
                                                 <button onClick={() => setOpenIndex(openIndex === idx ? null : idx)} className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors duration-200 text-sm font-medium">
-                                                    <span>{openIndex === idx ? "Sembunyikan" : `Tampilkan (${validPasienList.length})`}</span> {/* Update hitungan pasien */}
+                                                    <span>{openIndex === idx ? "Sembunyikan" : `Tampilkan (${displayPasienList.length})`}</span>
                                                     <ChevronDownIcon />
                                                 </button>
                                             </td>
@@ -122,26 +139,30 @@ export default function ManageAssign({
                                             <tr className="bg-blue-50/40">
                                                 <td colSpan={5} className="p-0">
                                                     <div className="p-4 m-4 bg-white rounded-xl shadow-inner border">
-                                                        {validPasienList.length === 0 ? ( // Kondisi ini sekarang memeriksa `validPasienList`
-                                                            <p className="text-sm text-gray-500 italic text-center py-3">Dokter ini tidak memiliki pasien atau data pasien tidak lengkap.</p>
+                                                        {displayPasienList.length === 0 ? (
+                                                            <p className="text-sm text-gray-500 italic text-center py-3">Dokter ini tidak memiliki pasien yang berafiliasi dengan RS Anda.</p>
                                                         ) : (
                                                             <table className="min-w-full">
                                                                 <thead>
                                                                     <tr className="border-b border-gray-200">
                                                                         <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">Nama Pasien</th>
                                                                         <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">ID Pasien</th>
+                                                                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">NIK Pasien</th> {/* New Header for NIK */}
                                                                         <th className="py-2 px-3 text-center text-xs font-semibold text-gray-500">Aksi</th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    {validPasienList.map((p, i) => ( // Gunakan `validPasienList` di sini
+                                                                    {displayPasienList.map((p, i) => (
                                                                         <tr key={i} className="hover:bg-red-50/50 border-b border-gray-100 last:border-b-0">
                                                                             <td className="py-3 px-3 text-sm text-gray-700">{p.nama}</td>
                                                                             <td className="py-3 px-3 text-sm text-gray-700">
                                                                                 <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-xs">{p.ID}</span>
                                                                             </td>
+                                                                            <td className="py-3 px-3 text-sm text-gray-700"> {/* New Cell for NIK */}
+                                                                                <span className="text-gray-800 px-2 py-1 rounded-md text-xs">{p.NIK || '-'}</span>
+                                                                            </td>
                                                                             <td className="py-3 px-3 text-center">
-                                                                                <button onClick={() => unassignPasien(pair.dokterAddress, p.address)} disabled={loading} className="inline-flex items-center space-x-1 bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+                                                                                <button onClick={() => handleUnassign(pair.dokterAddress, p.address)} disabled={loading} className="inline-flex items-center space-x-1 bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
                                                                                     <TrashIcon />
                                                                                     <span>Lepas Tugas</span>
                                                                                 </button>

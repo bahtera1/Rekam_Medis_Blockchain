@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import web3 from "./web3";
 import contract from "./contract";
-import queryString from 'query-string';
 
 import SuperAdminPage from "./superadmin/SuperAdminPage.jsx";
 import AdminPage from "./admin/AdminPage.jsx";

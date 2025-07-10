@@ -173,7 +173,6 @@ export default function PasienPage({ account, onLogout, setAccount }) {
         } else {
           setRekamMedisTerbaru(null);
         }
-        setActiveMenu("dataDiri");
       } else {
         setDataDiri(null);
         setRekamMedisTerbaru(null);
@@ -420,26 +419,24 @@ export default function PasienPage({ account, onLogout, setAccount }) {
     );
   }
 
-  // --- Registration Page (jika belum terdaftar) (disesuaikan dengan gaya lama tapi pakai ikon) ---
+  // --- Registration Page (jika belum terdaftar) ---
   if (!isRegistered) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-8 flex items-center justify-center">
-        <div className="bg-white p-10 rounded-xl shadow-2xl w-full max-w-3xl">
-          <h2 className="text-4xl font-extrabold text-gray-900 mb-8 text-center flex items-center justify-center gap-3">
-            <FaUserPlus className="text-indigo-600" /> Pendaftaran Pasien Baru
-          </h2>
-          <p className="text-center text-gray-600 mb-8 text-lg">
-            Sepertinya Anda belum terdaftar sebagai pasien di sistem kami. Silakan lengkapi data diri Anda untuk memulai.
-          </p>
-          <PasienRegisterPage
-            submitDataDiri={submitDataDiri}
-            form={form}
-            setForm={setForm}
-            listAdminRS={listAdminRS}
-            onLogout={onLogout}
-            nextPatientId={nextPatientId}
-          />
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col items-center justify-center pt-8">
+        <h2 className="text-4xl font-extrabold text-gray-900 mb-6 text-center flex items-center justify-center gap-3">
+          <FaUserPlus className="text-indigo-600" /> Pendaftaran Pasien Baru
+        </h2>
+        <p className="text-center text-gray-600 mb-4 text-lg max-w-2xl">
+          Sepertinya Anda belum terdaftar sebagai pasien di sistem kami. Silakan lengkapi data diri Anda untuk memulai.
+        </p>
+        <PasienRegisterPage
+          submitDataDiri={submitDataDiri}
+          form={form}
+          setForm={setForm}
+          listAdminRS={listAdminRS}
+          onLogout={onLogout}
+          nextPatientId={nextPatientId}
+        />
       </div>
     );
   }
@@ -455,7 +452,7 @@ export default function PasienPage({ account, onLogout, setAccount }) {
       />
       <div className="flex-1 p-6 md:p-10 lg:p-12">
 
-        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10 min-h-[calc(100vh-180px)]">
+
           {activeMenu === "dataDiri" && dataDiri ? (
             <DataDiriPasien
               dataDiri={dataDiri}
@@ -483,7 +480,6 @@ export default function PasienPage({ account, onLogout, setAccount }) {
               </p>
             </div>
           )}
-        </div>
       </div>
     </div>
   );

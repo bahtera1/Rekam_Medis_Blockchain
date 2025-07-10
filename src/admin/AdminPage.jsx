@@ -2,34 +2,37 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import contract from "../contract";
-import web3 from "../web3";
 import ManageDokterPage from "./ManageDokterPage";
-import ManagePasienPage from "./ManagePasienPage"; // <-- PERBAIKAN DI SINI
+import ManagePasienPage from "./ManagePasienPage";
 import ManageAssign from "./ManageAssign";
 import AdminSideBar from "./AdminSideBar";
 
 export default function AdminPage({ account, onLogout }) {
+    // State untuk form dokter
     const [dokterAddress, setDokterAddress] = useState("");
     const [dokterNama, setDokterNama] = useState("");
     const [dokterSpesialisasi, setDokterSpesialisasi] = useState("");
     const [dokterNomorLisensi, setDokterNomorLisensi] = useState("");
-    const [dokterList, setDokterList] = useState([]);
-    const [pasienAddress, setPasienAddress] = useState("");
-    const [listPasien, setListPasien] = useState([]);
+
+    // State untuk data yang diambil dari kontrak
+    const [dokterList, setDokterList] = useState([]); // List dokter lengkap (aktif/non-aktif) dari RS ini
+    const [listPasien, setListPasien] = useState([]); // Pasien yang berafiliasi dengan RS admin ini
+    const [assignedPairs, setAssignedPairs] = useState([]); // Pasangan dokter-pasien yang AKTIF
+
+    // State untuk form assign
     const [selectedDokter, setSelectedDokter] = useState("");
-    const [assignedPairs, setAssignedPairs] = useState([]);
+    const [pasienAddress, setPasienAddress] = useState("");
+
     const [loading, setLoading] = useState(false);
     const [activePage, setActivePage] = useState("manageDokter");
     const [namaRumahSakit, setNamaRumahSakit] = useState("");
 
-    // Di dalam file AdminPage.js
+    // --- Fetching Data Functions ---
+
     const fetchNamaRS = useCallback(async () => {
         try {
             const adminData = await contract.methods.dataAdmin(account).call();
-
-            // TAMBAHKAN BARIS INI UNTUK DEBUGGING
             console.log("Data Admin RS:", adminData);
-
             if (adminData && adminData.namaRumahSakit) {
                 setNamaRumahSakit(adminData.namaRumahSakit);
             } else {
@@ -42,13 +45,15 @@ export default function AdminPage({ account, onLogout }) {
     }, [account]);
 
     const fetchDokterList = useCallback(async () => {
+        setLoading(true);
         try {
             const total = await contract.methods.totalDokter().call();
             const list = [];
             for (let i = 0; i < total; i++) {
                 const addr = await contract.methods.getDokterByIndex(i).call();
                 const result = await contract.methods.getDokter(addr).call();
-                if (result[5] === account) {
+                // Filter dokter hanya yang berafiliasi dengan RS admin yang login
+                if (result[5].toLowerCase() === account.toLowerCase()) {
                     list.push({
                         address: addr,
                         nama: result[0],
@@ -63,106 +68,122 @@ export default function AdminPage({ account, onLogout }) {
             setDokterList(list);
         } catch (err) {
             console.error("Gagal mengambil daftar dokter:", err);
+            setDokterList([]);
+        } finally {
+            setLoading(false);
         }
     }, [account]);
 
     const fetchPasienList = useCallback(async () => {
+        setLoading(true);
         try {
-            const pasienArray = await contract.methods.getDaftarPasien().call();
-            const list = [];
-            const zeroAddress = "0x0000000000000000000000000000000000000000";
+            const pasienAddressesForCurrentAdminRS = await contract.methods.getPasienByAdminRS().call({ from: account });
 
-            for (const addr of pasienArray) {
-                // getPasienData mengembalikan:
-                // nama (0), ID (1), NIK (2), golonganDarah (3), tanggalLahir (4), gender (5),
-                // alamat (6), noTelepon (7), email (8), rumahSakitPenanggungJawab (9)
+            const list = [];
+            for (const addr of pasienAddressesForCurrentAdminRS) {
                 const data = await contract.methods.getPasienData(addr).call();
 
-                // Hanya tampilkan pasien yang menjadi tanggung jawab RS ini ATAU pasien yang belum di-assign RS (address(0))
-                // Indeks data[9] adalah rumahSakitPenanggungJawab setelah penambahan NIK
-                if (data[9] === account || data[9] === zeroAddress) {
-                    list.push({
-                        address: addr,
-                        nama: data[0],
-                        ID: data[1],
-                        NIK: data[2], // <-- Tambahkan NIK di sini
-                        golonganDarah: data[3],
-                        tanggalLahir: data[4],
-                        gender: data[5],
-                        alamat: data[6],
-                        noTelepon: data[7],
-                        email: data[8],
-                        rumahSakitPenanggungJawab: data[9],
-                    });
-                }
+                list.push({
+                    address: addr,
+                    nama: data[0],
+                    ID: data[1],
+                    NIK: data[2],
+                    golonganDarah: data[3],
+                    tanggalLahir: data[4],
+                    gender: data[5],
+                    alamat: data[6],
+                    noTelepon: data[7],
+                    email: data[8],
+                    rumahSakitPenanggungJawab: data[9],
+                });
             }
             setListPasien(list);
         } catch (err) {
             console.error("Gagal mengambil daftar pasien:", err);
+            setListPasien([]);
+        } finally {
+            setLoading(false);
         }
     }, [account]);
 
-    // Di dalam file AdminPage.js
-
     const fetchAssignedPairs = useCallback(async () => {
-        if (dokterList.length === 0 || listPasien.length === 0) {
+        if (loading || (dokterList.length === 0 && listPasien.length === 0)) {
+            setAssignedPairs([]);
             return;
         }
+
         try {
-            const pairs = dokterList
-                .filter(
-                    (dok) =>
-                        dok.adminRS === account &&
-                        dok.assignedPasien &&
-                        dok.assignedPasien.length > 0
+            const activeDoctorsForAssignmentDisplay = dokterList.filter(dok => dok.aktif);
+
+            const pairs = activeDoctorsForAssignmentDisplay
+                .filter(dok =>
+                    dok.adminRS.toLowerCase() === account.toLowerCase() &&
+                    dok.assignedPasien &&
+                    dok.assignedPasien.length > 0
                 )
-                .map((dok) => ({
+                .map(dok => ({
                     dokterNama: dok.nama,
                     dokterLisensi: dok.nomorLisensi,
                     dokterSpesialisasi: dok.spesialisasi,
                     dokterAddress: dok.address,
-                    pasienList: dok.assignedPasien.map((addr) => {
-                        const pasienData = listPasien.find((p) => p.address === addr);
-                        return {
-                            nama: pasienData ? pasienData.nama : "Data Pasien Tidak Ditemukan",
-                            address: addr,
-                            ID: pasienData ? pasienData.ID : "-",
-                            NIK: pasienData ? pasienData.NIK : "-", // <-- Tambahkan NIK di sini untuk ditampilkan di assignedPairs jika diperlukan
-                        };
-                    }),
+                    pasienList: dok.assignedPasien
+                        .map(pasienAddr => {
+                            const pasienData = listPasien.find(p => p.address.toLowerCase() === pasienAddr.toLowerCase());
+
+                            if (pasienData && pasienData.rumahSakitPenanggungJawab.toLowerCase() === account.toLowerCase()) {
+                                return {
+                                    nama: pasienData.nama,
+                                    address: pasienAddr,
+                                    ID: pasienData.ID,
+                                    NIK: pasienData.NIK,
+                                };
+                            }
+                            return null;
+                        })
+                        .filter(p => p !== null),
                 }));
             setAssignedPairs(pairs);
         } catch (err) {
             console.error("Gagal mengambil pairing dokter-pasien:", err);
+            setAssignedPairs([]);
         }
-    }, [dokterList, listPasien, account]);
+    }, [dokterList, listPasien, account, loading]);
 
+
+    // --- useEffect untuk Fetch Data Awal ---
     useEffect(() => {
         async function fetchAllInitialData() {
             if (account) {
-                setLoading(true);
                 await fetchNamaRS();
                 await fetchDokterList();
                 await fetchPasienList();
-                setLoading(false);
             }
         }
         fetchAllInitialData();
     }, [account, fetchNamaRS, fetchDokterList, fetchPasienList]);
 
+    // useEffect untuk fetchAssignedPairs (bergantung pada dokterList dan listPasien)
     useEffect(() => {
-        if (dokterList.length > 0 && listPasien.length > 0) {
+        if (dokterList.length > 0 || listPasien.length > 0) {
             fetchAssignedPairs();
+        } else if (!loading) {
+            setAssignedPairs([]);
         }
-    }, [dokterList, listPasien, fetchAssignedPairs]);
+    }, [dokterList, listPasien, fetchAssignedPairs, loading]);
+
+
+    // --- Handler untuk Operasi Kontrak ---
+
+    const handleRefreshData = async () => {
+        console.log("Refreshing all data...");
+        setLoading(true);
+        await fetchDokterList();
+        await fetchPasienList();
+        setLoading(false);
+    };
 
     const registerDokter = async () => {
-        if (
-            !dokterAddress ||
-            !dokterNama ||
-            !dokterSpesialisasi ||
-            !dokterNomorLisensi
-        ) {
+        if (!dokterAddress || !dokterNama || !dokterSpesialisasi || !dokterNomorLisensi) {
             alert("Semua data dokter harus diisi.");
             return;
         }
@@ -176,8 +197,7 @@ export default function AdminPage({ account, onLogout }) {
             setDokterNama("");
             setDokterSpesialisasi("");
             setDokterNomorLisensi("");
-            await fetchDokterList();
-            await fetchPasienList(); // Memastikan list pasien juga diperbarui jika ada assign baru
+            await handleRefreshData();
         } catch (err) {
             console.error("Gagal mendaftarkan dokter:", err);
             const errorMessage = err.message.includes("revert")
@@ -189,13 +209,47 @@ export default function AdminPage({ account, onLogout }) {
         }
     };
 
-    const toggleStatusDokter = async (addr, cur) => {
+    const toggleStatusDokter = async (addr, curStatus) => {
         try {
             setLoading(true);
-            await contract.methods.setStatusDokter(addr, !cur).send({ from: account });
-            alert("Status dokter diperbarui.");
-            await fetchDokterList();
-            await fetchPasienList(); // Memastikan list pasien juga diperbarui jika ada assign baru
+
+            // 1. Ubah status dokter di kontrak
+            await contract.methods.setStatusDokter(addr, !curStatus).send({ from: account });
+
+            // 2. Jika status baru adalah NON-AKTIF, tawarkan untuk unassign semua pasiennya
+            if (!curStatus === false) {
+                const doctorToDeactivate = dokterList.find(d => d.address.toLowerCase() === addr.toLowerCase());
+                if (doctorToDeactivate && doctorToDeactivate.assignedPasien && doctorToDeactivate.assignedPasien.length > 0) {
+                    const confirmUnassign = window.confirm(
+                        `Anda menonaktifkan dokter ${doctorToDeactivate.nama}. ` +
+                        `Apakah Anda juga ingin secara otomatis melepaskan ${doctorToDeactivate.assignedPasien.length} pasien yang ditugaskan kepadanya? ` +
+                        `Ini akan memicu ${doctorToDeactivate.assignedPasien.length} transaksi tambahan dan mungkin memakan waktu.`
+                    );
+
+                    if (confirmUnassign) {
+                        alert(`Memulai proses pelepasan penugasan untuk ${doctorToDeactivate.assignedPasien.length} pasien. Harap konfirmasi di dompet Anda untuk setiap transaksi.`);
+                        for (const pasienAddr of doctorToDeactivate.assignedPasien) {
+                            try {
+                                console.log(`Attempting to unassign patient ${pasienAddr} from doctor ${addr}`);
+                                await contract.methods.unassignPasienFromDokter(addr, pasienAddr).send({ from: account });
+                                console.log(`Successfully unassigned ${pasienAddr}`);
+                            } catch (unassignErr) {
+                                console.error(`Gagal melepaskan penugasan pasien ${pasienAddr} dari dokter ${addr}:`, unassignErr);
+                                alert(`Peringatan: Gagal melepaskan penugasan pasien ${pasienAddr}. Silakan periksa konsol.`);
+                            }
+                        }
+                        alert("Proses pelepasan penugasan selesai.");
+                    } else {
+                        alert("Pelepasan penugasan pasien dibatalkan oleh pengguna.");
+                    }
+                }
+            }
+
+            // --- BARIS YANG DIPERBAIKI ---
+            // Menggunakan !curStatus secara langsung untuk menentukan string status yang benar
+            alert(`Status dokter diperbarui menjadi ${!curStatus ? "Aktif" : "Non-aktif"}.`);
+
+            await handleRefreshData();
         } catch (err) {
             console.error("Gagal memperbarui status dokter:", err);
             const errorMessage = err.message.includes("revert")
@@ -218,8 +272,7 @@ export default function AdminPage({ account, onLogout }) {
                 .updateDokterInfo(address, nama, spesialisasi, nomorLisensi)
                 .send({ from: account });
             alert("Informasi dokter berhasil diperbarui.");
-            await fetchDokterList();
-            await fetchPasienList(); // Memastikan list pasien juga diperbarui jika ada assign baru
+            await handleRefreshData();
         } catch (err) {
             console.error("Gagal memperbarui informasi dokter:", err);
             const errorMessage = err.message.includes("revert")
@@ -242,8 +295,7 @@ export default function AdminPage({ account, onLogout }) {
             alert("Pasien berhasil ditugaskan ke dokter.");
             setPasienAddress("");
             setSelectedDokter("");
-            await fetchDokterList(); // Perbarui daftar dokter dan pasien setelah penugasan
-            await fetchPasienList();
+            await handleRefreshData();
         } catch (err) {
             console.error("Gagal menugaskan pasien:", err);
             const errorMessage = err.message.includes("revert")
@@ -258,11 +310,9 @@ export default function AdminPage({ account, onLogout }) {
     const unassignPasien = async (_dokterAddress, _pasienAddress) => {
         try {
             setLoading(true);
-            const [from] = await web3.eth.getAccounts(); // Menggunakan web3.eth.getAccounts untuk mendapatkan pengirim
-            await contract.methods.unassignPasienFromDokter(_dokterAddress, _pasienAddress).send({ from: from });
+            await contract.methods.unassignPasienFromDokter(_dokterAddress, _pasienAddress).send({ from: account });
             alert("Pasien berhasil dibatalkan penugasannya dari dokter.");
-            await fetchDokterList(); // Perbarui daftar dokter dan pasien setelah pembatalan penugasan
-            await fetchPasienList();
+            await handleRefreshData();
         } catch (error) {
             console.error("Gagal membatalkan penugasan pasien:", error);
             const errorMessage = error.message.includes("revert")
@@ -315,6 +365,7 @@ export default function AdminPage({ account, onLogout }) {
                         loading={loading}
                         listPasien={listPasien}
                         account={account}
+                        onPatientDataChange={handleRefreshData}
                     />
                 )}
                 {activePage === "manageAssign" && (
@@ -329,6 +380,7 @@ export default function AdminPage({ account, onLogout }) {
                         unassignPasien={unassignPasien}
                         loading={loading}
                         assignedPairs={assignedPairs}
+                        onAssignmentChange={handleRefreshData}
                     />
                 )}
             </div>
