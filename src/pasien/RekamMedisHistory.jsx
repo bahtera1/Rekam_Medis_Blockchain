@@ -145,7 +145,7 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
 
             try {
                 const tempAllRecords = [];
-                
+
                 for (const id of rekamMedisIds) {
                     const rmData = await contract.methods.getRekamMedis(id).call();
 
@@ -325,7 +325,7 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
                                             target="_blank"
                                             rel="noopener noreferrer"
                                         >
-                                            Lihat Foto/File
+                                            Lihat Foto
                                         </a>
                                     ) : (
                                         <span className="text-gray-500 italic">Tidak ada</span>
@@ -405,7 +405,7 @@ export default function RekamMedisHistory({ rekamMedisIds, rekamMedisTerbaru }) 
                                     Catatan
                                 </th>
                                 <th className="px-4 py-4 text-center text-xs font-semibold text-white uppercase tracking-wider">
-                                    Foto/File
+                                    Foto
                                 </th>
                                 <th className="px-4 py-4 text-left text-xs font-semibold text-white uppercase tracking-wider">
                                     Dibuat Oleh

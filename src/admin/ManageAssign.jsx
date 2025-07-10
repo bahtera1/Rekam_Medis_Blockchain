@@ -1,4 +1,4 @@
-// ManageAssign.js (UI Tabel Telah Diperbarui)
+// ManageAssign.js
 
 import React, { useState } from "react";
 import Select from 'react-select';
@@ -85,79 +85,79 @@ export default function ManageAssign({
                                 <th className="py-4 px-4 font-semibold text-center">Pasien Ditangani</th>
                             </tr>
                         </thead>
-                        {/* ======================================================== */}
-
                         <tbody className="divide-y divide-blue-100">
-                            {/* ================================================= */}
-                            {/* === PERUBAHAN WARNA DIVIDER BODY TABEL (END) === */}
-                            {/* ================================================= */}
                             {loading && (
                                 <tr><td colSpan={5} className="text-center py-12 text-gray-500">Memuat data...</td></tr>
                             )}
                             {!loading && (!assignedPairs || assignedPairs.length === 0) && (
                                 <tr><td colSpan={5} className="text-center py-12 text-gray-500 italic">Belum ada penugasan yang dibuat.</td></tr>
                             )}
-                            {!loading && assignedPairs.map((pair, idx) => (
-                                <React.Fragment key={idx}>
-                                    <tr className="hover:bg-blue-50/50 transition-colors duration-200 group">
-                                        <td className="py-4 px-4 text-center text-gray-600 font-medium">{idx + 1}</td>
-                                        <td className="py-4 px-4">
-                                            <div className="font-semibold text-gray-800">{pair.dokterNama}</div>
-                                            <div className="text-xs text-gray-500">{pair.dokterSpesialisasi}</div>
-                                        </td>
-                                        <td className="py-4 px-4">
-                                            <code className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-xs font-mono">{pair.dokterLisensi}</code>
-                                        </td>
-                                        <td className="py-4 px-4">
-                                            <code className="text-xs bg-gray-100 px-2 py-1 rounded border text-gray-600">{pair.dokterAddress}</code>
-                                        </td>
-                                        <td className="py-4 px-4 text-center">
-                                            <button onClick={() => setOpenIndex(openIndex === idx ? null : idx)} className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors duration-200 text-sm font-medium">
-                                                <span>{openIndex === idx ? "Sembunyikan" : `Tampilkan (${pair.pasienList.length})`}</span>
-                                                <ChevronDownIcon />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {openIndex === idx && (
-                                        <tr className="bg-blue-50/40">
-                                            <td colSpan={5} className="p-0">
-                                                <div className="p-4 m-4 bg-white rounded-xl shadow-inner border">
-                                                    {/* Nested table styling is kept different for visual hierarchy */}
-                                                    {pair.pasienList.length === 0 ? (
-                                                        <p className="text-sm text-gray-500 italic text-center py-3">Dokter ini tidak memiliki pasien.</p>
-                                                    ) : (
-                                                        <table className="min-w-full">
-                                                            <thead>
-                                                                <tr className="border-b border-gray-200">
-                                                                    <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">Nama Pasien</th>
-                                                                    <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">ID Pasien</th>
-                                                                    <th className="py-2 px-3 text-center text-xs font-semibold text-gray-500">Aksi</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {pair.pasienList.map((p, i) => (
-                                                                    <tr key={i} className="hover:bg-red-50/50 border-b border-gray-100 last:border-b-0">
-                                                                        <td className="py-3 px-3 text-sm text-gray-700">{p.nama}</td>
-                                                                        <td className="py-3 px-3 text-sm text-gray-700">
-                                                                            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-xs">{p.ID}</span>
-                                                                        </td>
-                                                                        <td className="py-3 px-3 text-center">
-                                                                            <button onClick={() => unassignPasien(pair.dokterAddress, p.address)} disabled={loading} className="inline-flex items-center space-x-1 bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
-                                                                                <TrashIcon />
-                                                                                <span>Lepas Tugas</span>
-                                                                            </button>
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    )}
-                                                </div>
+                            {!loading && assignedPairs.map((pair, idx) => {
+                                // --- PERBAIKAN UTAMA DI SINI ---
+                                // Filter pasien yang valid sebelum menampilkannya
+                                const validPasienList = pair.pasienList.filter(p => p && p.nama && p.ID);
+
+                                return (
+                                    <React.Fragment key={idx}>
+                                        <tr className="hover:bg-blue-50/50 transition-colors duration-200 group">
+                                            <td className="py-4 px-4 text-center text-gray-600 font-medium">{idx + 1}</td>
+                                            <td className="py-4 px-4">
+                                                <div className="font-semibold text-gray-800">{pair.dokterNama}</div>
+                                                <div className="text-xs text-gray-500">{pair.dokterSpesialisasi}</div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <code className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-xs font-mono">{pair.dokterLisensi}</code>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <code className="text-xs bg-gray-100 px-2 py-1 rounded border text-gray-600">{pair.dokterAddress}</code>
+                                            </td>
+                                            <td className="py-4 px-4 text-center">
+                                                <button onClick={() => setOpenIndex(openIndex === idx ? null : idx)} className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors duration-200 text-sm font-medium">
+                                                    <span>{openIndex === idx ? "Sembunyikan" : `Tampilkan (${validPasienList.length})`}</span> {/* Update hitungan pasien */}
+                                                    <ChevronDownIcon />
+                                                </button>
                                             </td>
                                         </tr>
-                                    )}
-                                </React.Fragment>
-                            ))}
+                                        {openIndex === idx && (
+                                            <tr className="bg-blue-50/40">
+                                                <td colSpan={5} className="p-0">
+                                                    <div className="p-4 m-4 bg-white rounded-xl shadow-inner border">
+                                                        {validPasienList.length === 0 ? ( // Kondisi ini sekarang memeriksa `validPasienList`
+                                                            <p className="text-sm text-gray-500 italic text-center py-3">Dokter ini tidak memiliki pasien atau data pasien tidak lengkap.</p>
+                                                        ) : (
+                                                            <table className="min-w-full">
+                                                                <thead>
+                                                                    <tr className="border-b border-gray-200">
+                                                                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">Nama Pasien</th>
+                                                                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">ID Pasien</th>
+                                                                        <th className="py-2 px-3 text-center text-xs font-semibold text-gray-500">Aksi</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {validPasienList.map((p, i) => ( // Gunakan `validPasienList` di sini
+                                                                        <tr key={i} className="hover:bg-red-50/50 border-b border-gray-100 last:border-b-0">
+                                                                            <td className="py-3 px-3 text-sm text-gray-700">{p.nama}</td>
+                                                                            <td className="py-3 px-3 text-sm text-gray-700">
+                                                                                <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-xs">{p.ID}</span>
+                                                                            </td>
+                                                                            <td className="py-3 px-3 text-center">
+                                                                                <button onClick={() => unassignPasien(pair.dokterAddress, p.address)} disabled={loading} className="inline-flex items-center space-x-1 bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-md text-xs font-medium transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+                                                                                    <TrashIcon />
+                                                                                    <span>Lepas Tugas</span>
+                                                                                </button>
+                                                                            </td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

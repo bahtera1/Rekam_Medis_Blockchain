@@ -151,8 +151,8 @@ export default function DataDiriPasien({
     );
   }
 
-  // Komponen DetailItem baru untuk mode tampilan/edit
-  const EditableDetailItem = ({ icon, label, name, type = "text", options, colSpan = 1, pattern, maxLength, placeholder, rows }) => (
+  // Komponen EditableDetailItem untuk mode tampilan/edit inline
+  const EditableDetailItem = ({ icon, label, name, type = "text", options, colSpan = 1, pattern, maxLength, placeholder, rows, readOnly = false }) => (
     <div className={`${colSpan === 2 ? 'md:col-span-2' : ''} bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-3 hover:shadow-md transition-all duration-300 border border-gray-200`}>
       <div className="flex items-start">
         <div className="flex items-center">
@@ -163,7 +163,7 @@ export default function DataDiriPasien({
         </div>
       </div>
       <div className="mt-1 ml-6">
-        {isEditing ? (
+        {isEditing && !readOnly ? (
           type === "select" ? (
             <select
               id={name}
@@ -207,9 +207,9 @@ export default function DataDiriPasien({
           )
         ) : (
           <span className="text-gray-900 font-medium text-base break-words">
-            {label === "Tanggal Lahir" ? formatTanggalLahir(dataDiri[name]) :
-              label === "Alamat Dompet" ? <span className="font-mono text-sm break-all bg-gray-100 px-2 py-1 rounded">{dataDiri[name]}</span> :
-                label === "RS Penanggung Jawab" ? hospitalName :
+            {name === "tanggalLahir" ? formatTanggalLahir(dataDiri[name]) :
+              name === "address" ? <span className="font-mono text-sm break-all bg-gray-100 px-2 py-1 rounded">{dataDiri[name]}</span> :
+                name === "rumahSakitPenanggungJawab" ? hospitalName :
                   dataDiri[name] || <span className="text-gray-400 italic">Tidak tersedia</span>}
           </span>
         )}
@@ -295,7 +295,7 @@ export default function DataDiriPasien({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <EditableDetailItem icon={<span className="mr-3 text-blue-600 text-lg">🆔</span>} label="ID Pasien" name="ID" />
+            <EditableDetailItem icon={<span className="mr-3 text-blue-600 text-lg">🆔</span>} label="ID Pasien" name="ID" readOnly={true} />
             <EditableDetailItem icon={<IconUser />} label="Nama Lengkap" name="nama" />
             <EditableDetailItem icon={<span className="mr-3 text-blue-600 text-lg">💳</span>} label="NIK" name="NIK" pattern="\d{16}" maxLength="16" placeholder="16 digit NIK" />
             <EditableDetailItem icon={<IconBloodType />} label="Golongan Darah" name="golonganDarah" type="select" options={["A", "B", "AB", "O"]} />
@@ -303,14 +303,17 @@ export default function DataDiriPasien({
             <EditableDetailItem icon={<IconGender />} label="Gender" name="gender" type="select" options={["Laki-laki", "Perempuan", "Lainnya"]} />
             <EditableDetailItem icon={<IconPhone />} label="No. Telepon" name="noTelepon" type="tel" placeholder="08xxxxxxxxxx" />
             <EditableDetailItem icon={<IconMail />} label="Email" name="email" type="email" placeholder="contoh@email.com" />
+
+            {/* Alamat dan Alamat Dompet akan tetap colSpan=2 untuk mengisi lebar penuh */}
             <EditableDetailItem icon={<IconLocation />} label="Alamat" name="alamat" type="textarea" rows="2" placeholder="Masukkan alamat lengkap..." colSpan={2} />
-            <EditableDetailItem icon={<IconHospital />} label="RS Penanggung Jawab" name="rumahSakitPenanggungJawab" /> {/* Ini tetap non-editable dari sini */}
             <EditableDetailItem
               icon={<span className="mr-3 text-blue-600 text-lg">🔗</span>}
               label="Alamat Dompet"
               name="address"
               colSpan={2}
+              readOnly={true} // Alamat dompet biasanya tidak bisa diubah
             />
+            <EditableDetailItem icon={<IconHospital />} label="RS Penanggung Jawab" name="rumahSakitPenanggungJawab" colSpan={2} readOnly={true} /> {/* Ini juga readOnly di bagian ini */}
           </div>
         </div>
 

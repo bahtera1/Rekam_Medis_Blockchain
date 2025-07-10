@@ -558,7 +558,7 @@ export default function DataPasien({ account, assignedPatients }) {
                                             {/* Kolom ID RM dihapus sesuai permintaan */}
                                             <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Tipe RM</th>
                                             <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Diagnosa</th>
-                                            <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">File/Foto RM</th>
+                                            <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider">Foto RM</th>
                                             <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Catatan</th>
                                             <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Dibuat Oleh</th>
                                             <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider">Waktu Pembuatan</th>
@@ -672,7 +672,7 @@ export default function DataPasien({ account, assignedPatients }) {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">File/Foto Rekam Medis:</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Foto Rekam Medis:</label>
                                 <input type="file" accept="image/*,application/pdf"
                                     onChange={(e) => {
                                         setFotoFile(e.target.files[0]);

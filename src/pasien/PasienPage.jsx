@@ -8,7 +8,7 @@ import web3 from "../web3";
 import queryString from 'query-string';
 
 // Menggunakan ikon dari library React Icons
-import { FaSpinner, FaExclamationTriangle, FaInfoCircle, FaIdCard, FaUserPlus } from "react-icons/fa";
+import { FaSpinner, FaExclamationTriangle, FaInfoCircle, FaUserPlus } from "react-icons/fa";
 import KartuPasien from "./KartuPasien"; // Asumsi Anda akan membuat komponen ini
 
 export default function PasienPage({ account, onLogout, setAccount }) {
@@ -454,14 +454,6 @@ export default function PasienPage({ account, onLogout, setAccount }) {
         namaPasien={dataDiri?.nama || "Pasien"}
       />
       <div className="flex-1 p-6 md:p-10 lg:p-12">
-        <header className="mb-8 md:mb-10">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
-            Selamat Datang, <span className="text-indigo-600">{dataDiri?.nama || "Pasien"}!</span>
-          </h1>
-          <p className="mt-2 text-lg text-gray-600">
-            Kelola data diri dan riwayat rekam medis Anda dengan mudah.
-          </p>
-        </header>
 
         <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10 min-h-[calc(100vh-180px)]">
           {activeMenu === "dataDiri" && dataDiri ? (
