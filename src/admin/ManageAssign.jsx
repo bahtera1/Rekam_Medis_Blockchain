@@ -11,14 +11,14 @@ const ChevronDownIcon = () => (
 );
 const TrashIcon = () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1_0_00-1 1v3M4 7h16" />
     </svg>
 );
 
 // --- Komponen Utama ---
 export default function ManageAssign({
     dokterList,
-    listPasien, // Prop ini sudah berisi data NIK pasien dari AdminPage
+    listPasien,
     selectedDokter,
     setSelectedDokter,
     pasienAddress,
@@ -28,20 +28,21 @@ export default function ManageAssign({
     loading,
     assignedPairs,
     onAssignmentChange,
+    assignedPatientAddresses,
 }) {
     const [openIndex, setOpenIndex] = useState(null);
 
-    // Opsi dan style untuk react-select
     const dokterOptions = dokterList.map(dokter => ({
         value: dokter.address,
-        // Tampilkan nama dan spesialisasi di label dropdown
         label: `${dokter.nama} - ${dokter.spesialisasi} (${dokter.nomorLisensi})`
     }));
 
-    // --- MODIFIKASI PENTING DI SINI: pasienOptions ---
-    const pasienOptions = listPasien.map(pasien => ({
+    const unassignedPasienList = listPasien.filter(pasien => 
+        !assignedPatientAddresses.has(pasien.address.toLowerCase())
+    );
+
+    const pasienOptions = unassignedPasienList.map(pasien => ({
         value: pasien.address,
-        // Tampilkan nama dan NIK pasien di label dropdown
         label: `${pasien.nama || "N/A"} (ID: ${pasien.ID || "-"}) (NIK: ${pasien.NIK || "-"})`
     }));
 
@@ -53,16 +54,10 @@ export default function ManageAssign({
 
     const handleAssign = async () => {
         await assignPasien();
-        if (onAssignmentChange) {
-            onAssignmentChange();
-        }
     };
 
     const handleUnassign = async (dokterAddress, pasienAddressToUnassign) => {
         await unassignPasien(dokterAddress, pasienAddressToUnassign);
-        if (onAssignmentChange) {
-            onAssignmentChange();
-        }
     };
 
     return (
@@ -73,14 +68,37 @@ export default function ManageAssign({
                     Formulir Penugasan Baru
                 </h3>
                 <div className="space-y-6">
-                    <div>
-                        <label htmlFor="select-pasien" className="block text-sm font-medium text-gray-700 mb-2">Pilih Pasien</label>
-                        <Select id="select-pasien" options={pasienOptions} value={pasienOptions.find(o => o.value === pasienAddress) || null} onChange={opt => setPasienAddress(opt ? opt.value : '')} isDisabled={loading} placeholder="Cari nama atau ID pasien..." styles={customStyles} />
-                    </div>
+                    {/* --- INI BAGIAN YANG DIUBAH URUTANNYA --- */}
                     <div>
                         <label htmlFor="select-dokter" className="block text-sm font-medium text-gray-700 mb-2">Pilih Dokter</label>
-                        <Select id="select-dokter" options={dokterOptions} value={dokterOptions.find(o => o.value === selectedDokter) || null} onChange={opt => setSelectedDokter(opt ? opt.value : '')} isDisabled={loading} placeholder="Cari nama atau spesialisasi dokter..." styles={customStyles} />
+                        <Select 
+                            id="select-dokter" 
+                            options={dokterOptions} 
+                            value={dokterOptions.find(o => o.value === selectedDokter) || null} 
+                            onChange={opt => setSelectedDokter(opt ? opt.value : '')} 
+                            isDisabled={loading} 
+                            placeholder="Cari nama atau spesialisasi dokter..." 
+                            styles={customStyles} 
+                        />
                     </div>
+
+                    <div>
+                        <label htmlFor="select-pasien" className="block text-sm font-medium text-gray-700 mb-2">Pilih Pasien</label>
+                        <Select 
+                            id="select-pasien" 
+                            options={pasienOptions} // Menggunakan pasienOptions yang sudah difilter
+                            value={pasienOptions.find(o => o.value === pasienAddress) || null} 
+                            onChange={opt => setPasienAddress(opt ? opt.value : '')} 
+                            isDisabled={loading} 
+                            placeholder="Cari nama atau ID pasien..." 
+                            styles={customStyles} 
+                        />
+                        {unassignedPasienList.length === 0 && (
+                            <p className="text-sm text-red-500 mt-2">Semua pasien sudah ditugaskan.</p>
+                        )}
+                    </div>
+                    {/* --- AKHIR BAGIAN YANG DIUBAH URUTANNYA --- */}
+
                     <div className="pt-4 flex justify-end">
                         <button onClick={handleAssign} disabled={loading || !selectedDokter || !pasienAddress} className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                             {loading ? "Memproses..." : "Tugaskan"}
@@ -147,7 +165,7 @@ export default function ManageAssign({
                                                                     <tr className="border-b border-gray-200">
                                                                         <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">Nama Pasien</th>
                                                                         <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">ID Pasien</th>
-                                                                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">NIK Pasien</th> {/* New Header for NIK */}
+                                                                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500">NIK Pasien</th>
                                                                         <th className="py-2 px-3 text-center text-xs font-semibold text-gray-500">Aksi</th>
                                                                     </tr>
                                                                 </thead>
@@ -158,7 +176,7 @@ export default function ManageAssign({
                                                                             <td className="py-3 px-3 text-sm text-gray-700">
                                                                                 <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-xs">{p.ID}</span>
                                                                             </td>
-                                                                            <td className="py-3 px-3 text-sm text-gray-700"> {/* New Cell for NIK */}
+                                                                            <td className="py-3 px-3 text-sm text-gray-700">
                                                                                 <span className="text-gray-800 px-2 py-1 rounded-md text-xs">{p.NIK || '-'}</span>
                                                                             </td>
                                                                             <td className="py-3 px-3 text-center">

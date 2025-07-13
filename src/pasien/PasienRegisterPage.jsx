@@ -1,3 +1,4 @@
+// PasienRegisterPage.js
 import React, { useState, useEffect } from "react";
 
 // Komponen untuk ikon (menggunakan karakter Unicode)
@@ -9,7 +10,7 @@ const IconLocation = () => <span className="mr-1.5 text-blue-600 inline text-sm"
 const IconGender = () => <span className="mr-1.5 text-blue-600 inline text-sm">🚻</span>;
 const IconBloodType = () => <span className="mr-1.5 text-red-600 inline text-sm">🩸</span>;
 const IconHospital = () => <span className="mr-1.5 text-blue-600 inline text-sm">🏥</span>;
-const IconNIK = () => <span className="mr-1.5 text-blue-600 inline text-sm">💳</span>; // Ikon baru untuk NIK
+const IconNIK = () => <span className="mr-1.5 text-blue-600 inline text-sm">💳</span>;
 
 export default function PasienRegisterPage({
     submitDataDiri,
@@ -32,14 +33,12 @@ export default function PasienRegisterPage({
         e.preventDefault();
         setIsSubmitting(true);
 
-        // Validasi NIK: harus 16 digit angka
         if (!/^\d{16}$/.test(form.NIK)) {
             alert("NIK harus terdiri dari 16 digit angka.");
             setIsSubmitting(false);
             return;
         }
 
-        // Validasi Nomor Telepon: hanya boleh berisi angka
         if (!/^\d+$/.test(form.noTelepon)) {
             alert("Nomor Telepon hanya boleh berisi angka.");
             setIsSubmitting(false);
@@ -57,7 +56,9 @@ export default function PasienRegisterPage({
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center py-4 px-2">
+        // Hapus div pembungkus utama di sini. Biarkan PasienPage yang menanganinya.
+        // Cukup render popup dan form utama sebagai sibling, atau bungkus dengan React.Fragment
+        <>
             {showPopup && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2">
                     <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl border border-blue-100 animate-pulse">
@@ -80,8 +81,8 @@ export default function PasienRegisterPage({
                 </div>
             )}
 
-            {!showPopup && (
-                // --- Perubahan di sini: div pembungkus form sekarang adalah card utama ---
+            {/* Ini adalah card form utama yang Anda inginkan */}
+            {!showPopup && ( // Tetap bungkus form dalam kondisi ini agar muncul setelah popup ditutup
                 <div className="bg-white rounded-xl shadow-xl p-6 max-w-3xl mx-auto border border-gray-200">
                     <div className="text-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800 mb-1.5">
@@ -108,7 +109,6 @@ export default function PasienRegisterPage({
                             />
                         </div>
 
-                        {/* Input NIK baru */}
                         <div className="md:col-span-2">
                             <label htmlFor="nik" className="flex items-center text-xs font-semibold text-gray-700 mb-1">
                                 <IconNIK /> Nomor Induk Kependudukan (NIK)
@@ -272,8 +272,7 @@ export default function PasienRegisterPage({
                         </div>
                     </form>
                 </div>
-                // --- Akhir perubahan div pembungkus form ---
             )}
-        </div>
+        </>
     );
 }

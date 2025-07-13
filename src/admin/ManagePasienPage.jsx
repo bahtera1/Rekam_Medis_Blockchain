@@ -78,7 +78,7 @@ export default function ManagePasienPage({
     const filtered = safeListPasien.filter(p => {
         const nameLower = p?.nama?.toLowerCase() || "";
         const idLower = p?.ID?.toLowerCase() || "";
-        const nikLower = p?.NIK?.toLowerCase() || ""; // <-- Tambahkan NIK ke pencarian
+        const nikLower = p?.NIK?.toLowerCase() || "";
         const addressLower = (typeof p?.address === 'string' ? p.address.toLowerCase() : "");
         const queryLower = q.toLowerCase();
         return nameLower.includes(queryLower) || addressLower.includes(queryLower) || idLower.includes(queryLower) || nikLower.includes(queryLower);
@@ -87,34 +87,36 @@ export default function ManagePasienPage({
     const openDetailModal = (pasien) => {
         setSelectedPasienDetail(pasien);
         setShowDetailModal(true);
-        // Reset state rekam medis saat membuka modal detail pasien
         setMedicalRecords([]);
         setMedicalRecordsError(null);
-        setShowMedicalRecordModal(false); // Pastikan modal rekam medis tertutup
+        setShowMedicalRecordModal(false);
     };
 
     const closeDetailModal = () => {
         setShowDetailModal(false);
         setSelectedPasienDetail(null);
-        setMedicalRecords([]); // Kosongkan rekam medis saat modal ditutup
+        setMedicalRecords([]);
         setMedicalRecordsError(null);
         setShowMedicalRecordModal(false);
+    };
+
+    const openMedicalRecordModalDirectly = async (pasien) => {
+        setSelectedPasienDetail(pasien);
+        await fetchMedicalRecords(pasien.address);
     };
 
     const fetchMedicalRecords = async (pasienAddressToFetch) => {
         setMedicalRecordsLoading(true);
         setMedicalRecordsError(null);
         try {
-            // Panggil fungsi baru di kontrak untuk Admin RS
             const records = await contract.methods.getRekamMedisByPasienUntukAdminRS(pasienAddressToFetch).call({ from: account });
 
-            // Format timestamp menjadi tanggal yang lebih mudah dibaca
             const formattedRecords = records.map(record => ({
                 ...record,
                 timestampPembuatan: new Date(Number(record.timestampPembuatan) * 1000).toLocaleString()
             }));
             setMedicalRecords(formattedRecords);
-            setShowMedicalRecordModal(true); // Tampilkan modal rekam medis
+            setShowMedicalRecordModal(true);
         } catch (err) {
             console.error("Gagal mengambil rekam medis:", err);
             const errorMessage = err.message.includes("revert")
@@ -130,15 +132,20 @@ export default function ManagePasienPage({
         setShowMedicalRecordModal(false);
         setMedicalRecords([]);
         setMedicalRecordsError(null);
+        if (showDetailModal) {
+            // Biarkan modal detail tetap terbuka jika dibuka dari sana
+        } else {
+            setSelectedPasienDetail(null);
+        }
     };
 
     return (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-6 sm:p-8 rounded-2xl shadow-2xl w-full mx-auto my-8 border border-blue-200">
             <div className="mb-8">
                 <h3 className="text-3xl font-bold text-gray-800 mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    Manajemen Pasien
+                    Pasien Terdaftar
                 </h3>
-                <p className="text-gray-600 text-sm">Kelola data pasien yang terdaftar di sistem</p>
+                <p className="text-gray-600 text-sm">Lihat data pasien yang terdaftar</p>
             </div>
 
             {/* Search Section */}
@@ -148,7 +155,7 @@ export default function ManagePasienPage({
                 </div>
                 <input
                     type="search"
-                    placeholder="Cari berdasarkan nama, ID, NIK, atau alamat wallet..." // <-- Perbarui placeholder, HAPUS KOMENTAR JSX DI SINI
+                    placeholder="Cari berdasarkan nama, ID, NIK, atau alamat wallet..."
                     value={q}
                     onChange={e => setQ(e.target.value)}
                     disabled={loading}
@@ -207,16 +214,16 @@ export default function ManagePasienPage({
                             <col style={{ width: '60px' }} />
                             <col style={{ width: '15%' }} />
                             <col style={{ width: '20%' }} />
-                            <col style={{ width: '20%' }} /> {/* Kolom NIK baru */}
-                            <col style={{ minWidth: '300px' }} />
-                            <col style={{ width: '120px' }} />
+                            <col style={{ width: '15%' }} />
+                            <col style={{ minWidth: '250px' }} />
+                            <col style={{ width: '260px' }} /> {/* Diperbesar untuk dua tombol */}
                         </colgroup>
                         <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                             <tr>
                                 <th className="py-4 px-4 font-semibold text-center">No.</th>
                                 <th className="py-4 px-4 font-semibold text-left">ID Pasien</th>
                                 <th className="py-4 px-4 font-semibold text-left">Nama</th>
-                                <th className="py-4 px-4 font-semibold text-left">NIK</th> {/* <-- Tambahkan header NIK */}
+                                <th className="py-4 px-4 font-semibold text-left">NIK</th>
                                 <th className="py-4 px-4 font-semibold text-left">Alamat Wallet</th>
                                 <th className="py-4 px-4 font-semibold text-center">Aksi</th>
                             </tr>
@@ -224,7 +231,7 @@ export default function ManagePasienPage({
                         <tbody className="divide-y divide-blue-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="py-12 px-4 text-center text-gray-500"> {/* <-- Ubah colSpan */}
+                                    <td colSpan={6} className="py-12 px-4 text-center text-gray-500">
                                         <div className="flex flex-col items-center space-y-3">
                                             <Spinner />
                                             <span className="text-lg">Memuat data pasien...</span>
@@ -236,7 +243,7 @@ export default function ManagePasienPage({
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-12 px-4 text-center text-gray-500"> {/* <-- Ubah colSpan */}
+                                    <td colSpan={6} className="py-12 px-4 text-center text-gray-500">
                                         <div className="flex flex-col items-center space-y-3">
                                             <div className="p-4 bg-gray-100 rounded-full">
                                                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,7 +276,7 @@ export default function ManagePasienPage({
                                                 <span className="text-gray-800 font-medium">{p?.nama || "-"}</span>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-4 text-left"> {/* <-- Sel NIK baru */}
+                                        <td className="py-4 px-4 text-left">
                                             <span className="text-gray-800 font-medium">{p?.NIK || "-"}</span>
                                         </td>
                                         <td className="py-4 px-4 text-left">
@@ -278,13 +285,37 @@ export default function ManagePasienPage({
                                             </code>
                                         </td>
                                         <td className="py-4 px-4 text-center">
-                                            <button
-                                                onClick={() => openDetailModal(p)}
-                                                className="inline-flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 text-sm font-medium shadow-sm hover:shadow-md"
-                                            >
-                                                <EyeIcon />
-                                                <span>Detail</span>
-                                            </button>
+                                            {/* Wrapper div for positioning buttons */}
+                                            <div className="flex justify-end space-x-2">
+                                                <button
+                                                    onClick={() => openDetailModal(p)}
+                                                    className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-300 ease-in-out text-sm font-semibold shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 min-w-[120px]"
+                                                >
+                                                    <EyeIcon />
+                                                    <span>Detail</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => openMedicalRecordModalDirectly(p)}
+                                                    className={`inline-flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ease-in-out text-sm font-semibold shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 min-w-[140px]
+                                                        ${medicalRecordsLoading && selectedPasienDetail?.address === p.address
+                                                            ? 'bg-gray-400 cursor-not-allowed'
+                                                            : 'bg-purple-600 hover:bg-purple-700 text-white focus:ring-purple-500'
+                                                        }`}
+                                                    disabled={medicalRecordsLoading && selectedPasienDetail?.address === p.address}
+                                                >
+                                                    {medicalRecordsLoading && selectedPasienDetail?.address === p.address ? (
+                                                        <>
+                                                            <Spinner />
+                                                            <span className="ml-1">Memuat...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <FileIcon />
+                                                            <span>Rekam Medis</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -316,80 +347,72 @@ export default function ManagePasienPage({
                             </button>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4">
-                                <div className="bg-gray-50 p-4 rounded-xl">
-                                    <label className="text-sm font-medium text-gray-600">Nama Lengkap</label>
-                                    <p className="text-lg font-semibold text-gray-800">{selectedPasienDetail.nama || '-'}</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-gray-50 p-4 rounded-xl">
-                                        <label className="text-sm font-medium text-gray-600">ID Pasien</label>
-                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.ID || '-'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-xl">
-                                        <label className="text-sm font-medium text-gray-600">NIK</label> {/* <-- Tampilkan NIK di modal */}
-                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.NIK || '-'}</p>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-gray-50 p-4 rounded-xl">
-                                        <label className="text-sm font-medium text-gray-600">Golongan Darah</label>
-                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.golonganDarah || '-'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-xl">
-                                        <label className="text-sm font-medium text-gray-600">Tanggal Lahir</label>
-                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.tanggalLahir || '-'}</p>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-gray-50 p-4 rounded-xl">
-                                        <label className="text-sm font-medium text-gray-600">Jenis Kelamin</label>
-                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.gender || '-'}</p>
-                                    </div>
-                                    <div className="bg-gray-50 p-4 rounded-xl">
-                                        <label className="text-sm font-medium text-gray-600">No. Telepon</label>
-                                        <p className="text-gray-800 font-medium">{selectedPasienDetail.noTelepon || '-'}</p>
-                                    </div>
-                                </div>
-                                <div className="bg-gray-50 p-4 rounded-xl">
-                                    <label className="text-sm font-medium text-gray-600">Alamat</label>
-                                    <p className="text-gray-800">{selectedPasienDetail.alamat || '-'}</p>
-                                </div>
-                                <div className="bg-gray-50 p-4 rounded-xl">
-                                    <label className="text-sm font-medium text-gray-600">Email</label>
-                                    <p className="text-gray-800 font-medium text-sm">{selectedPasienDetail.email || '-'}</p>
-                                </div>
-                                <div className="bg-gray-50 p-4 rounded-xl">
-                                    <label className="text-sm font-medium text-gray-600">Alamat Wallet</label>
-                                    <code className="text-xs bg-white px-2 py-1 rounded border text-gray-600 break-all block mt-1">
-                                        {selectedPasienDetail.address || '-'}
-                                    </code>
-                                </div>
-                                <div className="bg-gray-50 p-4 rounded-xl">
-                                    <label className="text-sm font-medium text-gray-600">RS Penanggung Jawab</label>
-                                    <p className="text-gray-800 font-medium text-sm">{selectedPasienDetail.rumahSakitPenanggungJawab || '-'}</p>
-                                </div>
+                        {/* --- PERBAIKAN UI DETAIL PASIEN --- */}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm"> {/* Gunakan grid untuk layout 2 kolom */}
+                            {/* Baris 1 */}
+                            <div className="bg-gray-50 p-3 rounded-xl col-span-2"> {/* Nama Lengkap - ambil seluruh kolom jika dirasa terlalu panjang */}
+                                <label className="text-xs font-medium text-gray-600">Nama Lengkap</label>
+                                <p className="text-base font-semibold text-gray-800 mt-1">{selectedPasienDetail.nama || '-'}</p>
                             </div>
+
+                            {/* Baris 2 */}
+                            <div className="bg-gray-50 p-3 rounded-xl">
+                                <label className="text-xs font-medium text-gray-600">ID Pasien</label>
+                                <p className="text-sm text-gray-800 font-medium mt-1">{selectedPasienDetail.ID || '-'}</p>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-xl">
+                                <label className="text-xs font-medium text-gray-600">NIK</label>
+                                <p className="text-sm text-gray-800 font-medium mt-1">{selectedPasienDetail.NIK || '-'}</p>
+                            </div>
+
+                            {/* Baris 3 */}
+                            <div className="bg-gray-50 p-3 rounded-xl">
+                                <label className="text-xs font-medium text-gray-600">Golongan Darah</label>
+                                <p className="text-sm text-gray-800 font-medium mt-1">{selectedPasienDetail.golonganDarah || '-'}</p>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-xl">
+                                <label className="text-xs font-medium text-gray-600">Tanggal Lahir</label>
+                                <p className="text-sm text-gray-800 font-medium mt-1">{selectedPasienDetail.tanggalLahir || '-'}</p>
+                            </div>
+
+                            {/* Baris 4 */}
+                            <div className="bg-gray-50 p-3 rounded-xl">
+                                <label className="text-xs font-medium text-gray-600">Jenis Kelamin</label>
+                                <p className="text-sm text-gray-800 font-medium mt-1">{selectedPasienDetail.gender || '-'}</p>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-xl">
+                                <label className="text-xs font-medium text-gray-600">No. Telepon</label>
+                                <p className="text-sm text-gray-800 font-medium mt-1">{selectedPasienDetail.noTelepon || '-'}</p>
+                            </div>
+
+                            {/* Baris 5 */}
+                            <div className="bg-gray-50 p-3 rounded-xl col-span-2"> {/* Alamat - ambil seluruh kolom */}
+                                <label className="text-xs font-medium text-gray-600">Alamat</label>
+                                <p className="text-sm text-gray-800 mt-1">{selectedPasienDetail.alamat || '-'}</p>
+                            </div>
+
+                            {/* Baris 6 */}
+                            <div className="bg-gray-50 p-3 rounded-xl col-span-2"> {/* Email - ambil seluruh kolom */}
+                                <label className="text-xs font-medium text-gray-600">Email</label>
+                                <p className="text-sm text-gray-800 font-medium mt-1 break-all">{selectedPasienDetail.email || '-'}</p>
+                            </div>
+
+                            {/* Baris 7 */}
+                            <div className="bg-gray-50 p-3 rounded-xl col-span-2"> {/* Alamat Wallet - ambil seluruh kolom */}
+                                <label className="text-xs font-medium text-gray-600">Alamat Wallet</label>
+                                <code className="text-xs bg-white px-2 py-1 rounded border text-gray-600 break-all block mt-1">
+                                    {selectedPasienDetail.address || '-'}
+                                </code>
+                            </div>
+
+                            {/* --- HAPUS RS PENANGGUNG JAWAB DARI SINI --- */}
+                            {/* <div className="bg-gray-50 p-3 rounded-xl">
+                                <label className="text-xs font-medium text-gray-600">RS Penanggung Jawab</label>
+                                <p className="text-gray-800 font-medium text-sm">{selectedPasienDetail.rumahSakitPenanggungJawab || '-'}</p>
+                            </div> */}
                         </div>
 
-                        <button
-                            onClick={() => fetchMedicalRecords(selectedPasienDetail.address)}
-                            className="mt-6 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                            disabled={medicalRecordsLoading}
-                        >
-                            {medicalRecordsLoading ? (
-                                <>
-                                    <Spinner />
-                                    <span className="ml-2">Memuat Rekam Medis...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <FileIcon />
-                                    <span className="ml-2">Lihat Rekam Medis</span>
-                                </>
-                            )}
-                        </button>
+                        {/* Tombol Lihat Rekam Medis (pindah ke tabel utama) */}
                     </div>
                 </div>
             )}
