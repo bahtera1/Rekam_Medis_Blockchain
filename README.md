@@ -31,8 +31,6 @@ Data medis sensitif disimpan secara *off-chain* di InterPlanetary File System (I
 * **Blockchain Tools:** Truffle, Ganache, MetaMask, IPFS, Pinata, Ngrok  
 * **Lingkungan Pengembangan:** Node.js, npm, Visual Studio Code
 
-## Struktur Proyek
-
 
 ## Persyaratan Sistem
 
@@ -71,7 +69,7 @@ Instal semua dependensi dengan:
 
 ### Langkah 4 – Deploy Smart Contract
 Pastikan Ganache berjalan, lalu jalankan:
-File dan Intalasi Ganache ada di : https://github.com/bahtera1/rekam_medis_backend.git
+File dan Intalasi Ganache ada di : (https://github.com/bahtera1/rekam_medis_solidity.git)
 
 ###Langkah 5 – Konfigurasi File .env
 Buat file .env di root direktori dan isi seperti berikut:
