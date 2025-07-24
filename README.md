@@ -70,6 +70,7 @@ Instal semua dependensi dengan:
 ### Langkah 4 – Deploy Smart Contract
 Pastikan Ganache berjalan, lalu jalankan:
 File dan Intalasi Ganache ada di : (https://github.com/bahtera1/rekam_medis_solidity.git)
+Salin CA dan ABI(jika ada perubahan) jika sudah di deploy
 
 ### Langkah 5 – Konfigurasi File .env
 Buat file .env di root direktori dan isi seperti berikut:
