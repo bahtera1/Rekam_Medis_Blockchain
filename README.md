@@ -65,6 +65,7 @@ Instal semua dependensi dengan:
 ```bash
   npm install
   npm install react-router-dom
+  npm install axios
   npm install react-scripts@latest webpack@latest --save-dev
 ```
 
@@ -96,8 +97,7 @@ REACT_APP_NATIVE_CURRENCY_SYMBOL="ETH"
 REACT_APP_NATIVE_CURRENCY_DECIMALS=18
 
 # Kunci API dari layanan Pinata (digunakan untuk menyimpan file ke IPFS)
-REACT_APP_PINATA_API_KEY=YOUR_PINATA_API_KEY  # Dapatkan dari akun Pinata
-REACT_APP_PINATA_SECRET_API_KEY=YOUR_PINATA_SECRET_API_KEY  # Simpan dengan aman, jangan di-push ke GitHub
+REACT_APP_PINATA_JWT= YOUR_PINATA_JWT  # Simpan dengan aman, jangan di-push ke GitHub
 
 ```
 Langkah 6 – Menjalankan Aplikasi
