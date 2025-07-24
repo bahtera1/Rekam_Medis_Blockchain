@@ -71,7 +71,7 @@ Instal semua dependensi dengan:
 Pastikan Ganache berjalan, lalu jalankan:
 File dan Intalasi Ganache ada di : (https://github.com/bahtera1/rekam_medis_solidity.git)
 
-###Langkah 5 – Konfigurasi File .env
+### Langkah 5 – Konfigurasi File .env
 Buat file .env di root direktori dan isi seperti berikut:
 ```bash
 # Alamat smart contract yang telah di-deploy ke jaringan blockchain
